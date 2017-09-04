@@ -1,0 +1,3 @@
+The most optimal solution is the sparsest solution
+l_0 = number of non zero elements within a matrix
+frequentist prob vs. bayesian probability
