@@ -7,13 +7,15 @@ class Network(object):
     def __init__(self, dataset, learning_rate=0.5):
         # lr = 0.5
         self.dataset = dataset
+        self.input_number = dataset.train.images.shape[1]
+        self.output_number = self.dataset.train.labels.shape[1]
         self.neural_layer = []
         # Get the input vector length
         self.num_classes = dataset.train.labels.shape[1]
         self.learning_rate = learning_rate
 
     def build_graph(self, learning_rate=0.5):
-        self.x = tf.placeholder(tf.float32, [None, 784])
+        self.x = tf.placeholder(tf.float32, [None, self.input_number])
         # W represents the transformation into a layer
         # W = tf.Variable(tf.zeros([784, 10]))
         # this is the biases
@@ -22,7 +24,7 @@ class Network(object):
         for i in range(len(self.neural_layer)):
             current_value = tf.matmul(current_value, self.neural_layer[i])
         self.y = tf.nn.softmax(current_value + b)
-        self.y_ = tf.placeholder(tf.float32, [None, 10])
+        self.y_ = tf.placeholder(tf.float32, [None, self.output_number])
         self.cross_entropy = tf.reduce_mean(
             -tf.reduce_sum(self.y_ * tf.log(self.y), reduction_indices=[1]))
         self.train_step = tf.train.GradientDescentOptimizer(
@@ -40,15 +42,16 @@ class Network(object):
 
     def define_layers(self, output_numbers):
         # output_numbers is a list of integers.
-        input_number = self.dataset.train.images.shape[1]
-        last_output_number = self.dataset.train.labels.shape[1]
+        # input_number = self.dataset.train.images.shape[1]
+        # last_output_number = self.dataset.train.labels.shape[1]
         # Only go in for loop if there is more than one layer.
+        input_number = self.input_number
         for i in range(len(output_numbers)):
             output_number = output_numbers[i]
             self.neural_layer += [tf.Variable(tf.zeros([input_number, output_number]))]
             input_number = output_number
         # append the last output, which converts to number of classes.
-        self.neural_layer += [tf.Variable(tf.zeros([input_number, last_output_number]))]
+        self.neural_layer += [tf.Variable(tf.zeros([input_number, self.output_number]))]
         return
 
     def eval(self):
