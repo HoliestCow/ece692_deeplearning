@@ -42,7 +42,9 @@ class Network(object):
 
     def define_layers(self, output_numbers):
         for i in range(len(output_numbers)-1):
-            self.neural_layer += [tf.Variable(tf.zeros([output_numbers[i], output_numbers[i+1]]))]
+            # self.neural_layer += [tf.Variable(tf.zeros([output_numbers[i], output_numbers[i+1]]))]
+            self.neural_layer += [tf.Variable(tf.random_uniform(
+                [output_numbers[i], output_numbers[i+1]], minval=-1, maxval=1))]
         # self.neural_layer += [tf.Variable(tf.zeros([input_number, self.output_number]))]
         return
 
