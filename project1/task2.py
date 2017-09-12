@@ -1,6 +1,8 @@
 # Python 3.6
 from tensorflow.examples.tutorials.mnist import input_data
-from network import Network
+import mnist_loader  # This is nielson
+from network import Network as TF_Network
+from np_network import Network as NP_Network  # this is nielson
 from time import time
 # import numpy as np
 import pandas as pd
@@ -8,60 +10,113 @@ import matplotlib.pyplot as plt
 import matplotlib._color_data as mcd
 
 
+
 def main():
     # dataset
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
-    # building the networks
-    layers = [
-        # Here I'm messing with network structure
+    input_number = mnist.train.images.shape[1]
+    output_number = mnist.train.labels.shape[1]
+
+    training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
+
+    learning_rate = [1E-4, 1E-3, 0.1, 0.3, 0.5, 0.7, 1.0]
+    hidden_layers = [
         [],
         [5],
         [10, 10],
-        [5, 15, 5],
-        [10, 5, 10],
-        [4],
-        [500, 250, 100],
-        [500, 250, 50, 20],
-        # Here I'm messing with learning rate
-        [],
-        [],
-        [],
-        [],
-        []
-        ]
-    # learning rate settings
-    learning_rate = [
-        # Here I'm messing with network structure
-        0.5,
-        0.5,
-        0.5,
-        0.5,
-        0.5,
-        0.5,
-        0.5,
-        0.5,
-        # Here I'm messing with learning rate
-        0.7,
-        1.0,
-        0.25,
-        0.1,
-        1E-3
-        ]
-    input_number = mnist.train.images.shape[1]
-    output_number = mnist.train.labels.shape[1]
+        [50, 25, 10]]
+
+    for row in range(len(hidden_layers)):
+        hidden_layers[row] = [input_number] + hidden_layers[row] + [output_number]
+
+    tf_data = TF_NN(hidden_layers, learning_rate, mnist)
+    np_data = NP_NN(hidden_layers, learning_rate, training_data, test_data)
+    #### analysis portion ####
+    gambit(tf_data, prefix='TF')
+    gambit(np_data, prefix='NP')
+    return
+
+
+def gambit(data, prefix=None):
+    toplot = data[data['learning_rate'] == 0.5]
+    fig, ax = poke_dataframe(toplot,
+                             'total_time',
+                             'score',
+                             labeler='model')
+    fig.savefig('{}_lr0.5_model_totaltime.png'.format(prefix))
+    plt.close(fig)
+
+    fig, ax = poke_dataframe(toplot,
+                             'train_time',
+                             'score',
+                             labeler='model')
+    fig.savefig('{}_lr0.5_model_traintime.png'.format(prefix))
+    plt.close(fig)
+
+    fig, ax = poke_dataframe(toplot,
+                             'eval_time',
+                             'score',
+                             labeler='model')
+    fig.savefig('{}_lr0.5_model_evaltime.png'.format(prefix))
+    plt.close(fig)
+
+    fig, ax = poke_dataframe(data,
+                             'learning_rate',
+                             'score',
+                             labeler='model',
+                             specific_label='784_10')
+    fig.savefig('{}_model_784_10_totaltime.png'.format(prefix))
+    plt.close(fig)
+    return
+
+
+def NP_NN(hidden_layers, learning_rate, training_data, test_data):
     output_container = []
-    for i in range(len(layers)):
-        network_label = network_label_generator(layers[i], input_number, output_number)
-        [score, total_time, train_time, eval_time] = execute_neural_network(
-            dataset=mnist,
-            neural_network=layers[i],
-            learning_rate=learning_rate[i])
-        output_container += [(network_label,
-                              learning_rate[i],
-                              score,
-                              total_time,
-                              train_time,
-                              eval_time)]
+    for i in range(len(hidden_layers)):
+        print('Calculating {}'.format(hidden_layers[i]))
+        for j in range(len(learning_rate)):
+            network_label = network_label_generator(hidden_layers[i])
+            # training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
+            net = NP_Network(hidden_layers[i])
+            bigtic = time()
+            net.SGD(training_data, 10, 100, learning_rate[j], test_data=test_data)
+            # def SGD(self, training_data, epochs, mini_batch_size, eta,
+                    # test_data=None)
+            train_time = net.train_time
+            tic = time()
+            score = net.evaluate(test_data)
+            toc = time()
+            eval_time = toc-tic
+            bigtoc = time()
+            total_time = bigtoc-bigtic
+            output_container += [(network_label,
+                                  learning_rate[j],
+                                  score,
+                                  total_time,
+                                  train_time,
+                                  eval_time)]
+    data = pd.DataFrame.from_records(
+        output_container,
+        columns=['model', 'learning_rate', 'score', 'total_time', 'train_time', 'eval_time'])
+    return data
+
+
+def TF_NN(hidden_layers, learning_rate, data):
+
+    output_container = []
+    for i in range(len(hidden_layers)):
+        for j in range(len(learning_rate)):
+            network_label = network_label_generator(hidden_layers[i])
+            [score, total_time, train_time, eval_time] = execute_neural_network(
+                dataset=data,
+                neural_network=hidden_layers[i],
+                learning_rate=learning_rate[j])
+            output_container += [(network_label,
+                                  learning_rate[j],
+                                  score,
+                                  total_time,
+                                  train_time,
+                                  eval_time)]
         # this is [str, float, float, float, float]
     # data = pd.DataFrame.from_records(
     #     output_container,
@@ -70,40 +125,8 @@ def main():
     data = pd.DataFrame.from_records(
         output_container,
         columns=['model', 'learning_rate', 'score', 'total_time', 'train_time', 'eval_time'])
-    # data.sort_index(level=['learning_rate'], ascending=[1], inplace=True)
 
-    #### analysis portion ####
-    toplot = data[data['learning_rate'] == 0.5]
-    fig, ax = poke_dataframe(toplot,
-                             'total_time',
-                             'score',
-                             labeler='model')
-    fig.savefig('lr0.5_model_totaltime.png')
-    plt.close(fig)
-
-    fig, ax = poke_dataframe(toplot,
-                             'train_time',
-                             'score',
-                             labeler='model')
-    fig.savefig('lr0.5_model_traintime.png')
-    plt.close(fig)
-
-    fig, ax = poke_dataframe(toplot,
-                             'eval_time',
-                             'score',
-                             labeler='model')
-    fig.savefig('lr0.5_model_evaltime.png')
-    plt.close(fig)
-
-    fig, ax = poke_dataframe(data[data['model'] == '784_10'],
-                             'learning_rate',
-                             'score',
-                             labeler='model',
-                             specific_label='784_10')
-    fig.savefig('model_784_10_totaltime.png')
-    plt.close(fig)
-
-    return
+    return data
 
 
 def poke_dataframe(data, x, y, labeler=None, specific_label=None):
@@ -141,23 +164,23 @@ def poke_dataframe(data, x, y, labeler=None, specific_label=None):
     return fig, ax
 
 
-def network_label_generator(x, input_number, output_number):
+def network_label_generator(x):
     out = ''
-    out += '{}_'.format(input_number)
     for i in range(len(x)):
         # out += str(x[i])+'_'
         out += '{}_'.format(x[i])
-    out += '{}'.format(output_number)
+    out = out[:-1]
     return out
 
 
-def execute_neural_network(dataset=None, neural_network=[], learning_rate=0.5):
+def execute_neural_network(dataset=None, neural_network=None, learning_rate=0.5,
+                           epoch_number=100, batch_number=1000):
     total_tic = time()
-    model = Network(dataset)
+    model = TF_Network(dataset)
     model.define_layers(output_numbers=neural_network)
     model.build_graph(learning_rate=learning_rate)
     train_tic = time()
-    model.train()
+    model.train(epoch_number=epoch_number, batch_number=batch_number)
     train_toc = time()
     eval_tic = time()
     score = model.eval()
