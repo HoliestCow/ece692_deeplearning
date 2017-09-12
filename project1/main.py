@@ -136,6 +136,7 @@ def NP_NN(hidden_layers, learning_rate, epoch_number, batch_number, ncores=4):
         todo[i] = (i,) + todo[i] + (training_data,) + (test_data,)
     with Pool(processes=ncores) as p:
         p.starmap(execute_NP_NN, todo)
+        # result = [p.apply_async(execute_NP_NN, todo) for i in range(ncores)]
     # p = Process(target=execute_NP_NN, args=todo)
     # p.start()
     # p.join()
