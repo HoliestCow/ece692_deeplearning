@@ -18,6 +18,7 @@ import numpy as np
 
 from time import time
 
+
 class Network(object):
 
     def __init__(self, sizes):
