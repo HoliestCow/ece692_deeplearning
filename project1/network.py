@@ -1,3 +1,4 @@
+
 import tensorflow as tf
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -14,16 +15,33 @@ class Network(object):
         self.num_classes = dataset.train.labels.shape[1]
         self.learning_rate = learning_rate
 
+    def softmax(self, x):
+        return tf.nn.softmax(x)
+
+    def relu(self, x):
+        return tf.nn.relu(x)
+
+    def sigmoid(self, x):
+        return tf.sigmoid(x)
+
     def build_graph(self, learning_rate=0.5):
         self.x = tf.placeholder(tf.float32, [None, self.input_number])
         # W represents the transformation into a layer
         # W = tf.Variable(tf.zeros([784, 10]))
         # this is the biases
-        b = tf.Variable(tf.zeros([self.num_classes]))
+        # b = tf.Variable(tf.zeros([self.num_classes]))
         current_value = self.x
         for i in range(len(self.neural_layer)):
-            current_value = tf.matmul(current_value, self.neural_layer[i])
-        self.y = tf.nn.softmax(current_value + b)
+            current_value = tf.matmul(current_value, self.neural_layer[i]['W']) +\
+                                      self.neural_layer[i]['b']
+            if i == len(self.neural_layer)-1:
+                # Idea is to not pump it through sigmoid, but the softmax for classification.
+                continue
+            # current_value = self.softmax(current_value)
+            # current_value = self.sigmoid(current_value)
+            current_value = self.relu(current_value)
+        self.y = self.softmax(current_value)
+        # self.y = current_value
         self.y_ = tf.placeholder(tf.float32, [None, self.num_classes])
         self.cross_entropy = tf.reduce_mean(
             -tf.reduce_sum(self.y_ * tf.log(self.y), reduction_indices=[1]))
@@ -42,10 +60,15 @@ class Network(object):
 
     def define_layers(self, output_numbers):
         for i in range(len(output_numbers)-1):
-            # self.neural_layer += [tf.Variable(tf.zeros([output_numbers[i], output_numbers[i+1]]))]
-            self.neural_layer += [tf.Variable(tf.random_uniform(
-                [output_numbers[i], output_numbers[i+1]], minval=-1, maxval=1))]
+            self.neural_layer += [
+                {'W': tf.Variable(tf.random_uniform(
+                 [output_numbers[i], output_numbers[i+1]], minval=-1, maxval=1)),
+                 'b':tf.Variable(tf.random_uniform([output_numbers[i+1]], minval=-1, maxval=1))}]
+
+        # TODO: insert bias at each level.
+        # NOTE: Originale
         # self.neural_layer += [tf.Variable(tf.zeros([input_number, self.output_number]))]
+        # NOTE: Elliot Greenless uses tf.truncated_normal([input_size, output_size], stdev=1))
         return
 
     def eval(self):

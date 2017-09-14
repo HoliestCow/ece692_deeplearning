@@ -16,49 +16,55 @@ from multiprocessing import Pool
 from itertools import product
 from glob import glob
 
+
 def main():
     # dataset
+    ncores = 4  # This is used for NP_NN
+    run_name = 'NP_sigmoid'
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
-    ncores = 4
     input_number = mnist.train.images.shape[1]
     output_number = mnist.train.labels.shape[1]
 
     # training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
 
     # FOR TF
-    # learning_rate = [1E-3, 0.1, 0.3]
-    # hidden_layers = [
-    #     [],
-    #     [5],
-    #     [50, 25],
-    #     [30]]
-    # epoch_number = [100, 200, 500, 1000]
-    # batch_number = [10, 50, 100]
+    learning_rate = [1E-3, 0.1, 0.3]
+    hidden_layers = [
+        [],
+        [30],
+        [100, 30],
+        [100, 300, 100]]
+    epoch_number = [100, 200, 500]
+    batch_number = [50, 100, 500]
 
     # FOR NP
-    learning_rate = [0.1, 0.3]
-    hidden_layers = [[], [30]]
-    epoch_number = [10, 20]
-    batch_number = [50, 100]
+    # learning_rate = [0.1, 0.3]
+    # hidden_layers = [[], [30]]
+    # epoch_number = [50, 100]
+    # batch_number = [10, 50, 100]
 
     for row in range(len(hidden_layers)):
         hidden_layers[row] = [input_number] + hidden_layers[row] + [output_number]
 
-    if not os.path.isfile('tf_data.p'):
-        tf_data = TF_NN(hidden_layers, mnist, learning_rate, epoch_number, batch_number)
-        print(tf_data)
-        tf_data.to_pickle('tf_data.p')
-    if not os.path.isfile('np_data.p'):
-        # HACK: I left mnist data import intrinsic to NP_NN since the import intrinsically uses
-        #       a generator (python 2 to 3 issue).
-        np_data = NP_NN(hidden_layers, learning_rate, epoch_number, batch_number, ncores=ncores)
-        print(np_data)
-        np_data.to_pickle('np_data.p')
+    # NOTE: Removed teh pickle checker
+    # if not os.path.isfile(run_name + '.p'):
+    #     tf_data = TF_NN(hidden_layers, mnist, learning_rate, epoch_number, batch_number)
+    #     tf_data.to_pickle(run_name + '.p')
+
+    # HACK: I left mnist data import intrinsic to NP_NN since the import intrinsically uses
+    #       a generator (python 2 to 3 issue).
+    print('calcing np_data')
+    np_data = NP_NN(hidden_layers, learning_rate, epoch_number, batch_number, ncores=ncores)
+    print(np_data)
+    np_data.to_pickle('np_data.p')
     # analysis portion
-    tf_data = pd.read_pickle('tf_data.p')
+    # tf_data = pd.read_pickle(run_name + '.p')
+    # print(tf_data)
     np_data = pd.read_pickle('np_data.p')
-    gambit(tf_data, learning_rate=0.1, prefix='TF')
-    gambit(np_data, learning_rate=0.1, prefix='NP')
+    # print('TF')
+    # gambit(tf_data, learning_rate=1E-3, prefix=run_name)
+    print('NP')
+    gambit(np_data, learning_rate=0.1, prefix=run_name)
     return
 
 
@@ -87,14 +93,6 @@ def gambit(data, learning_rate=0.3, prefix=None):
     fig.savefig('{}_lr{}_model_evaltime.png'.format(prefix, learning_rate))
     plt.close(fig)
 
-    # fig, ax = poke_dataframe(data,
-    #                          'learning_rate',
-    #                          'score',
-    #                          labeler='model',
-    #                          specific_label='784_30_10')
-    # fig.savefig('{}_model_784_10_totaltime.png'.format(prefix))
-    # plt.close(fig)
-
     fig, ax = poke_dataframe(data,
                              'learning_rate',
                              'score',
@@ -121,53 +119,44 @@ def gambit(data, learning_rate=0.3, prefix=None):
 
 
 def NP_NN(hidden_layers, learning_rate, epoch_number, batch_number, ncores=4):
-    output_container = []
     # for hidden_layer, learning, epoch, batchsize in zip(hidden_layers,
     #                                                     learning_rate,
     #                                                     epoch_number,
     #                                                     batch_number):
     todo = list(product(*[hidden_layers, learning_rate, epoch_number, batch_number]))
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-    print(training_data, validation_data, test_data)
-    # index = list(range(len(todo)))
-    # todo = list(zip(index, todo, repeat(training_data), repeat(test_data)))
-    # zip(index, todo, repeat(
     for i in range(len(todo)):
         todo[i] = (i,) + todo[i] + (training_data,) + (test_data,)
-    with Pool(processes=ncores) as p:
-        p.starmap(execute_NP_NN, todo)
-        # result = [p.apply_async(execute_NP_NN, todo) for i in range(ncores)]
-    # p = Process(target=execute_NP_NN, args=todo)
-    # p.start()
-    # p.join()
-    print('we made it fam')
-    # for item in todo:
-    #     [run_id, hidden_layer, learning, epoch, batch] = item
-    #     print('NP Calculating:\nNN: {}\nLR: {}\nEN: {}\nBA: {}'.format(hidden_layer,
-    #                                                                 learning,
-    #                                                                 epoch,
-    #                                                                 batch))
-    #     output_container += [execute_NP_NN(run_id, hidden_layer, learning, epoch, batch)]
-
-    # I need to figure out the csv parsing glob shit here.
+    if not len(todo) == len(glob('*.out')):
+        with Pool(processes=ncores) as p:
+            p.starmap(execute_NP_NN, todo)
+            [p.apply_async(execute_NP_NN, todo) for i in range(ncores)]
     data = parse_txtfiles()
-    print(data)
-    stop
     data = pd.DataFrame.from_records(
-        output_container,
+        data,
         columns=['model', 'learning_rate', 'score', 'total_time', 'train_time', 'eval_time',
                  'epoch_number', 'batch_number'])
     return data
 
 
 def parse_txtfiles():
-    filelist = glob('./*.txt')
+    filelist = glob('*.out')
     output_container = []
     for item in filelist:
         f = open(item, 'r')
         a = f.readlines()
-        line = a[0]  # one line per file.
-        output_container += line.split(',')
+        line = a[0].strip()  # one line per file.
+        [model, learning_rate, score, total_time, train_time, eval_time,
+         epoch_number, batch_number] = line.split(', ')
+        learning_rate = float(learning_rate)
+        score = float(score)
+        total_time = float(total_time)
+        train_time = float(train_time)
+        eval_time = float(eval_time)
+        epoch_number = int(epoch_number)
+        batch_number = int(batch_number)
+        output_container += [(model, learning_rate, score, total_time,
+                              train_time, eval_time, epoch_number, batch_number)]
     return output_container
 
 

@@ -135,7 +135,7 @@ class Network(object):
         neuron in the final layer has the highest activation."""
         test_results = [(np.argmax(self.feedforward(x)), y)
                         for (x, y) in test_data]
-        return sum(int(x == y) for (x, y) in test_results) / len(test_results)
+        return sum(int(x == y) for (x, y) in test_results)
 
     def cost_derivative(self, output_activations, y):
         """Return the vector of partial derivatives \partial C_x /
@@ -150,3 +150,17 @@ def sigmoid(z):
 def sigmoid_prime(z):
     """Derivative of the sigmoid function."""
     return sigmoid(z)*(1-sigmoid(z))
+
+def relu(z):
+    return np.maximum(z, 0)
+
+
+def relu_prime(z):
+    out = np.zeros(z.shape)
+    out[z > 0] = 1
+    return out
+
+# def softmax(x):
+#     """Compute softmax values for each sets of scores in x."""
+#     e_x = np.exp(x - np.max(x))
+#     return e_x / e_x.sum()
