@@ -6,8 +6,6 @@ from np_network import Network as NP_Network  # this is nielson
 from time import time
 # import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib._color_data as mcd
 # from itertools import product, tee, repeat
 import os.path
 # from tabulate import tabulate
@@ -21,6 +19,8 @@ def main():
     # dataset
     ncores = 4  # This is used for NP_NN
     run_name = 'NP_sigmoid'
+    # run_name = 'NP_relu'
+    # run_name = 'TF_relu'
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
     input_number = mnist.train.images.shape[1]
     output_number = mnist.train.labels.shape[1]
@@ -28,93 +28,42 @@ def main():
     # training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
 
     # FOR TF
-    learning_rate = [1E-3, 0.1, 0.3]
-    hidden_layers = [
-        [],
-        [30],
-        [100, 30],
-        [100, 300, 100]]
-    epoch_number = [100, 200, 500]
-    batch_number = [50, 100, 500]
+    # learning_rate = [1E-3, 0.1, 0.3]
+    # hidden_layers = [
+    #     [],
+    #     [30],
+    #     [100, 30],
+    #     [100, 300, 100]]
+    # epoch_number = [50, 100, 200]
+    # batch_number = [50, 100, 200]
 
     # FOR NP
-    # learning_rate = [0.1, 0.3]
-    # hidden_layers = [[], [30]]
-    # epoch_number = [50, 100]
-    # batch_number = [10, 50, 100]
+    learning_rate = [1E-3, 0.1, 0.3]
+    hidden_layers = [[], [30]]
+    epoch_number = [50, 100]
+    batch_number = [50, 100]
 
     for row in range(len(hidden_layers)):
         hidden_layers[row] = [input_number] + hidden_layers[row] + [output_number]
 
-    # NOTE: Removed teh pickle checker
     # if not os.path.isfile(run_name + '.p'):
     #     tf_data = TF_NN(hidden_layers, mnist, learning_rate, epoch_number, batch_number)
     #     tf_data.to_pickle(run_name + '.p')
 
     # HACK: I left mnist data import intrinsic to NP_NN since the import intrinsically uses
     #       a generator (python 2 to 3 issue).
-    print('calcing np_data')
+    # print('calcing np_data')
     np_data = NP_NN(hidden_layers, learning_rate, epoch_number, batch_number, ncores=ncores)
-    print(np_data)
-    np_data.to_pickle('np_data.p')
+    # print(np_data)
+    np_data.to_pickle(run_name + '.p')
     # analysis portion
     # tf_data = pd.read_pickle(run_name + '.p')
     # print(tf_data)
-    np_data = pd.read_pickle('np_data.p')
+    # np_data = pd.read_pickle(run_name + '.p')
     # print('TF')
     # gambit(tf_data, learning_rate=1E-3, prefix=run_name)
-    print('NP')
-    gambit(np_data, learning_rate=0.1, prefix=run_name)
-    return
-
-
-def gambit(data, learning_rate=0.3, prefix=None):
-    print(data)
-    # print(tabulate(data, headers='keys', tablefmt='psql'))
-    toplot = data[data['learning_rate'] == learning_rate]
-    fig, ax = poke_dataframe(toplot,
-                             'total_time',
-                             'score',
-                             labeler='model')
-    fig.savefig('{}_lr{}_model_totaltime.png'.format(prefix, learning_rate))
-    plt.close(fig)
-
-    fig, ax = poke_dataframe(toplot,
-                             'train_time',
-                             'score',
-                             labeler='model')
-    fig.savefig('{}_lr{}_model_traintime.png'.format(prefix, learning_rate))
-    plt.close(fig)
-
-    fig, ax = poke_dataframe(toplot,
-                             'eval_time',
-                             'score',
-                             labeler='model')
-    fig.savefig('{}_lr{}_model_evaltime.png'.format(prefix, learning_rate))
-    plt.close(fig)
-
-    fig, ax = poke_dataframe(data,
-                             'learning_rate',
-                             'score',
-                             specific_model='784_30_10')
-    fig.savefig('{}_model_784_30_10_totaltime.png'.format(prefix))
-    plt.close(fig)
-
-    fig, ax = poke_dataframe(data,
-                             'epoch_number',
-                             'score',
-                             labeler='batch_number',
-                             specific_model='784_30_10')
-    fig.savefig('{}_epoch_784_30_10_epoch.png'.format(prefix))
-    plt.close(fig)
-
-    fig, ax = poke_dataframe(data,
-                             'epoch_number',
-                             'score',
-                             labeler='batch_number',
-                             specific_model='784_30_10')
-    fig.savefig('{}_epoch_784_30_10_epoch.png'.format(prefix))
-    plt.close(fig)
+    # print('NP')
+    # gambit(np_data, learning_rate=0.1, prefix=run_name)
     return
 
 
@@ -124,9 +73,9 @@ def NP_NN(hidden_layers, learning_rate, epoch_number, batch_number, ncores=4):
     #                                                     epoch_number,
     #                                                     batch_number):
     todo = list(product(*[hidden_layers, learning_rate, epoch_number, batch_number]))
-    training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
+    # training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
     for i in range(len(todo)):
-        todo[i] = (i,) + todo[i] + (training_data,) + (test_data,)
+        todo[i] = (i,) + todo[i]
     if not len(todo) == len(glob('*.out')):
         with Pool(processes=ncores) as p:
             p.starmap(execute_NP_NN, todo)
@@ -160,9 +109,8 @@ def parse_txtfiles():
     return output_container
 
 
-def execute_NP_NN(run_id, hidden_layer, learning, epoch, batch,
-                  training_data, test_data):
-    # training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
+def execute_NP_NN(run_id, hidden_layer, learning, epoch, batch):
+    training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
     print('NP Calculating:\nNN: {}\nLR: {}\nEN: {}\nBA: {}'.format(hidden_layer,
                                                                    learning,
                                                                    epoch,
@@ -235,43 +183,6 @@ def TF_NN(hidden_layers, data, learning_rate, epoch_number, batch_number):
                  'epoch_number', 'batch_number'])
 
     return data
-
-
-def poke_dataframe(data, x, y, labeler=None, specific_label=None, specific_model=None):
-    fig, ax = plt.subplots()
-    color_wheel = mcd.XKCD_COLORS
-    color_list = list(mcd.XKCD_COLORS.keys())[::10]
-    # toplot = data.loc[0.5]
-    if specific_model:
-        data = data[data['model'] == specific_model]
-    if labeler:
-        if specific_label:
-            ax = data[data[labeler] == specific_label].plot(
-                x=x,
-                y=y,
-                ax=ax,
-                kind='scatter',
-                label=specific_label)
-        else:
-            unique_labels = list(set(data[labeler]))
-            counter = 0
-            for item in unique_labels:
-                # print(toplot[toplot['model'] == item])
-                ax = data[data[labeler] == item].plot(
-                    x=x,
-                    y=y,
-                    ax=ax,
-                    kind='scatter',
-                    label=item,
-                    c=color_wheel[color_list[counter]])
-                counter += 1
-    else:
-        ax = data.plot(
-            x=x,
-            y=y,
-            ax=ax,
-            kind='scatter')
-    return fig, ax
 
 
 def network_label_generator(x):
