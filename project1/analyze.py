@@ -68,8 +68,8 @@ def learning_rate(data, model='784_30_10', batch_number=100, activation_function
     a = data['model'] == model
     b = data['batch_number'] == batch_number
     c = data['approach'] == approach
-    # d = data['activation_function'] == activation_function
-    toplot = data[a & b & c]
+    d = data['activation_function'] == activation_function
+    toplot = data[a & b & c & d]
     print(toplot)
     epochs = np.unique(toplot['epoch_number'])
     fig, ax = plt.subplots()
