@@ -18,8 +18,8 @@ from glob import glob
 def main():
     # dataset
     ncores = 4  # This is used for NP_NN
-    run_name = 'NP_sigmoid'
-    # run_name = 'NP_relu'
+    # run_name = 'NP_sigmoid'
+    run_name = 'NP_relu'
     # run_name = 'TF_relu'
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
     input_number = mnist.train.images.shape[1]

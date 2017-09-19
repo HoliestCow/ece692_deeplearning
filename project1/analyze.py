@@ -26,21 +26,20 @@ def main():
 
     tf = pd.concat([tf_softmax, tf_sigmoid, tf_relu])
 
-    # np_sigmoid = pd.read_pickle('NP_sigmoid.p')
-    # np_relu = pd.read_pickle('NP_relu.p')
-    #
-    # np_sigmoid = np_sigmoid.assign(activation_function=list(repeat('sigmoid', len(np_sigmoid))))
-    # np_relu = np_relu.assign(activation_function=list(repeat('relu', len(np_relu))))
-    #
-    # np_sigmoid = np_sigmoid.assign(approach=list(repeat('numpy', len(np_sigmoid))))
-    # np_relu = np_relu.assign(approach=list(repeat('numpy', len(np_relu))))
-    #
-    # np = pd.concat([np_sigmoid, np_relu])
-    #
-    # np['score'] = np['score'] / 10000
+    np_sigmoid = pd.read_pickle('NP_sigmoid.p')
+    np_relu = pd.read_pickle('NP_relu.p')
 
-    # allruns = pd.concat([tf, np])
-    allruns = tf
+    np_sigmoid = np_sigmoid.assign(activation_function=list(repeat('sigmoid', len(np_sigmoid))))
+    np_relu = np_relu.assign(activation_function=list(repeat('relu', len(np_relu))))
+
+    np_sigmoid = np_sigmoid.assign(approach=list(repeat('numpy', len(np_sigmoid))))
+    np_relu = np_relu.assign(approach=list(repeat('numpy', len(np_relu))))
+
+    np = pd.concat([np_sigmoid, np_relu])
+    np['score'] = np['score'] / 10000
+
+    allruns = pd.concat([tf, np])
+    # allruns = tf
     gambit(allruns)
 
     return
@@ -55,12 +54,12 @@ def gambit(data):
     epoch_batch(data, model='784_30_10', learning_rate=1E-3, approach='tensorflow')
     learning_rate(data, model='784_30_10', batch_number=100, approach='tensorflow')
 
-    # when the data is there.
-    # architecture_score(data, epoch_number=100, batch_number=50, approach='numpy')
-    # architecture_traintime(data, epoch_number=100, batch_number=50, approach='numpy')
-    # architecture_evaltime(data, epoch_number=100, batch_number=50, approach='numpy')
-    # epoch_batch(data, model='784_30_10', learning_rate=1E-3, approach='numpy')
-    # learning_rate(data, model='784_30_10', batch_number=100, approach='numpy')
+    # when the np data is done.
+    architecture_score(data, epoch_number=100, batch_number=50, approach='numpy')
+    architecture_traintime(data, epoch_number=100, batch_number=50, approach='numpy')
+    architecture_evaltime(data, epoch_number=100, batch_number=50, approach='numpy')
+    epoch_batch(data, model='784_30_10', learning_rate=1E-3, approach='numpy')
+    learning_rate(data, model='784_30_10', batch_number=100, approach='numpy')
     return
 
 
