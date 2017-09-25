@@ -5,3 +5,4 @@
 *.out
 *.p
 *.caffemodel
+project2/cifar-10-batches-py/*
