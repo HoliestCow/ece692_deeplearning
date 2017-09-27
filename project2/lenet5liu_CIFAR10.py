@@ -10,8 +10,8 @@ from CIFAR10 import CIFAR10
 class cnnCIFAR10(object):
     def __init__(self, data):
         self.lr = 1e-4
-        self.epochs = 500
-        self.batch_size = 100
+        self.epochs = 200
+        self.batch_size = 50 
         self.data = data
         self.num_channels = 3
         self.pixel_width = int(np.sqrt(self.data.input_size / self.num_channels))
@@ -20,16 +20,20 @@ class cnnCIFAR10(object):
         self.build_graph()
 
     def build_graph(self):
-        # self.x = tf.placeholder(tf.float32, shape=[None, self.data.input_size])
-        self.x = tf.placeholder(tf.float32, shape=[None, self.pixel_width * self.pixel_width * self.num_channels])
+        num_kernels_1 = 32
+        num_kernels_2 = 64
+        num_neurons_final = 1024
+
+        self.x = tf.placeholder(tf.float32, shape=[None, self.data.input_size])
+
         self.y_ = tf.placeholder(tf.float32, shape=[None, self.data.output_size])
 
         # define conv-layer variables
-        W_conv1 = self.weight_variable([5, 5, self.num_channels, 32])    # first conv-layer has 32 kernels, size=5
+        W_conv1 = self.weight_variable([5, 5, self.num_channels, num_kernels_1])    # first conv-layer has 32 kernels, size=5
         # W_conv1 = self.weight_variable([5, 5, 32, self.num_channels])
-        b_conv1 = self.bias_variable([32])
-        W_conv2 = self.weight_variable([5, 5, 32, 64])
-        b_conv2 = self.bias_variable([64])
+        b_conv1 = self.bias_variable([num_kernels_1])
+        W_conv2 = self.weight_variable([5, 5, num_kernels_1, num_kernels_2])
+        b_conv2 = self.bias_variable([num_kernels_2])
 
         print(self.x.shape)
         x_image = tf.reshape(self.x, [-1, self.pixel_width, self.pixel_width, self.num_channels])
@@ -40,10 +44,10 @@ class cnnCIFAR10(object):
         print(h_pool2.shape)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([8 * 8 * 64, 1024])
-        b_fc1 = self.bias_variable([1024])
+        W_fc1 = self.weight_variable([int(h_pool2.shape[1] * h_pool2.shape[1]) * num_kernels_2, num_neurons_final])
+        b_fc1 = self.bias_variable([num_neurons_final])
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 8 * 8 * 64])
+        h_pool2_flat = tf.reshape(h_pool2, [-1, int(h_pool2.shape[1] * h_pool2.shape[1]) * num_kernels_2])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
         # dropout regularization
