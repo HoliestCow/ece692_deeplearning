@@ -2,8 +2,8 @@
 import numpy as np
 from glob import glob
 import os
-import cPickle
-# import pickle as cPickle  # for python3
+# import cPickle
+import pickle as cPickle  # for python3
 
 
 class CIFAR10:
@@ -28,10 +28,10 @@ class CIFAR10:
         if self.filehandle_index >= len(self.batch_filehandles):
             self.filehandle_index = 0
         # This is for python3, cPickle is really pickle
-        # dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index],
-                                #   encoding='bytes')
-        # this is for python 2
-        dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index])
+        dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index],
+                                  encoding='bytes')
+        # # this is for python 2
+        # dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index])
         return dictionary
 
     def get_batch(self, samples=100):
@@ -45,11 +45,11 @@ class CIFAR10:
             end = ((index[i] + 1) * samples)
             # Python 2
             # payload = (data['data'][start:end, :], data['labels'][start:end, :])
-            batch = np.array(data['data'][start:end, :])
-            raw_labels = np.array(data['labels'][start:end, :])
+            # batch = np.array(data['data'][start:end, :])
+            # raw_labels = np.array(data['labels'][start:end, :])
             # Python 3
-            # batch = np.array(data[b'data'][start:end])
-            # raw_labels = np.array(data[b'labels'][start:end])
+            batch = np.array(data[b'data'][start:end, :])
+            raw_labels = np.array(data[b'labels'][start:end])
             labels = np.zeros((len(raw_labels), len(self.possible_labels)))
             for i in range(len(raw_labels)):
                 labels[i, raw_labels[i]] = 1
@@ -60,8 +60,8 @@ class CIFAR10:
     def get_test_data(self):
         filepath = os.path.join(self.batch_path, 'test_batch')
         f = open(filepath, 'rb')
-        # data = cPickle.load(f, encoding='bytes')  # This is for python 3, cPickle is really pickle
-        data = cPickle.load(f)  # this is for python 2
+        data = cPickle.load(f, encoding='bytes')  # This is for python 3, cPickle is really pickle
+        # data = cPickle.load(f)  # this is for python 2
         # This is for python3
         # payload = (data[b'data'], data[b'labels'])
         batch = np.array(data[b'data'])

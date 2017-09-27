@@ -10,36 +10,40 @@ from CIFAR10 import CIFAR10
 class cnnCIFAR10(object):
     def __init__(self, data):
         self.lr = 1e-3
-        self.epochs = 300
-        self.batch_size = 50
+        self.epochs = 200
+        self.batch_size = 1
         self.data = data
         self.num_channels = 3
-        self.pixel_width = int(self.data.input_size / self.num_channels)
+        self.pixel_width = int(np.sqrt(self.data.input_size / self.num_channels))
+        # self.pixel_width = self.data.input_size
         self.test_batch, self.test_labels = self.data.get_test_data()
         self.build_graph()
 
     def build_graph(self):
-        self.x = tf.placeholder(tf.float32, shape=[self.num_channels,
-                                                   self.pixel_width * self.pixel_width])
+        # self.x = tf.placeholder(tf.float32, shape=[None, self.data.input_size])
+        self.x = tf.placeholder(tf.float32, shape=[None, self.pixel_width * self.pixel_width * self.num_channels])
         self.y_ = tf.placeholder(tf.float32, shape=[None, self.data.output_size])
 
         # define conv-layer variables
         W_conv1 = self.weight_variable([5, 5, self.num_channels, 32])    # first conv-layer has 32 kernels, size=5
+        # W_conv1 = self.weight_variable([5, 5, 32, self.num_channels])
         b_conv1 = self.bias_variable([32])
         W_conv2 = self.weight_variable([5, 5, 32, 64])
         b_conv2 = self.bias_variable([64])
 
+        print(self.x.shape)
         x_image = tf.reshape(self.x, [-1, self.pixel_width, self.pixel_width, self.num_channels])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
         h_pool1 = self.max_pool_2x2(h_conv1)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
         h_pool2 = self.max_pool_2x2(h_conv2)
+        print(h_pool2.shape)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * 256 * 64, 1024])
+        W_fc1 = self.weight_variable([8 * 8 * 64, 1024])
         b_fc1 = self.bias_variable([1024])
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 256 * 64])
+        h_pool2_flat = tf.reshape(h_pool2, [-1, 8 * 8 * 64])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
         # dropout regularization
@@ -106,6 +110,7 @@ class cnnCIFAR10(object):
 def main():
     data = CIFAR10()
     cnn = cnnCIFAR10(data)
+    cnn
     cnn.train()
     cnn.test_eval()
     return

@@ -58,9 +58,7 @@ class cnnMNIST(object):
         self.eval() # creating evaluation
         for i in range(self.epochs):
             batch = mnist.train.next_batch(50)
-            print(batch[0].shape, batch[1].shape)
-            stop
-            if i%100 == 0:
+            if i % 100 == 0:
                 train_acc = self.sess.run(self.accuracy,feed_dict={self.x: batch[0], self.y_: batch[1], self.keep_prob: 1.0})
                 print('step %d, training accuracy %g' % (i, train_acc))
             self.sess.run([self.train_step], feed_dict={self.x: batch[0], self.y_: batch[1], self.keep_prob: 0.5})
