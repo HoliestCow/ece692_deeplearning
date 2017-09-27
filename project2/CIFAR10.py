@@ -22,34 +22,42 @@ class CIFAR10:
         for item in filelist:
             self.batch_filehandles += [open(item, 'rb')]
 
+    def close_batch_filehandles(self):
+        for handle in self.batch_filehandles:
+            handle.close()
+        return
+
     def get_batch_data(self):
         # outputs dictionary.
         self.filehandle_index += 1
         if self.filehandle_index >= len(self.batch_filehandles):
             self.filehandle_index = 0
+            self.close_batch_filehandles()
+            self.get_batch_filehandles()
+            print('here')
         # This is for python3, cPickle is really pickle
-        dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index],
-                                  encoding='bytes')
+        # dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index],
+        #                          encoding='bytes')
         # # this is for python 2
-        # dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index])
+        dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index])
         return dictionary
 
     def get_batch(self, samples=100):
         data = self.get_batch_data()
         # Python 2
-        # index = range(int(data['data'].shape[0] / samples) - 1)
+        index = range(int(data['data'].shape[0] / samples) - 1)
         # python 3
-        index = list(range(int(data[b'data'].shape[0] / samples) - 1))
+        # index = list(range(int(data[b'data'].shape[0] / samples) - 1))
         for i in index:
             start = index[i] * samples
             end = ((index[i] + 1) * samples)
             # Python 2
             # payload = (data['data'][start:end, :], data['labels'][start:end, :])
-            # batch = np.array(data['data'][start:end, :])
-            # raw_labels = np.array(data['labels'][start:end, :])
+            batch = np.array(data['data'][start:end, :])
+            raw_labels = np.array(data['labels'][start:end])
             # Python 3
-            batch = np.array(data[b'data'][start:end, :])
-            raw_labels = np.array(data[b'labels'][start:end])
+            # batch = np.array(data[b'data'][start:end, :])
+            # raw_labels = np.array(data[b'labels'][start:end])
             labels = np.zeros((len(raw_labels), len(self.possible_labels)))
             for i in range(len(raw_labels)):
                 labels[i, raw_labels[i]] = 1
@@ -60,12 +68,16 @@ class CIFAR10:
     def get_test_data(self):
         filepath = os.path.join(self.batch_path, 'test_batch')
         f = open(filepath, 'rb')
-        data = cPickle.load(f, encoding='bytes')  # This is for python 3, cPickle is really pickle
-        # data = cPickle.load(f)  # this is for python 2
+        # data = cPickle.load(f, encoding='bytes')  # This is for python 3, cPickle is really pickle
+        data = cPickle.load(f)  # this is for python 2
+        # batch = np.array(data['data'][:5000, :])
+        # raw_labels = np.array(data['labels'][:5000])
+        batch = np.array(data['data'])
+        raw_labels = np.array(data['labels'])
         # This is for python3
         # payload = (data[b'data'], data[b'labels'])
-        batch = np.array(data[b'data'])
-        raw_labels = np.array(data[b'labels'])
+        # batch = np.array(data[b'data'])
+        # raw_labels = np.array(data[b'labels'])
         self.possible_labels = np.unique(raw_labels)
         labels = np.zeros((len(raw_labels), len(self.possible_labels)))
         for i in range(len(raw_labels)):
