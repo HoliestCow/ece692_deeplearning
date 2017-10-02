@@ -9,9 +9,9 @@ from CIFAR10 import CIFAR10
 
 class cnnCIFAR10(object):
     def __init__(self, data):
-        self.lr = 1e-4
-        self.epochs = 200
-        self.batch_size = 50 
+        self.lr = 1e-3
+        self.epochs = 500
+        self.batch_size = 50
         self.data = data
         self.num_channels = 3
         self.pixel_width = int(np.sqrt(self.data.input_size / self.num_channels))
@@ -20,9 +20,10 @@ class cnnCIFAR10(object):
         self.build_graph()
 
     def build_graph(self):
-        num_kernels_1 = 32
-        num_kernels_2 = 64
-        num_neurons_final = 1024
+        # reverse order of 1 and 2
+        num_kernels_1 = 64
+        num_kernels_2 = 32
+        num_neurons_final = 2048
 
         self.x = tf.placeholder(tf.float32, shape=[None, self.data.input_size])
 
@@ -55,25 +56,24 @@ class cnnCIFAR10(object):
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
-        W_fc2 = self.weight_variable([1024, 10])
-        b_fc2 = self.bias_variable([10])
+        W_fc2 = self.weight_variable([num_neurons_final, self.data.output_size])
+        b_fc2 = self.bias_variable([self.data.output_size])
 
         self.y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
         cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(cross_entropy)
 
     def train(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
         self.eval()  # creating evaluation
         batch = self.data.get_batch(self.batch_size)
         for i in range(self.epochs):
-            # batch = mnist.train.next_batch(self.batch_size)
-            # if i % 100 == 0:
-            #     train_acc = self.sess.run(self.accuracy, feed_dict={self.x: self.test_batch, self.y_: self.test_labels, self.keep_prob: 1.0})
-            #     print('step %d, training accuracy %g' % (i, train_acc))
+            if i % 100 == 0:
+                train_acc = self.sess.run(self.accuracy, feed_dict={self.x: self.test_batch, self.y_: self.test_labels, self.keep_prob: 1.0})
+                print('step %d, training accuracy %g' % (i, train_acc))
             try:
                 x = next(batch)
                 y = next(batch)
@@ -81,8 +81,6 @@ class cnnCIFAR10(object):
                 batch = self.data.get_batch(self.batch_size)
                 x = next(batch)
                 y = next(batch)
-            # print(x.shape, y.shape)
-            # stop
             self.sess.run([self.train_step], feed_dict={self.x: x, self.y_: y, self.keep_prob: 0.5})
 
     def eval(self):
@@ -93,7 +91,7 @@ class cnnCIFAR10(object):
         self.eval()
         # test_acc = self.sess.run(self.accuracy, feed_dict={
         #         self.x: mnist.test.images, self.y_: mnist.test.labels, self.keep_prob: 1.0})
-        print(self.test_batch.shape, self.test_labels.shape)
+        # print(self.test_batch.shape, self.test_labels.shape)
         test_acc = self.sess.run(self.accuracy, feed_dict={self.x: self.test_batch,
                                                            self.y_: self.test_labels,
                                                            self.keep_prob: 1.0})

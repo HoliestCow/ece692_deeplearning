@@ -8,6 +8,7 @@ import pickle as cPickle  # for python3
 
 class CIFAR10:
     def __init__(self, batch_path=os.path.join(os.getcwd(), './cifar-10-batches-py')):
+        self.max_test_samples = 5000
         self.batch_path = batch_path
         self.get_batch_filehandles()
         self.test_batch, self.test_labels = self.get_test_data()
@@ -15,10 +16,8 @@ class CIFAR10:
 
     def get_batch_filehandles(self):
         self.batch_filehandles = []
-        print(os.path.join(self.batch_path, 'data_batch_*'))
+        # print(os.path.join(self.batch_path, 'data_batch_*'))
         filelist = glob(os.path.join(self.batch_path, 'data_batch_*'))
-        print(filelist)
-        print(filelist)
         for item in filelist:
             self.batch_filehandles += [open(item, 'rb')]
 
@@ -34,12 +33,18 @@ class CIFAR10:
             self.filehandle_index = 0
             self.close_batch_filehandles()
             self.get_batch_filehandles()
-            print('here')
         # This is for python3, cPickle is really pickle
         # dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index],
         #                          encoding='bytes')
         # # this is for python 2
         dictionary = cPickle.load(self.batch_filehandles[self.filehandle_index])
+        num_samples = int(dictionary['data'].shape[0])
+        new_index = np.arange(num_samples)
+        np.random.shuffle(new_index)
+
+        dictionary['data'] = dictionary['data'][new_index, :]
+        # dictionary['labels'] = dictionary['labels'][new_index]
+        dictionary['labels'] = [dictionary['labels'][i] for i in new_index]
         return dictionary
 
     def get_batch(self, samples=100):
@@ -70,10 +75,10 @@ class CIFAR10:
         f = open(filepath, 'rb')
         # data = cPickle.load(f, encoding='bytes')  # This is for python 3, cPickle is really pickle
         data = cPickle.load(f)  # this is for python 2
-        # batch = np.array(data['data'][:5000, :])
-        # raw_labels = np.array(data['labels'][:5000])
-        batch = np.array(data['data'])
-        raw_labels = np.array(data['labels'])
+        batch = np.array(data['data'][:self.max_test_samples, :])
+        raw_labels = np.array(data['labels'][:self.max_test_samples])
+        # batch = np.array(data['data'])
+        # raw_labels = np.array(data['labels'])
         # This is for python3
         # payload = (data[b'data'], data[b'labels'])
         # batch = np.array(data[b'data'])

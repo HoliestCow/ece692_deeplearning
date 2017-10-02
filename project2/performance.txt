@@ -1,0 +1,6 @@
+lenet5liu, 0.1036
+lenet5_lr1e-5, 
+lenet5_bn200, 
+lenet5_lr1e-5bn200,
+
+

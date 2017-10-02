@@ -9,8 +9,8 @@ from CIFAR10 import CIFAR10
 
 class cnnCIFAR10(object):
     def __init__(self, data):
-        self.lr = 1e-4
-        self.epochs = 200
+        self.lr = 1e-3
+        self.epochs = 500
         self.batch_size = 50 
         self.data = data
         self.num_channels = 3
@@ -35,13 +35,13 @@ class cnnCIFAR10(object):
         W_conv2 = self.weight_variable([5, 5, num_kernels_1, num_kernels_2])
         b_conv2 = self.bias_variable([num_kernels_2])
 
-        print(self.x.shape)
+        # print(self.x.shape)
         x_image = tf.reshape(self.x, [-1, self.pixel_width, self.pixel_width, self.num_channels])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
         h_pool1 = self.max_pool_2x2(h_conv1)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
         h_pool2 = self.max_pool_2x2(h_conv2)
-        print(h_pool2.shape)
+        # print(h_pool2.shape)
 
         # densely/fully connected layer
         W_fc1 = self.weight_variable([int(h_pool2.shape[1] * h_pool2.shape[1]) * num_kernels_2, num_neurons_final])
@@ -63,7 +63,7 @@ class cnnCIFAR10(object):
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(cross_entropy)
 
     def train(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
@@ -71,9 +71,9 @@ class cnnCIFAR10(object):
         batch = self.data.get_batch(self.batch_size)
         for i in range(self.epochs):
             # batch = mnist.train.next_batch(self.batch_size)
-            # if i % 100 == 0:
-            #     train_acc = self.sess.run(self.accuracy, feed_dict={self.x: self.test_batch, self.y_: self.test_labels, self.keep_prob: 1.0})
-            #     print('step %d, training accuracy %g' % (i, train_acc))
+            if i % 100 == 0:
+                train_acc = self.sess.run(self.accuracy, feed_dict={self.x: self.test_batch, self.y_: self.test_labels, self.keep_prob: 1.0})
+                print('step %d, training accuracy %g' % (i, train_acc))
             try:
                 x = next(batch)
                 y = next(batch)
