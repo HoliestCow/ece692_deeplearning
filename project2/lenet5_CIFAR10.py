@@ -3,27 +3,28 @@
 import tensorflow as tf
 import numpy as np
 from CIFAR10 import CIFAR10
+import time
 
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
 class cnnCIFAR10(object):
     def __init__(self, data):
-        self.lr = 1e-3
+        self.lr = 1e-5
         self.epochs = 500
-        self.batch_size = 50
+        self.batch_size = 100
         self.data = data
         self.num_channels = 3
         self.pixel_width = int(np.sqrt(self.data.input_size / self.num_channels))
         # self.pixel_width = self.data.input_size
-        self.test_batch, self.test_labels = self.data.get_test_data()
+        # self.test_batch, self.test_labels = self.data.get_test_data()
         self.build_graph()
 
     def build_graph(self):
         # reverse order of 1 and 2
-        num_kernels_1 = 64
-        num_kernels_2 = 32
-        num_neurons_final = 2048
+        num_kernels_1 = 256
+        num_kernels_2 = 64
+        num_neurons_final = 1024
 
         self.x = tf.placeholder(tf.float32, shape=[None, self.data.input_size])
 
@@ -70,10 +71,15 @@ class cnnCIFAR10(object):
         self.sess.run(init)
         self.eval()  # creating evaluation
         batch = self.data.get_batch(self.batch_size)
+        test_batch = self.data.get_test_data()
         for i in range(self.epochs):
             if i % 100 == 0:
-                train_acc = self.sess.run(self.accuracy, feed_dict={self.x: self.test_batch, self.y_: self.test_labels, self.keep_prob: 1.0})
-                print('step %d, training accuracy %g' % (i, train_acc))
+                train_acc = []
+                for j in range(self.data.num_test_epochs):
+                    print(test_batch)
+                    print(test_batch)
+                    train_acc += [self.sess.run(self.accuracy, feed_dict={self.x: test_batch, self.y_: test_batch, self.keep_prob: 1.0})]
+                print('step %d, training accuracy %g' % (i, sum(train_acc)/len(train_acc)))
             try:
                 x = next(batch)
                 y = next(batch)
@@ -92,10 +98,12 @@ class cnnCIFAR10(object):
         # test_acc = self.sess.run(self.accuracy, feed_dict={
         #         self.x: mnist.test.images, self.y_: mnist.test.labels, self.keep_prob: 1.0})
         # print(self.test_batch.shape, self.test_labels.shape)
-        test_acc = self.sess.run(self.accuracy, feed_dict={self.x: self.test_batch,
-                                                           self.y_: self.test_labels,
-                                                           self.keep_prob: 1.0})
-        print('test accuracy %g' % test_acc)
+        test_acc = []
+        for i in range(self.data.num_test_epochs):
+            test_acc += [self.sess.run(self.accuracy, feed_dict={self.x: self.data.get_test_data(),
+                                                           self.y_: self.data.get_test_data(),
+                                                           self.keep_prob: 1.0})]
+        print('test accuracy %g' % (sum(test_acc) / len(test_acc)))
 
     def weight_variable(self, shape):
         initial = tf.truncated_normal(shape, stddev=0.1)
@@ -115,10 +123,17 @@ class cnnCIFAR10(object):
 
 def main():
     data = CIFAR10()
+    a = time.time()
     cnn = cnnCIFAR10(data)
     cnn
     cnn.train()
+    b = time.time()
+    training_time = b-a
     cnn.test_eval()
+    c = time.time()
+    timeperimage = (c-b) / data.num_test_samples 
+    print('Training time: {}s per epoch'.format(training_time / cnn.epochs))
+    print('Evaluation time per sample: {}s per sample'.format(timeperimage))  
     return
 
 main()

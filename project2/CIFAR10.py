@@ -8,10 +8,11 @@ import pickle as cPickle  # for python3
 
 class CIFAR10:
     def __init__(self, batch_path=os.path.join(os.getcwd(), './cifar-10-batches-py')):
-        self.max_test_samples = 5000
+        self.num_test_samples = 5000
         self.batch_path = batch_path
         self.get_batch_filehandles()
-        self.test_batch, self.test_labels = self.get_test_data()
+        # self.test_batch, self.test_labels = self.get_test_data()
+        self.prep_test_data()
         self.filehandle_index = -1
 
     def get_batch_filehandles(self):
@@ -70,15 +71,13 @@ class CIFAR10:
             yield labels
         return
 
-    def get_test_data(self):
+    def prep_test_data(self, nsamples=100):
         filepath = os.path.join(self.batch_path, 'test_batch')
         f = open(filepath, 'rb')
         # data = cPickle.load(f, encoding='bytes')  # This is for python 3, cPickle is really pickle
         data = cPickle.load(f)  # this is for python 2
-        batch = np.array(data['data'][:self.max_test_samples, :])
-        raw_labels = np.array(data['labels'][:self.max_test_samples])
-        # batch = np.array(data['data'])
-        # raw_labels = np.array(data['labels'])
+        self.test_data = np.array(data['data'])
+        raw_labels = np.array(data['labels'])
         # This is for python3
         # payload = (data[b'data'], data[b'labels'])
         # batch = np.array(data[b'data'])
@@ -87,6 +86,22 @@ class CIFAR10:
         labels = np.zeros((len(raw_labels), len(self.possible_labels)))
         for i in range(len(raw_labels)):
             labels[i, raw_labels[i]] = 1
-        self.input_size = batch.shape[1]
+
+        self.test_labels = labels
+        self.test_batch_samples = nsamples
+
+        # fixed the sets such that TF can understand what's going on with this dataset
+        self.num_test_epochs = int(labels.shape[0] / nsamples)
+        self.input_size = self.test_data.shape[1]
         self.output_size = len(self.possible_labels)
-        return batch, labels
+        return
+    
+    def get_test_data(self):
+        cursor = 0
+        for i in range(self.num_test_epochs):
+            # print(self.test_data[cursor:cursor + self.test_batch_samples, :])
+            # print(self.test_labels[cursor:cursor + self.test_batch_samples, :])
+            yield self.test_data[cursor:cursor + self.test_batch_samples, :]
+            yield self.test_labels[cursor:cursor + self.test_batch_samples, :]
+            cursor += self.test_batch_samples
+        return
