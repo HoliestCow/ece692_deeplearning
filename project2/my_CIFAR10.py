@@ -76,9 +76,14 @@ class cnnCIFAR10(object):
             if i % 100 == 0:
                 train_acc = []
                 for j in range(self.data.num_test_epochs):
-                    print(test_batch)
-                    print(test_batch)
-                    train_acc += [self.sess.run(self.accuracy, feed_dict={self.x: test_batch, self.y_: test_batch, self.keep_prob: 1.0})]
+                    try:
+                        test_x = next(test_batch)
+                        test_y = next(test_batch)
+                    except:
+                        test_batch = self.data.get_test_data()
+                        test_x = next(test_batch)
+                        test_y = next(test_batch)
+                    train_acc += [self.sess.run(self.accuracy, feed_dict={self.x: test_x, self.y_: test_y, self.keep_prob: 1.0})]
                 print('step %d, training accuracy %g' % (i, sum(train_acc)/len(train_acc)))
             try:
                 x = next(batch)
@@ -99,9 +104,10 @@ class cnnCIFAR10(object):
         #         self.x: mnist.test.images, self.y_: mnist.test.labels, self.keep_prob: 1.0})
         # print(self.test_batch.shape, self.test_labels.shape)
         test_acc = []
+        test_batch = self.data.get_test_data()
         for i in range(self.data.num_test_epochs):
-            test_acc += [self.sess.run(self.accuracy, feed_dict={self.x: self.data.get_test_data(),
-                                                           self.y_: self.data.get_test_data(),
+            test_acc += [self.sess.run(self.accuracy, feed_dict={self.x: next(test_batch),
+                                                           self.y_: next(test_batch),
                                                            self.keep_prob: 1.0})]
         print('test accuracy %g' % (sum(test_acc) / len(test_acc)))
 

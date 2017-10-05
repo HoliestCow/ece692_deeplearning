@@ -4,6 +4,7 @@ from glob import glob
 import os
 # import cPickle
 import pickle as cPickle  # for python3
+from PIL import Image
 
 
 class CIFAR10:
@@ -12,7 +13,9 @@ class CIFAR10:
         self.batch_path = batch_path
         self.get_batch_filehandles()
         # self.test_batch, self.test_labels = self.get_test_data()
+        self.toggle = 0
         self.prep_test_data()
+        self.print_image()
         self.filehandle_index = -1
 
     def get_batch_filehandles(self):
@@ -72,10 +75,14 @@ class CIFAR10:
         return
 
     def prep_test_data(self, nsamples=100):
+        if self.toggle==1:
+            self.test_f.close()
+        self.toggle = 1
+        self.nsamples = nsamples
         filepath = os.path.join(self.batch_path, 'test_batch')
-        f = open(filepath, 'rb')
+        self.test_f = open(filepath, 'rb')
         # data = cPickle.load(f, encoding='bytes')  # This is for python 3, cPickle is really pickle
-        data = cPickle.load(f)  # this is for python 2
+        data = cPickle.load(self.test_f)  # this is for python 2
         self.test_data = np.array(data['data'])
         raw_labels = np.array(data['labels'])
         # This is for python3
@@ -104,4 +111,16 @@ class CIFAR10:
             yield self.test_data[cursor:cursor + self.test_batch_samples, :]
             yield self.test_labels[cursor:cursor + self.test_batch_samples, :]
             cursor += self.test_batch_samples
+        self.prep_test_data(nsamples=self.nsamples)
         return
+
+    def print_image(self):
+        test_batch = self.get_test_data()
+        x = next(test_batch)
+        y = next(test_batch)
+        single_img = x[0, :]
+        single_img_reshaped = np.transpose(np.reshape(single_img,(3, 32,32)), (1,2,0))
+        img = Image.fromarray(single_img_reshaped, 'RGB')
+        img.save('test.png')
+        return
+
