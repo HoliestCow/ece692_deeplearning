@@ -22,8 +22,8 @@ class cnnCIFAR10(object):
 
     def build_graph(self):
         # reverse order of 1 and 2
-        num_kernels_1 = 256
-        num_kernels_2 = 64
+        num_kernels_1 = 1024
+        num_kernels_2 = 512
         num_neurons_final = 1024
 
         self.x = tf.placeholder(tf.float32, shape=[None, self.data.input_size])
