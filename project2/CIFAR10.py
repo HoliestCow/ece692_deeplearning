@@ -15,14 +15,48 @@ class CIFAR10:
         self.pixel_height = 32
         self.channel_number = 3
         self.category_number = 10
+        self.input_size = self.pixel_width * self.pixel_height * self.channel_number
+        self.output_size = self.category_number
+        self.num_test_samples = 10000
+        
+        self.filehandle_index = -1
 
         self.batch_path = batch_path
         self.get_batch_filehandles()
         # self.test_batch, self.test_labels = self.get_test_data()
         self.toggle = 0
-        # self.prep_test_data(test_data_bathsize)
+#         self.prep_train_data()
+        self.prep_test_data(test_data_batchsize)
+        self.prep_train_data()
         # self.print_image()
-        self.filehandle_index = -1
+
+    def prep_train_data(self):
+        data_container = np.zeros((0, self.input_size))
+        label_container = np.zeros((0, self.category_number))
+        for i in range(len(self.batch_filehandles)):
+            temp = self.get_batch_data()
+            data_container = np.vstack((data_container, temp['data']))
+            label_container = np.vstack((label_container, temp['labels']))
+        print(data_container.shape)
+        data_container = np.reshape(data_container, (data_container.shape[0], self.channel_number, self.pixel_height, self.pixel_width))
+        print(data_container.shape)
+        self.train_mean = data_container.mean(axis=(0, 2, 3), keepdims=False).astype(np.float32)
+        self.train_mean = np.reshape(self.train_mean, (3, 1, 1))
+        self.train_mean = np.tile(self.train_mean, [1, 32, 32])
+        self.train_std = data_container.std(axis=(0, 2, 3), keepdims=False).astype(np.float32)
+        self.train_std = np.reshape(self.train_std, (3, 1, 1))
+        self.train_std = np.tile(self.train_std, [1, 32, 32])
+        return
+
+    def prep_data_4manipulation(self, batch):
+        temp_batch = np.reshape(batch, (batch.shape[0], self.channel_number, self.pixel_height, self.pixel_width))
+        temp_batch = np.divide(np.subtract(temp_batch, np.tile(self.train_mean, (temp_batch.shape[0], 1, 1, 1))), np.tile(self.train_std, (temp_batch.shape[0], 1, 1, 1)))
+        # NOTE: This should be (nsamples, 3, 32, 32)
+        return temp_batch
+    
+    def prep_manipulation2vanilla(self, batch):
+        out = np.reshape(batch, (batch.shape[0], self.input_size))
+        return out
 
     def get_batch_filehandles(self):
         self.batch_filehandles = []
@@ -62,7 +96,14 @@ class CIFAR10:
         dictionary['labels'] = labels
         return dictionary
 
-    def get_batch(self, samples=100):
+    def coin_flip(self):
+        if np.random.uniform() >= 0.5:
+            return True
+        else:
+            return False
+
+    def get_batch(self, samples=100, isHorizontalFlip=False, isHorizontalShift=False,
+                  isVerticalShift=False):
         data = self.get_batch_data()
         # Python 2
         index = range(int(data['data'].shape[0] / samples) - 1)
@@ -75,6 +116,13 @@ class CIFAR10:
             # payload = (data['data'][start:end, :], data['labels'][start:end, :])
             batch = data['data'][start:end, :]
             raw_labels = data['labels'][start:end, :]
+            
+            # convert data into z-scores and do data augmentation
+            temp_batch = self.prep_data_4manipulation(batch)
+            for j in range(batch.shape[0]):
+                if isHorizontalFlip and self.coin_flip():
+                    temp_batch[j, :, : , :] = temp_batch[j, :, :, ::-1] 
+            batch = self.prep_manipulation2vanilla(temp_batch)
             # Python 3
             # batch = np.array(data[b'data'][start:end, :])
             # raw_labels = np.array(data[b'labels'][start:end])
@@ -130,8 +178,11 @@ class CIFAR10:
         cursor = 0
         for i in range(self.num_test_epochs):
             # print(self.test_data[cursor:cursor + self.test_batch_samples, :])
-            # print(self.test_labels[cursor:cursor + self.test_batch_samples, :])
-            yield self.test_data[cursor:cursor + self.test_batch_samples, :]
+            # print(self.test_labels[cursor:cursor + self.test_batch_samples, :]
+            
+            temp = self.prep_data_4manipulation(self.test_data[cursor:cursor + self.test_batch_samples, :])
+            data = self.prep_manipulation2vanilla(temp)
+            yield data
             yield self.test_labels[cursor:cursor + self.test_batch_samples, :]
             cursor += self.test_batch_samples
         self.prep_test_data(nsamples=self.nsamples)

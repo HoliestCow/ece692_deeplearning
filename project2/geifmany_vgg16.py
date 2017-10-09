@@ -146,7 +146,7 @@ class cifar10vgg:
 
         #training parameters
         batch_size = 128
-        maxepoches = 250
+        maxepoches = 100
         learning_rate = 0.1
         lr_decay = 1e-6
 
