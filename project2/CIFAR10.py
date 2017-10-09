@@ -8,14 +8,20 @@ from PIL import Image
 
 
 class CIFAR10:
-    def __init__(self, batch_path=os.path.join(os.getcwd(), './cifar-10-batches-py')):
-        self.num_test_samples = 5000
+    def __init__(self, batch_path=os.path.join(os.getcwd(), './cifar-10-batches-py'),
+                 test_data_batchsize=100):
+        # self.num_test_samples = 5000
+        self.pixel_width = 32
+        self.pixel_height = 32
+        self.channel_number = 3
+        self.category_number = 10
+
         self.batch_path = batch_path
         self.get_batch_filehandles()
         # self.test_batch, self.test_labels = self.get_test_data()
         self.toggle = 0
-        self.prep_test_data()
-        self.print_image()
+        # self.prep_test_data(test_data_bathsize)
+        # self.print_image()
         self.filehandle_index = -1
 
     def get_batch_filehandles(self):
@@ -48,7 +54,12 @@ class CIFAR10:
 
         dictionary['data'] = dictionary['data'][new_index, :]
         # dictionary['labels'] = dictionary['labels'][new_index]
-        dictionary['labels'] = [dictionary['labels'][i] for i in new_index]
+        # dictionary['labels'] = [dictionary['labels'][i] for i in new_index]
+        temp = [dictionary['labels'][i] for i in new_index]
+        labels = np.zeros((len(temp), len(self.possible_labels)))
+        for i in range(len(temp)):
+            labels[i, temp[i]] = 1
+        dictionary['labels'] = labels
         return dictionary
 
     def get_batch(self, samples=100):
@@ -62,17 +73,29 @@ class CIFAR10:
             end = ((index[i] + 1) * samples)
             # Python 2
             # payload = (data['data'][start:end, :], data['labels'][start:end, :])
-            batch = np.array(data['data'][start:end, :])
-            raw_labels = np.array(data['labels'][start:end])
+            batch = data['data'][start:end, :]
+            raw_labels = data['labels'][start:end, :]
             # Python 3
             # batch = np.array(data[b'data'][start:end, :])
             # raw_labels = np.array(data[b'labels'][start:end])
-            labels = np.zeros((len(raw_labels), len(self.possible_labels)))
-            for i in range(len(raw_labels)):
-                labels[i, raw_labels[i]] = 1
+            # labels = np.zeros((len(raw_labels), len(self.possible_labels)))
+            # for i in range(len(raw_labels)):
+                # labels[i, raw_labels[i]] = 1
+            labels = raw_labels 
             yield batch
             yield labels
         return
+
+    def get_train_data(self):
+        out_data = np.zeros(shape=(0, self.pixel_height * self.pixel_width * self.channel_number))
+        out_labels = np.zeros(shape=(0, self.category_number))
+        for i in range(len(self.batch_filehandles)):
+            dictionary = self.get_batch_data()
+            out_data = np.concatenate((out_data, np.array(dictionary['data'])), axis=0)
+            out_labels = np.concatenate((out_labels, np.array(dictionary['labels'])), axis=0)
+        # print(out_data.shape, out_labels.shape)
+        return out_data, out_labels
+
 
     def prep_test_data(self, nsamples=100):
         if self.toggle==1:
