@@ -21,6 +21,8 @@ class CIFAR10:
         
         self.filehandle_index = -1
 
+        self.shifting_constant = 5
+
         self.batch_path = batch_path
         self.get_batch_filehandles()
         # self.test_batch, self.test_labels = self.get_test_data()
@@ -29,6 +31,9 @@ class CIFAR10:
         self.prep_test_data(test_data_batchsize)
         self.prep_train_data()
         # self.print_image()
+
+        self.debug1 = 0
+        self.debug2 = 0
 
     def prep_train_data(self):
         data_container = np.zeros((0, self.input_size))
@@ -53,6 +58,11 @@ class CIFAR10:
         temp_batch = np.divide(np.subtract(temp_batch, np.tile(self.train_mean, (temp_batch.shape[0], 1, 1, 1))), np.tile(self.train_std, (temp_batch.shape[0], 1, 1, 1)))
         # NOTE: This should be (nsamples, 3, 32, 32)
         return temp_batch
+
+    def undo_manipulation(self, sample):
+        temp = np.multiply(sample, self.train_std)
+        temp = np.add(temp, self.train_mean)
+        return temp
     
     def prep_manipulation2vanilla(self, batch):
         out = np.reshape(batch, (batch.shape[0], self.input_size))
@@ -102,6 +112,18 @@ class CIFAR10:
         else:
             return False
 
+    def coin_flip_for_shifting(self):
+        dcutoff = 1 / float(self.shifting_constant)
+        coinflip = np.random.uniform()
+        for i in range(self.shifting_constant):
+            if float(i) * dcutoff > coinflip:
+                break
+        index = i
+        # determine signage
+        if self.coin_flip():
+            index *= -1
+        return index
+
     def get_batch(self, samples=100, isHorizontalFlip=False, isHorizontalShift=False,
                   isVerticalShift=False):
         data = self.get_batch_data()
@@ -116,12 +138,47 @@ class CIFAR10:
             # payload = (data['data'][start:end, :], data['labels'][start:end, :])
             batch = data['data'][start:end, :]
             raw_labels = data['labels'][start:end, :]
+
+            plot1 = np.transpose(np.reshape(batch[0, :], (3, 32, 32)), (1, 2, 0))
+            self.print_image(plot1, 'unoporfavor.png')
+            temp = np.reshape(batch, (batch.shape[0], 3, 32, 32))
+            temp_train_mean = temp.mean(axis=(0, 2, 3), keepdims=False).astype(np.float32)
+            temp_train_mean = np.reshape(temp_train_mean, (3, 1, 1))
+            temp_train_mean = np.tile(temp_train_mean, [1, 32, 32])
+            temp_train_std = temp.std(axis=(0, 2, 3), keepdims=False).astype(np.float32)
+            temp_train_std = np.reshape(temp_train_std, (3, 1, 1))
+            temp_train_std = np.tile(temp_train_std, [1, 32, 32])
+
+            z_temp = np.divide(np.subtract(temp, np.tile(temp_train_mean, (temp.shape[0], 1, 1, 1))), np.tile(temp_train_std, (temp.shape[0], 1, 1, 1)))
+
+            print(z_temp.shape)
+            backtemp = np.add(np.multiply(z_temp[0, :, :, :], temp_train_std), temp_train_mean)
+            print(backtemp.shape)
+            meh = np.squeeze(backtemp)
+            plot1again = np.transpose(meh, (1, 2, 0))
+            self.print_image(plot1again, 'dosporfavor.png')
+            stop
             
             # convert data into z-scores and do data augmentation
             temp_batch = self.prep_data_4manipulation(batch)
             for j in range(batch.shape[0]):
                 if isHorizontalFlip and self.coin_flip():
-                    temp_batch[j, :, : , :] = temp_batch[j, :, :, ::-1] 
+                    temp_batch[j, :, : , :] = temp_batch[j, :, :, ::-1]
+                    self.print_image(np.squeeze(temp_batch[j, :, :, :]), 'doaflip.png')
+                if isHorizontalShift:
+                    index = self.coin_flip_for_shifting()
+                    if index > 0:
+                        # temp_batch[j, :, :, :index] = 0
+                        temp_batch[j, :, :, index:] = temp_batch[j, :, :, :-index]
+                        temp_batch[j, :, :, :index] = 0
+                        self.print_image(np.squeeze(temp_batch[j, :, :, :]), 'positive.png')
+                        
+                    elif index < 0:
+                        temp_batch[j, :, :, :index] = temp_batch[j, :, :, -index:]
+                        temp_batch[j, :, :, index:] = 0
+                        self.print_image(np.squeeze(temp_batch[j, :, :, :]), 'negative.png')
+
+                    
             batch = self.prep_manipulation2vanilla(temp_batch)
             # Python 3
             # batch = np.array(data[b'data'][start:end, :])
@@ -177,9 +234,6 @@ class CIFAR10:
     def get_test_data(self):
         cursor = 0
         for i in range(self.num_test_epochs):
-            # print(self.test_data[cursor:cursor + self.test_batch_samples, :])
-            # print(self.test_labels[cursor:cursor + self.test_batch_samples, :]
-            
             temp = self.prep_data_4manipulation(self.test_data[cursor:cursor + self.test_batch_samples, :])
             data = self.prep_manipulation2vanilla(temp)
             yield data
@@ -188,13 +242,10 @@ class CIFAR10:
         self.prep_test_data(nsamples=self.nsamples)
         return
 
-    def print_image(self):
-        test_batch = self.get_test_data()
-        x = next(test_batch)
-        y = next(test_batch)
-        single_img = x[0, :]
-        single_img_reshaped = np.transpose(np.reshape(single_img,(3, 32,32)), (1,2,0))
-        img = Image.fromarray(single_img_reshaped, 'RGB')
-        img.save('test.png')
+    def print_image(self, data, name):
+        # data = self.undo_manipulation(data)
+        # single_img_reshaped = np.transpose(data, (1, 2, 0))
+        img = Image.fromarray(data, 'RGB')
+        img.save(name)
         return
 

@@ -11,7 +11,7 @@ import time
 class cnnCIFAR10(object):
     def __init__(self, data):
         self.lr = 1E-3  # This achieves the speed I want
-        self.epochs = 1000
+        self.epochs = 1
         self.batch_size = 100
         self.data = data
         self.num_channels = 3
@@ -73,7 +73,7 @@ class cnnCIFAR10(object):
         init = tf.global_variables_initializer()
         self.sess.run(init)
         self.eval()  # creating evaluation
-        batch = self.data.get_batch(self.batch_size, isHorizontalFlip=True)
+        batch = self.data.get_batch(self.batch_size, isHorizontalFlip=True, isHorizontalShift=True)
         test_batch = self.data.get_test_data()
         learning_rate = self.lr
         for i in range(self.epochs):
@@ -97,7 +97,7 @@ class cnnCIFAR10(object):
                 x = next(batch)
                 y = next(batch)
             except:
-                batch = self.data.get_batch(self.batch_size, isHorizontalFlip=True)
+                batch = self.data.get_batch(self.batch_size, isHorizontalFlip=True, isHorizontalShift=True)
                 x = next(batch)
                 y = next(batch)
             self.sess.run([self.train_step], feed_dict={self.x: x, self.y_: y, self.keep_prob: 0.5})
