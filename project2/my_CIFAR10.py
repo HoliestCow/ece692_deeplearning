@@ -2,7 +2,6 @@
 
 import tensorflow as tf
 import numpy as np
-from CIFAR10 import CIFAR10
 import time
 
 # from tensorflow.examples.tutorials.mnist import input_data

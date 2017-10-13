@@ -21,14 +21,14 @@ import os
 
 def main():
 
-    batch_size = 32
+    batch_size = 100
     num_classes = 10
-    epochs = 200
+    epochs = 100
     data_augmentation = True
     learning_rate = 0.1
     learning_rate_decay = 1E-6
     weight_decay = 1E-2
-    dropout = 0.3
+    dropout = 0.4
     save_dir = os.path.join(os.getcwd(), 'saved_models')
     model_name = 'keras_cifar10_trained_model.h5'
 
@@ -61,7 +61,7 @@ def main():
     model = add_vanilla_layer(model, 512, weight_decay, dropout, repeat=2)
     model = add_vanilla_layer(model, 512, weight_decay, dropout, repeat=2)
 
-    model.add(Dropout(dropout))
+    model.add(Dropout(0.5))
 
     model.add(Flatten())
     model.add(Dense(512, kernel_regularizer=regularizers.l2(weight_decay)))
@@ -104,9 +104,9 @@ def main():
             featurewise_std_normalization=True,  # divide inputs by std of the dataset
             samplewise_std_normalization=False,  # divide each input by its std
             zca_whitening=False,  # apply ZCA whitening
-            rotation_range=30,  # randomly rotate images in the range (degrees, 0 to 180)
-            width_shift_range=0.15,  # randomly shift images horizontally (fraction of total width)
-            height_shift_range=0.15,  # randomly shift images vertically (fraction of total height)
+            rotation_range=25,  # randomly rotate images in the range (degrees, 0 to 180)
+            width_shift_range=0.2,  # randomly shift images horizontally (fraction of total width)
+            height_shift_range=0.2,  # randomly shift images vertically (fraction of total height)
             horizontal_flip=True,  # randomly flip images
             vertical_flip=False)  # randomly flip images
 
@@ -151,3 +151,5 @@ def add_vanilla_layer(model, horizontal_stacks, weight_decay, dropout, repeat=1)
 
     model.add(MaxPooling2D(pool_size=(2, 2)))
     return model
+
+main()
