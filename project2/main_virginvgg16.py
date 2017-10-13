@@ -35,13 +35,12 @@ def main():
         horizontal_flip=True,
         data_format='channels_last')
 
-    batch_size = 100
-
     # actual_train_data = train_data_generator.flow(train_data, train_labels, batch_size=batch_size)
 
     # initializer = TruncatedNormal(mean=0.0, stddev=0.001, seed=None)
-    
-    lr = 1E-4
+    batch_size = 100    
+    lr = 0.01
+    lr_decay = 1E-6
     epochs = 10
     dropout = 0.5
     # model = VGG16(input_shape=(32, 32, 3), weights='imagenet', classes=10,
@@ -53,16 +52,13 @@ def main():
     x = Dropout(dropout)(x)
     predictions = Dense(10, activation='softmax')(x)
     converted_model = Model(input=model.input, output=predictions)
-    sgd = optimizers.SGD(lr=lr, momentum=0.9, nesterov=True)
-    # adam = optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+    sgd = optimizers.SGD(lr=lr, decay=lr_decay, momentum=0.9, nesterov=True)
     converted_model.compile(loss='categorical_crossentropy',
                             optimizer=sgd,
                             metrics=['accuracy'])
     # converted_model.fit(x=x_train, y=y_train, batch_size=batch_size, validation_split=0.2, epochs=epochs)
     # NOTE: only use below when using data augmentation.
-    converted_model.fit_generator(train_data_generator.flow(x_train, y_train, batch_size=batch_size), steps_per_epoch=10000/batch_size, epochs=100, validation_data=(x_test, y_test))
-    # score = converted_model.evaluate(x=x_test, y=y_test, batch_size=100)
-    # print('Testing accuracy: {}'.format(score))
+    converted_model.fit_generator(train_data_generator.flow(x_train, y_train, batch_size=batch_size), steps_per_epoch=10000/batch_size, epochs=epochs, validation_data=(x_test, y_test))
 
     return
 
