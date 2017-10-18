@@ -39,9 +39,9 @@ def main():
 
     # initializer = TruncatedNormal(mean=0.0, stddev=0.001, seed=None)
     batch_size = 100    
-    lr = 0.01
-    lr_decay = 1E-6
-    epochs = 10
+    lr = 0.001
+    lr_decay = 1E-5
+    epochs = 100
     dropout = 0.5
     # model = VGG16(input_shape=(32, 32, 3), weights='imagenet', classes=10,
                   # include_top=False, input_tensor=None)
