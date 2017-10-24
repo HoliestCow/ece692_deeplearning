@@ -21,6 +21,20 @@ def main():
     # train_data = np.transpose(np.reshape(train_data, (train_data.shape[0], 3, 32, 32)), (0, 2, 3, 1))
     (x_train, y_train), (x_test, y_test) = load_data()
 
+    print(x_train.shape, x_test.shape)
+
+    dx = (48 - 32) / 2
+
+    train_x = np.zeros((x_train.shape[0], 48, 48, 3))
+    test_x = np.zeros((x_test.shape[0], 48, 48, 3))
+
+    for i in range(x_train.shape[0]):
+        for j in range(x_train.shape[-1]):
+            train_x[i, dx:-dx, dx:-dx, j] = x_train[i, :, :, j]
+    for i in range(x_test.shape[0]):
+        for j in range(x_test.shape[-1]):
+            test_x[i, dx:-dx, dx:-dx, j] = x_test[i, :, :, j]
+
     y_train = utils.to_categorical(y_train, 10)
     y_test = utils.to_categorical(y_test, 10)
 
@@ -39,27 +53,28 @@ def main():
 
     # initializer = TruncatedNormal(mean=0.0, stddev=0.001, seed=None)
     batch_size = 100    
-    lr = 0.001
+    lr = 0.01
     lr_decay = 1E-5
     epochs = 100
     dropout = 0.5
     # model = VGG16(input_shape=(32, 32, 3), weights='imagenet', classes=10,
                   # include_top=False, input_tensor=None)
-    model = VGG16(input_shape=(32, 32, 3), weights=None, classes=10)
-    x = model.get_layer('block3_pool').output
-    x = Flatten(name='Flatten')(x)
-    x = Dense(1024, activation='relu', name='fc1')(x)
-    x = Dropout(dropout)(x)
-    predictions = Dense(10, activation='softmax')(x)
-    converted_model = Model(input=model.input, output=predictions)
+    model = VGG16(input_shape=(48, 48, 3), weights=None, classes=10)
+    # x = model.get_layer('block3_pool').output
+    # x = Flatten(name='Flatten')(x)
+    # x = Dense(1024, activation='relu', name='fc1')(x)
+    # x = Dropout(dropout)(x)
+    # predictions = Dense(10, activation='softmax')(x)
+    # converted_model = Model(input=model.input, output=predictions)
+    converted_model = Model(input=model.input, output=model.output)
     sgd = optimizers.SGD(lr=lr, decay=lr_decay, momentum=0.9, nesterov=True)
     converted_model.compile(loss='categorical_crossentropy',
                             optimizer=sgd,
                             metrics=['accuracy'])
     # converted_model.fit(x=x_train, y=y_train, batch_size=batch_size, validation_split=0.2, epochs=epochs)
     # NOTE: only use below when using data augmentation.
-    converted_model.fit_generator(train_data_generator.flow(x_train, y_train, batch_size=batch_size), steps_per_epoch=10000/batch_size, epochs=epochs, validation_data=(x_test, y_test))
-
+    # converted_model.fit_generator(train_data_generator.flow(x_train, y_train, batch_size=batch_size), steps_per_epoch=10000/batch_size, epochs=epochs, validation_data=(x_test, y_test))
+    converted_model.fit_generator(train_data_generator.flow(train_x, y_train, batch_size=batch_size), steps_per_epoch=10000/batch_size, epochs=epochs, validation_data=(test_x, y_test))
     return
 
 main()

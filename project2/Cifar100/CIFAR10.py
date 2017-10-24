@@ -68,14 +68,14 @@ def my_model(img_prep, img_aug):
 
     # dropout_probability = 0.5
     dropout_probability = 1.0
-    initial_learning_rate = 0.001
+    initial_learning_rate = 0.0001
     learning_decay=1E-5
     initializer = 'uniform_scaling'
     # initializer = 'truncated_normal'
     activation_function = 'relu'
 #     activation_function = 'sigmoid'
-#     objective_function = 'categorical_crossentropy'
-    objective_function = 'mean_square'
+    objective_function = 'categorical_crossentropy'
+#     objective_function = 'mean_square'
     
     network = input_data(shape=[None, 32, 32, 3],
                          data_preprocessing=img_prep,
@@ -91,12 +91,12 @@ def my_model(img_prep, img_aug):
     network = fully_connected(network, 512, activation=activation_function)
     network = dropout(network, dropout_probability)
     network = fully_connected(network, 10, activation='softmax')
-    network = regression(network, optimizer='adam',
-                         loss=objective_function,
-                         learning_rate=initial_learning_rate)
-    # sgd = SGD(learning_rate=initial_learning_rate, lr_decay=learning_decay, decay_step=90)
-    # network = regression(network, optimizer=sgd,
-    #                      loss='categorical_crossentropy')
+    # network = regression(network, optimizer='adam',
+    #                      loss=objective_function,
+    #                      learning_rate=initial_learning_rate)
+    sgd = SGD(learning_rate=initial_learning_rate, lr_decay=learning_decay, decay_step=90)
+    network = regression(network, optimizer=sgd,
+                         loss='categorical_crossentropy')
     return network
 
 def main():
