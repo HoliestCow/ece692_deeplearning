@@ -80,12 +80,15 @@ if __name__ == '__main__':
 
     # Fit the model
     dae.fit(trX, teX, restore_previous_model=FLAGS.restore_previous_model)
-
+    print('in main here')
     # Encode the training data and store it
     dae.transform(trX, name='train', save=FLAGS.encode_train)
+    print('one')
     dae.transform(vlX, name='validation', save=FLAGS.encode_valid)
+    print('two')
     dae.transform(teX, name='test', save=FLAGS.encode_test)
+    print('three')
 
     # save images
     dae.get_weights_as_images(28, 28, max_images=FLAGS.weight_images)
-
+    print('four')

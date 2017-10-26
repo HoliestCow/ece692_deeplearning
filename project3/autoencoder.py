@@ -87,7 +87,7 @@ class DenoisingAutoencoder(object):
                     with the same name of this model is restored from disk to continue training.
 
         :return: self
-        """
+        """       
         n_features = train_set.shape[1]
 
         self._build_model(n_features)
@@ -104,8 +104,9 @@ class DenoisingAutoencoder(object):
         Restore a previously trained model if the flag restore_previous_model is true.
         """
 
-        self.tf_merged_summaries = tf.merge_all_summaries()
-        init_op = tf.initialize_all_variables()
+        self.tf_merged_summaries = tf.summary.merge_all()
+        # init_op = tf.initialize_all_variables()
+        init_op = tf.global_variables_initializer()
         self.tf_saver = tf.train.Saver()
 
         self.tf_session.run(init_op)
@@ -113,7 +114,7 @@ class DenoisingAutoencoder(object):
         if restore_previous_model:
             self.tf_saver.restore(self.tf_session, self.model_path)
 
-        self.tf_summary_writer = tf.train.SummaryWriter(self.tf_summary_dir, self.tf_session.graph_def)
+        self.tf_summary_writer = tf.summary.FileWriter(self.tf_summary_dir, self.tf_session.graph)
 
     def _train_model(self, train_set, validation_set):
 
@@ -128,7 +129,6 @@ class DenoisingAutoencoder(object):
         corruption_ratio = np.round(self.corr_frac * train_set.shape[1]).astype(np.int)
 
         for i in range(self.num_epochs):
-
             self._run_train_step(train_set, corruption_ratio)
 
             if i % 5 == 0:
@@ -288,11 +288,11 @@ class DenoisingAutoencoder(object):
         with tf.name_scope("cost"):
             if self.loss_func == 'cross_entropy':
                 self.cost = - tf.reduce_sum(self.input_data * tf.log(self.decode))
-                _ = tf.scalar_summary("cross_entropy", self.cost)
+                _ = tf.summary.scalar("cross_entropy", self.cost)
 
             elif self.loss_func == 'mean_squared':
                 self.cost = tf.sqrt(tf.reduce_mean(tf.square(self.input_data - self.decode)))
-                _ = tf.scalar_summary("mean_squared", self.cost)
+                _ = tf.summary.scalar("mean_squared", self.cost)
 
             else:
                 self.cost = None
