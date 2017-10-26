@@ -86,7 +86,7 @@ def salt_and_pepper_noise(X, v):
     return X_noise
     
     
-  def masking_noise(X, v):
+def masking_noise(X, v):
     """ Apply masking noise to data in X, in other words a fraction v of elements of X
     (chosen at random) is forced to zero.
 
