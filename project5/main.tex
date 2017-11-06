@@ -1,0 +1,81 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+% \usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{RNNs for Radiation Background Estimation\\
+% {\footnotesize \textsuperscript{*}Note: Sub-titles are not captured in Xplore and
+% should not be used}
+% \thanks{Identify applicable funding agency here. If none, delete this.}
+}
+
+\author{\IEEEauthorblockN{Carl G. Britt}
+\IEEEauthorblockA{\textit{Department of Nuclear Engineering} \\
+\textit{University of Tennessee}\\
+Knoxville, TN, USA \\
+cbritt2@vols.utk.edu}
+\and
+\IEEEauthorblockN{Hairong Qi}
+\IEEEauthorblockA{\textit{Electrical Engineering and Computer Science} \\
+\textit{University of Tennessee}\\
+Knoxville, TN, USA \\
+hqi@utk.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+\end{abstract}
+
+\begin{IEEEkeywords}
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+The Lost Source problem can be viewed as finding an illicit radiation source within a complex environment \cite{ziock}. One of the main challenges in this problem is differentiating illicit sources from Naturally Occuring Radioactive Material (NORM), in other words the act of anomaly detection. Performing this task solely off of number of detected events can be troublesome as the background count rate can vary by a factor of five within an operational area. Therefore, efforts have been focused on capitalizing on radiation spectra, more detailed features, given from scintillators or semi-conductor detectors. Although better than count rate approaches, spectral algorithms are prone to high false alarm rates due to illicit sources (such as Weapons Grade Plutonium) and NORM looking similar in low statistic scenarios. Despite these challenges, there have been several spectral solutions to radiation detection.
+
+% Literature Survey
+
+% A background count rate estimation method based on Kalman Filters has been explored by \cite{lei} where it has been resistant to sudden changes to the background rate.
+
+An instantaneous background estimation approach is given in \cite{alamaniotis}, where the minima (valleys) of the spectra are used to predict the rest of the spectra using Gaussian Process kernels. This approach solely uses the information from the training stage, which is to say the background estimate is completely independent of prior measurements. Consequently, as mentioned in \cite{alamaniotis}, the background is consistently underpredicted. Furthermore, this approach implicitly assumes that the counts within a minima channel are solely due to background, which is not necessarily true. Despite these drawbacks, this approach brings about reasonable background estimation in low statistics scenarios.
+
+Nuisance-Rejecting Spectral Comparison Ratios (NSCRAD) algorithm is a radiation detection algorithm is a novel approach in background discrimination \cite{detwiler}. The features for this approach describe the shape of the energy spectra instead of the energy spectra itself. The advantage of this approach is that the counts in several energy bins can summed to overcome the noise component of the  measurement; however, this shaping can get complicated if the energy windows overlap as each feature is no longer independent of one another as noted in \cite{detwiler}. With these features, main sources of NORM, namely Potassium, Uranium, and Thorium are explicitly modeled and projected out of each measurement. As such, the crux of this approach hinges on the assumption that the background can be known apriori, which may not be the case for dynamic background (moving measurement) scenarios.
+
+% Proposed Solution
+
+This work proposes a Long Term Short Memory (LTSM) approach for the sole purposes of discriminating against Naturally Occurring Radiation Material (NORM). The idea is to understand the allowable changes in time series background data to differentiate changes in the signal due to the presence of illicit sources and change in background environment. This approach differs from the literature as it assumes that the background changes in contrast to capturing all the possible combinations of threat sources or background compositions.
+
+% Summary Outline of Paper
+
+Section 2 will describe the LTSM structure, Section 3 will detail the hyperparameter setup, and Section 4 will showcase the performance compared to approaches, as well as the other approaches listed in the data competition.
+
+% The \section* gets rid of the numbering for the headers.
+% \section*{Acknowledgment}
+% \section{Acknowledgment}
+
+% \section*{References}
+% \section{References}
+\bibliographystyle{ieeetr}
+\bibliography{thisreference}
+
+% \bibliography{ieeetr}
+
+% \begin{thebibliography}{00}
+% \bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
+% \bibitem{b2} J. Clerk Maxwell, A Treatise on Electricity and Magnetism, 3rd ed., vol. 2. Oxford: Clarendon, 1892, pp.68--73.
+% \bibitem{b3} I. S. Jacobs and C. P. Bean, ``Fine particles, thin films and exchange anisotropy,'' in Magnetism, vol. III, G. T. Rado and H. Suhl, Eds. New York: Academic, 1963, pp. 271--350.
+% \bibitem{b4} K. Elissa, ``Title of paper if known,'' unpublished.
+% \bibitem{b5} R. Nicole, ``Title of paper with only first word capitalized,'' J. Name Stand. Abbrev., in press.
+% \bibitem{b6} Y. Yorozu, M. Hirano, K. Oka, and Y. Tagawa, ``Electron spectroscopy studies on magneto-optical media and plastic substrate interface,'' IEEE Transl. J. Magn. Japan, vol. 2, pp. 740--741, August 1987 [Digests 9th Annual Conf. Magnetics Japan, p. 301, 1982].
+% \bibitem{b7} M. Young, The Technical Writer's Handbook. Mill Valley, CA: University Science, 1989.
+% \end{thebibliography}
+
+\end{document}
