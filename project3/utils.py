@@ -1,4 +1,5 @@
 from scipy import misc
+from skimage.util import random_noise
 import tensorflow as tf
 import numpy as np
 
@@ -106,6 +107,13 @@ def masking_noise(X, v):
         for m in mask:
             X_noise[i][m] = 0.
 
+    return X_noise
+
+def gaussian_noise(X, v):
+    n_samples = X.shape[0]
+    X_noise = X.copy()
+    for i in range(n_samples):
+        X_noise[i, :] = random_noise(X[i, :])
     return X_noise
 
 

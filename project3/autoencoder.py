@@ -170,6 +170,9 @@ class DenoisingAutoencoder(object):
         elif self.corr_type == 'salt_and_pepper':
             x_corrupted = utils.salt_and_pepper_noise(data, v)
 
+        elif self.corr_type == 'gaussian':
+            x_corrupted = utils.gaussian_noise(data, v)
+
         elif self.corr_type == 'none':
             x_corrupted = data
 
@@ -257,6 +260,9 @@ class DenoisingAutoencoder(object):
             elif self.enc_act_func == 'tanh':
                 self.encode = tf.nn.tanh(tf.matmul(self.input_data_corr, self.W_) + self.bh_)
 
+            elif self.enc_act_funct == 'relu':
+                self.encode = tf.nn.relu(tf.matmul(self.input_data_corr, self.W_) + self.bh_)
+
             else:
                 self.encode = None
 
@@ -272,6 +278,9 @@ class DenoisingAutoencoder(object):
 
             elif self.dec_act_func == 'tanh':
                 self.decode = tf.nn.tanh(tf.matmul(self.encode, tf.transpose(self.W_)) + self.bv_)
+
+            elif self.dec_act_funct == 'relu':
+                self.decode = tf.nn.relu(tf.matmul(self.encode, tf.transpose(self.W_)) + self.bv_)
 
             elif self.dec_act_func == 'none':
                 self.decode = tf.matmul(self.encode, tf.transpose(self.W_)) + self.bv_
