@@ -84,6 +84,11 @@ if __name__ == '__main__':
     dae.transform(trX, name='train', save=FLAGS.encode_train)
     dae.transform(vlX, name='validation', save=FLAGS.encode_valid)
     dae.transform(teX, name='test', save=FLAGS.encode_test)
+    
+    # Decode the training data and store it
+    dae.transform(trX, name='train_decode', save=FLAGS.encode_train)
+    dae.transform(vlX, name='validation_decode', save=FLAGS.encode_valid)
+    dae.transform(teX,  name='test_decode', save=FLAGS.encode_test)
 
     # save images
     dae.get_weights_as_images(28, 28, max_images=FLAGS.weight_images)

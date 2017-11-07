@@ -111,9 +111,14 @@ def masking_noise(X, v):
 
 def gaussian_noise(X, v):
     n_samples = X.shape[0]
+    n_features = X.shape[1]
+
     X_noise = X.copy()
     for i in range(n_samples):
-        X_noise[i, :] = random_noise(X[i, :])
+        mask = np.random.randint(0, n_features, v)
+        
+        for m in mask:
+            X_noise[i, m] = random_noise(X[i, m])
     return X_noise
 
 
