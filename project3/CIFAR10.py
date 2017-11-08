@@ -89,27 +89,28 @@ def my_model(img_prep, img_aug):
     network = conv_2d(network, 64, 3, strides=1, padding='same', activation=activation_function,
                       bias=True, bias_init='zeros', weights_init=initializer)
     network = max_pool_2d(network, 2, strides=None, padding='same')
-    network = fully_connected(network, 512, activation=activation_function)
-    network = dropout(network, dropout_probability)
-    network = fully_connected(network, 10, activation='softmax')
+    features = fully_connected(network, 512, activation=activation_function, name='derived_features')
+    network = dropout(features, dropout_probability)
+    network = fully_connected(network, 10, activation='softmax',
+                              name='softmax_classification')
     network = regression(network, optimizer='adam',
                          loss=objective_function,
                          learning_rate=initial_learning_rate)
     # sgd = SGD(learning_rate=initial_learning_rate, lr_decay=learning_decay, decay_step=90)
     # network = regression(network, optimizer=sgd,
     #                      loss='categorical_crossentropy')
-    return network
+    return network, features
 
 
 def main():
     x, y, x_test, y_test, img_prep, img_aug = get_data()
 #     with tf.device('/gpu:0'):
 #         with tf.contrib.framework.arg_scope([tflearn.variables.variable], device='/cpu:0'):
-    model = my_model(img_prep, img_aug)
+    model, features = my_model(img_prep, img_aug)
     network = DNN(model)
     network.fit(x, y, n_epoch=100, shuffle=True, validation_set=(x_test, y_test), show_metric=True,
                 batch_size=100, run_id='aa2')
-    network.save('yolo')
+    network.save('lenet5_model.tflearn')
     return
 
 main()
