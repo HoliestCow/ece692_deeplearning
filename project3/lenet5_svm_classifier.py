@@ -12,6 +12,7 @@ import tensorflow as tf
 import urllib
 
 from sklearn import svm
+from itertools import compress
 import glob
 
 def get_proper_images(raw):
@@ -24,9 +25,11 @@ def onehot_labels(labels):
     return np.eye(10)[labels]
 
 def unpickle(file):
-    import cPickle
+    # import cPickle
+    import pickle as cPickle
     fo = open(file, 'rb')
-    dict = cPickle.load(fo)
+    # dict = cPickle.load(fo)
+    dict = cPickle.load(fo, encoding='bytes')
     fo.close()
     return dict
 
@@ -39,20 +42,33 @@ def get_data():
     data3  = unpickle('../cifar-10-batches-py/data_batch_3')
     data4  = unpickle('../cifar-10-batches-py/data_batch_4')
     data5  = unpickle('../cifar-10-batches-py/data_batch_5')
+    # print(list(data1.keys()))
+    # X = np.concatenate((get_proper_images(data1['data']),
+    #                     get_proper_images(data2['data']),
+    #                     get_proper_images(data3['data']),
+    #                     get_proper_images(data4['data']),
+    #                     get_proper_images(data5['data'])))
+    X = np.concatenate((get_proper_images(data1[b'data']),
+                        get_proper_images(data2[b'data']),
+                        get_proper_images(data3[b'data']),
+                        get_proper_images(data4[b'data']),
+                        get_proper_images(data5[b'data'])))
+    # Y = np.concatenate((onehot_labels(data1['labels']),
+    #                     onehot_labels(data2['labels']),
+    #                     onehot_labels(data3['labels']),
+    #                     onehot_labels(data4['labels']),
+    #                     onehot_labels(data5['labels'])))
+    Y = np.concatenate((onehot_labels(data1[b'labels']),
+                        onehot_labels(data2[b'labels']),
+                        onehot_labels(data3[b'labels']),
+                        onehot_labels(data4[b'labels']),
+                        onehot_labels(data5[b'labels'])))
 
-    X = np.concatenate((get_proper_images(data1['data']),
-                        get_proper_images(data2['data']),
-                        get_proper_images(data3['data']),
-                        get_proper_images(data4['data']),
-                        get_proper_images(data5['data'])))
-    Y = np.concatenate((onehot_labels(data1['labels']),
-                        onehot_labels(data2['labels']),
-                        onehot_labels(data3['labels']),
-                        onehot_labels(data4['labels']),
-                        onehot_labels(data5['labels'])))
+    # X_test = get_proper_images(unpickle('../cifar-10-batches-py/test_batch')['data'])
+    # Y_test = onehot_labels(unpickle('../cifar-10-batches-py/test_batch')['labels'])
 
-    X_test = get_proper_images(unpickle('../cifar-10-batches-py/test_batch')['data'])
-    Y_test = onehot_labels(unpickle('../cifar-10-batches-py/test_batch')['labels'])
+    X_test = get_proper_images(unpickle('../cifar-10-batches-py/test_batch')[b'data'])
+    Y_test = onehot_labels(unpickle('../cifar-10-batches-py/test_batch')[b'labels'])
 
     img_prep = ImagePreprocessing()
     if data_norm:
@@ -123,16 +139,40 @@ def main():
                 print(i, svm_features.shape)
             chuckmein = x[i, :, :].reshape((1, x.shape[1], x.shape[2], x.shape[3]))
             svm_features = np.vstack((svm_features, feature_generator.predict(chuckmein)))
-            np.save('./lenet5_svm_features.npy', svm_features)
+        np.save('./lenet5_svm_features.npy', svm_features)
     else:
         svm_features = np.load('./lenet5_svm_features.npy')
-    print(svm_features.shape)
+
+    if len(glob.glob('./lenet5_svm_features_test.npy')) != 1:
+        svm_features_test = np.zeros((0, 512))
+        for i in range(x_test.shape[0]):
+            chuckmein = x_test[i, :, :].reshape((1, x.shape[1], x.shape[2], x.shape[3]))
+            svm_features_test = np.vstack((svm_features_test, feature_generator.predict(chuckmein)))
+        np.save('./lenet5_svm_features_test.npy', svm_features_test)
+    else:
+        svm_features_test = np.load('./lenet5_svm_features_test.npy')
     #  from here it's y vs. y_predict
+    svm_y = np.zeros((y.shape[0], ))
+    svm_y_test = np.zeros((y_test.shape[0]))
+    for i in range(y.shape[0]):
+        # print(y[i, :] == 1)
+        mask =  y[i, :] == 1
+        meh = list(compress(range(len(mask)), mask))
+        svm_y[i] = meh[0]
+    for i in range(y_test.shape[0]):
+        mask = y_test[i, :] == 1
+        meh = list(compress(range(len(mask)), mask))
+        svm_y_test[i] = meh[0]
+
     clf = svm.SVC()
-    clf.fit(svm_features, y)
-    predicted_y = clf.predict(test_x)
+    clf.fit(svm_features, svm_y)
+    predicted_y = clf.predict(svm_features_test)
+    accuracy_mask = svm_y_test == predicted_y
+    accuracy = float(len(list(compress(range(len(accuracy_mask)), accuracy_mask)))) / float(len(accuracy_mask))
+    print(accuracy)
+
     # y_test vs. predicted_y metric
-    
+
     return
 
 main()

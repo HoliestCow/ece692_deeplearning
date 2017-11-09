@@ -87,7 +87,7 @@ class DenoisingAutoencoder(object):
                     with the same name of this model is restored from disk to continue training.
 
         :return: self
-        """       
+        """
         n_features = train_set.shape[1]
 
         self._build_model(n_features)
@@ -345,6 +345,28 @@ class DenoisingAutoencoder(object):
                 np.save(self.data_dir + self.model_name + '-' + name, encoded_data)
 
             return encoded_data
+
+    def transform_decode(self, data, name='train_decode', save=False):
+        """ Transform data according to the model.
+
+        :param data: Data to transform
+        :param name: Identifier for the data that is being encoded
+        :param save: If true, save data to disk
+
+        :return: transformed data
+        """
+
+        with tf.Session() as self.tf_session:
+
+            self.tf_saver.restore(self.tf_session, self.models_dir + self.model_name)
+
+            encoded_data = self.encode.eval({self.input_data_corr: data})
+            decoded_data = self.decode.eval({self.encode: encoded_data})
+
+            if save:
+                np.save(self.data_dir + self.model_name + '-' + name, decoded_data)
+
+            return decoded_data
 
     def load_model(self, shape, model_path):
         """ Restore a previously trained model from disk.
