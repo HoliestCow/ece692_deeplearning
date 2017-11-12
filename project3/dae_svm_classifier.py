@@ -4,15 +4,12 @@ from tflearn.data_augmentation import ImageAugmentation
 from tflearn.data_preprocessing import ImagePreprocessing
 # import glob
 from sklearn import svm
-from sklearn.ensemble import BaggingClassifier, RandomForestClassifier
-from sklearn import datasets
+from sklearn.ensemble import BaggingClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
 from itertools import compress
 import numpy as np
 import os.path
-
-from linear_classifier import SVM
 
 import time
 
@@ -90,26 +87,38 @@ def get_data():
 
 def main():
     a = time.time()
-    x, y, x_test, y_test, img_prep, img_aug = get_data()
-
-    svm_y = np.zeros((y.shape[0], ), dtype=int)
-    svm_y_test = np.zeros((y_test.shape[0]), dtype=int)
-    for i in range(y.shape[0]):
-        # print(y[i, :] == 1)
-        mask =  y[i, :] == 1
-        meh = list(compress(range(len(mask)), mask))
-        svm_y[i] = int(meh[0])
-    for i in range(y_test.shape[0]):
-        mask = y_test[i, :] == 1
-        meh = list(compress(range(len(mask)), mask))
-        svm_y_test[i] = int(meh[0])
+    # x, y, x_test, y_test, img_prep, img_aug = get_data()
+    #
+    # svm_y = np.zeros((y.shape[0], ), dtype=int)
+    # svm_y_test = np.zeros((y_test.shape[0]), dtype=int)
+    # for i in range(y.shape[0]):
+    #     # print(y[i, :] == 1)
+    #     mask = y[i, :] == 1
+    #     meh = list(compress(range(len(mask)), mask))
+    #     svm_y[i] = int(meh[0])
+    # for i in range(y_test.shape[0]):
+    #     mask = y_test[i, :] == 1
+    #     meh = list(compress(range(len(mask)), mask))
+    #     svm_y_test[i] = int(meh[0])
 
     # runs = ['sigmoid_sigmoid_256',
     #         'sigmoid_sigmoid_crossentropy_256',
     #         'sigmoid_sigmoid_gaussiannoise_256',
+    #         'sigmoid_tanh_512',
     #         'relu_relu_256']
 
-    runs = ['sigmoid_tanh_256']
+    # runs = ['sigmoid_sigmoid_snp_0.1_512',
+    #         'sigmoid_sigmoid_snp_0.2_512',
+    #         'sigmoid_sigmoid_snp_0.3_512',
+    #         'sigmoid_sigmoid_snp_0.4_512',
+    #         'sigmoid_sigmoid_snp_0.5_512']
+
+    runs = ['sigmoid_sigmoid_mask_0.1_512',
+            'sigmoid_sigmoid_mask_0.2_512',
+            'sigmoid_sigmoid_mask_0.3_512',
+            'sigmoid_sigmoid_mask_0.4_512',
+            'sigmoid_sigmoid_mask_0.5_512',
+            'relu_relu_snp_0.4_512']
 
     print('time required to fix the answers {}'.format(time.time() - a))
 
@@ -128,85 +137,32 @@ def main():
 
     model_directory = './data/dae/'
     train_suffix = '-train.npy'
+    train_suffix_answer = '-train-answers.npy'
     test_suffix = '-test.npy'
+    test_suffix_answer = '-test-answers.npy'
     # validation_suffix = '-validate.npy'
 
     for item in runs:
         svm_features = np.load(os.path.join(model_directory, item + train_suffix))
         svm_features_test = np.load(os.path.join(model_directory, item + test_suffix))
+        svm_y = np.load(os.path.join(model_directory, item + train_suffix_answer))
+        svm_y_test = np.load(os.path.join(model_directory, item + test_suffix_answer))
 
-    # if len(glob.glob('./data/dae/*test.npy')) != 1:
-    #     svm_features_test = np.zeros((0, 512))
-    #     for i in range(x_test.shape[0]):
-    #         chuckmein = x_test[i, :, :].reshape((1, x.shape[1], x.shape[2], x.shape[3]))
-    #         svm_features_test = np.vstack((svm_features_test, feature_generator.predict(chuckmein)))
-    #     np.save('./dae_svm_features_test.npy', svm_features_test)
-    # else:
-    #     svm_features_test = np.load('./dae_svm_features_test.npy')
-    #  from here it's y vs. y_predict
-        # start = time.time()
-        # clf = OneVsRestClassifier(SVC(kernel='linear', probability=True, class_weight='auto'))
-        # clf.fit(X, y)
-        # end = time.time()
-        # print "Single SVC", end - start, clf.score(X,y)
-        # proba = clf.predict_proba(X)
-        #
-        # n_estimators = 10
-        # start = time.time()
-        # clf = OneVsRestClassifier(BaggingClassifier(SVC(kernel='linear', probability=True, class_weight='auto'), max_samples=1.0 / n_estimators, n_estimators=n_estimators))
-        # clf.fit(X, y)
-        # end = time.time()
-        # print "Bagging SVC", end - start, clf.score(X,y)
-        # proba = clf.predict_proba(X)
+        print(svm_features.shape, svm_features_test.shape, svm_y.shape, svm_y_test.shape)
 
-        # start = time.time()
-        # clf = RandomForestClassifier(min_samples_leaf=20)
-        # clf.fit(X, y)
-        # end = time.time()
-        # print "Random Forest", end - start, clf.score(X,y)
-        # proba = clf.predict_proba(X)
-        #
-        # n_estimators = 10
-        # n_jobs = 4
-        # start = time.time()
-        # clf = OneVsRestClassifier(BaggingClassifier(
-        #     SVC(kernel='linear', probability=True, class_weight=None),
-        #     max_samples=1.0 / n_estimators, n_estimators=n_estimators, n_jobs=n_jobs))
-        # clf.fit(svm_features, svm_y)
-        # end = time.time()
-        # print("Bagging SVC", end - start, clf.score(svm_features_test, svm_y_test))
-        # proba = clf.predict_proba(X)
-
-        # Training svm regression classifier using SGD and BGD
-
-
-        # # using SGD algorithm
-        SVM_sgd = SVM()
-        tic = time.time()
-        # print(svm_y)
-        svm_features = svm_features.reshape((svm_features.shape[1], svm_features.shape[0]))
-        # losses_sgd = SVM_sgd.train(svm_features, svm_y, method='sgd', batch_size=200, learning_rate=1e-6, reg = 1e5, num_iters=10000, verbose=True, vectorized=True)
-        losses_sgd = SVM_sgd.train(svm_features, svm_y, method='sgd', batch_size=200, learning_rate=1e-5, num_iters=1000, verbose=True, vectorized=True)
-        toc = time.time()
-        print('Traning time for SGD with vectorized version is %f \n' % (toc - tic))
-
-        # y_train_pred_sgd = SVM_sgd.predict(X_train)[0]
-        # print 'Training accuracy: %f' % (np.mean(y_train == y_train_pred_sgd))
-        svm_features_test = svm_features_test.reshape((svm_features_test.shape[1], svm_features_test.shape[0]))
-        y_val_pred_sgd = SVM_sgd.predict(svm_features_test)[0]
-        print(y_val_pred_sgd)
-        print('Validation accuracy: %f' % (np.mean(svm_y_test == y_val_pred_sgd)))
-
-        # predicted_y = clf.predict(svm_features_test)
-        # accuracy_mask = svm_y_test == predicted_y
-        # accuracy = float(len(list(compress(range(len(accuracy_mask)), accuracy_mask)))) / float(len(accuracy_mask))
-        # print('{} accuracy: {}'.format(item, accuracy))
-        # print('time taken to complete run {}'.format(time.time() - a))
+        n_estimators = 10
+        n_jobs = 4
+        print('training svm')
+        start = time.time()
+        clf = OneVsRestClassifier(BaggingClassifier(
+            SVC(kernel='linear', probability=True, class_weight=None),
+            max_samples=1.0 / n_estimators, n_estimators=n_estimators, n_jobs=n_jobs))
+        clf.fit(svm_features, svm_y)
+        end = time.time()
+        print("Bagging SVC", end - start, clf.score(svm_features_test, svm_y_test))
 
 
 
-    # y_test vs. predicted_y metric
-    # print('total time taken: {}'.format(b - a))
     return
 
 main()
