@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 import autoencoder
 import datasets
@@ -61,8 +62,15 @@ if __name__ == '__main__':
         #   Cifar10 Dataset   #
         # ################### #
 
-        trX, teX = datasets.load_cifar10_dataset(FLAGS.cifar_dir, mode='unsupervised')
-        vlX = teX[:5000]  # Validation set is the first half of the test set
+        # trX, teX = datasets.load_cifar10_dataset(FLAGS.cifar_dir, mode='unsupervised')
+        # vlX = teX[:5000]  # Validation set is the first half of the test set
+        trX, trY, teX, teY = datasets.load_cifar10_dataset(FLAGS.cifar_dir, mode='supervised')
+
+        vlX = teX[:5000]
+        vlY = teY[:5000]
+        print(len(teY))
+        print(len(vlY))
+        # print(teY.shape, vlY.shape)
 
     else:  # cannot be reached, just for completeness
         trX = None
@@ -81,14 +89,20 @@ if __name__ == '__main__':
     # Fit the model
     dae.fit(trX, teX, restore_previous_model=FLAGS.restore_previous_model)
     # Encode the training data and store it
-    dae.transform(trX, name='train', save=FLAGS.encode_train)
-    dae.transform(vlX, name='validation', save=FLAGS.encode_valid)
-    dae.transform(teX, name='test', save=FLAGS.encode_test)
+    dae.transform(trX, trY, name='train', save=FLAGS.encode_train)
+    dae.transform(vlX, vlY, name='validation', save=FLAGS.encode_valid)
+    dae.transform(teX, teY, name='test', save=FLAGS.encode_test)
+
+    stuff = dae.get_model_parameters()
+
+    # np.save(self.data_dir + self.model_name + '-' + name, encoded_data)
+    np.save(dae.data_dir + dae.model_name + '-encw', stuff['enc_w'])
+    np.save(dae.data_dir + dae.model_name + '-encbh', stuff['enc_b'])
 
     # Decode the training data and store it
-    dae.transform_decode(trX, name='train_decode', save=FLAGS.encode_train)
-    dae.transform_decode(vlX, name='validation_decode', save=FLAGS.encode_valid)
-    dae.transform_decode(teX,  name='test_decode', save=FLAGS.encode_test)
+    # dae.transform_decode(trX, name='train_decode', save=FLAGS.encode_train)
+    # dae.transform_decode(vlX, name='validation_decode', save=FLAGS.encode_valid)
+    # dae.transform_decode(teX,  name='test_decode', save=FLAGS.encode_test)
 
     # save images
     dae.get_weights_as_images(32, 32, max_images=FLAGS.weight_images)

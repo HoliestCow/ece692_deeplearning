@@ -66,8 +66,8 @@ def get_data():
 
 def my_model(img_prep, img_aug):
 
-    # dropout_probability = 0.5
-    dropout_probability = 1.0
+    dropout_probability = 0.5
+    # dropout_probability = 1.0
     initial_learning_rate = 0.0001
     learning_decay=1E-5
     initializer = 'uniform_scaling'
@@ -81,7 +81,8 @@ def my_model(img_prep, img_aug):
                          data_preprocessing=img_prep,
                          data_augmentation=img_aug)
     network = conv_2d(network, 32, 3, strides=1, padding='same', activation=activation_function,
-                      bias=True, bias_init='zeros', weights_init=initializer)
+                      bias=True, bias_init='zeros', weights_init=initializer,
+                      regularizer='L2')
     network = max_pool_2d(network, 2, strides=None, padding='same')
     network = conv_2d(network, 64, 3, strides=1, padding='same', activation=activation_function,
                       bias=True, bias_init='zeros', weights_init=initializer)
@@ -91,12 +92,12 @@ def my_model(img_prep, img_aug):
     network = fully_connected(network, 512, activation=activation_function)
     network = dropout(network, dropout_probability)
     network = fully_connected(network, 10, activation='softmax')
-    # network = regression(network, optimizer='adam',
-    #                      loss=objective_function,
-    #                      learning_rate=initial_learning_rate)
-    sgd = SGD(learning_rate=initial_learning_rate, lr_decay=learning_decay, decay_step=90)
-    network = regression(network, optimizer=sgd,
-                         loss='categorical_crossentropy')
+    network = regression(network, optimizer='adam',
+                         loss=objective_function,
+                         learning_rate=initial_learning_rate)
+    # sgd = SGD(learning_rate=initial_learning_rate, lr_decay=learning_decay, decay_step=90)
+    # network = regression(network, optimizer=sgd,
+    #                      loss='categorical_crossentropy')
     return network
 
 def main():

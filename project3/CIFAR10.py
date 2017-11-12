@@ -89,7 +89,15 @@ def my_model(img_prep, img_aug):
     network = conv_2d(network, 64, 3, strides=1, padding='same', activation=activation_function,
                       bias=True, bias_init='zeros', weights_init=initializer)
     network = max_pool_2d(network, 2, strides=None, padding='same')
-    features = fully_connected(network, 512, activation=activation_function, name='derived_features')
+    # from DAE
+
+    initial_weights = tf.constant_initializer(
+            np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encw.npy'))
+    initial_bias = tf.constant_initializer(
+            np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encbh.npy'))
+
+    features = fully_connected(network, 512, activation=activation_function, name='derived_features',
+                               weights_init=initial_weights, bias_init=initial_bias)
     network = dropout(features, dropout_probability)
     network = fully_connected(network, 10, activation='softmax',
                               name='softmax_classification')

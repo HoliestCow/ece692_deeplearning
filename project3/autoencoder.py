@@ -325,7 +325,7 @@ class DenoisingAutoencoder(object):
             else:
                 self.train_step = None
 
-    def transform(self, data, name='train', save=False):
+    def transform(self, data, answers, name='train', save=False):
         """ Transform data according to the model.
 
         :param data: Data to transform
@@ -343,6 +343,7 @@ class DenoisingAutoencoder(object):
 
             if save:
                 np.save(self.data_dir + self.model_name + '-' + name, encoded_data)
+                np.save(self.data_dir + self.model_name + '-' + name + '-answers', answers)
 
             return encoded_data
 
@@ -463,4 +464,4 @@ class DenoisingAutoencoder(object):
 
                 enc_w = np.array([i[p] for i in enc_weights])
                 image_path = outdir + self.model_name + '-enc_weights_{}.png'.format(p)
-                utils.gen_image(enc_w, width, height, image_path)
+                utils.gen_image(enc_w, width, height, image_path, img_type='color')
