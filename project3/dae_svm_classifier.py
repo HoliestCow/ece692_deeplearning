@@ -1,17 +1,17 @@
 
-
 from tflearn.data_augmentation import ImageAugmentation
 from tflearn.data_preprocessing import ImagePreprocessing
 # import glob
-from sklearn import svm
+# from sklearn import svm
 from sklearn.ensemble import BaggingClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
-from itertools import compress
+# from itertools import compress
 import numpy as np
 import os.path
 
 import time
+
 
 def onehot_labels(labels):
     return np.eye(10)[labels]
@@ -113,12 +113,14 @@ def main():
     #         'sigmoid_sigmoid_snp_0.4_512',
     #         'sigmoid_sigmoid_snp_0.5_512']
 
-    runs = ['sigmoid_sigmoid_mask_0.1_512',
-            'sigmoid_sigmoid_mask_0.2_512',
-            'sigmoid_sigmoid_mask_0.3_512',
-            'sigmoid_sigmoid_mask_0.4_512',
-            'sigmoid_sigmoid_mask_0.5_512',
-            'relu_relu_snp_0.4_512']
+    # runs = ['sigmoid_sigmoid_mask_0.1_512',
+    #         'sigmoid_sigmoid_mask_0.2_512',
+    #         'sigmoid_sigmoid_mask_0.3_512',
+    #         'sigmoid_sigmoid_mask_0.4_512',
+    #         'sigmoid_sigmoid_mask_0.5_512',
+    #         'relu_relu_snp_0.4_512']
+
+    runs = ['sigmoid_sigmoid_gaussian_0.4_512']
 
     print('time required to fix the answers {}'.format(time.time() - a))
 
@@ -143,8 +145,8 @@ def main():
     # validation_suffix = '-validate.npy'
 
     for item in runs:
-        svm_features = np.load(os.path.join(model_directory, item + train_suffix))
-        svm_features_test = np.load(os.path.join(model_directory, item + test_suffix))
+        # svm_features = np.load(os.path.join(model_directory, item + train_suffix))
+        # svm_features_test = np.load(os.path.join(model_directory, item + test_suffix))
         svm_y = np.load(os.path.join(model_directory, item + train_suffix_answer))
         svm_y_test = np.load(os.path.join(model_directory, item + test_suffix_answer))
 

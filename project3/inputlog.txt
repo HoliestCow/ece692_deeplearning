@@ -1,0 +1,67 @@
+salt and pepper figure out the fraction
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snp_0.1_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.1 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snp_0.1_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snp_0.2_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.2 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snp_0.2_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snp_0.3_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.3 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snp_0.3_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snp_0.4_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.4 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snp_0.4_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snp_0.5_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.5 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snp_0.5_512.out
+
+### SNP CROSS ENTROPY
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snpxe_0.1_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.1 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snpxe_0.1_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snpxe_0.2_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.2 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snpxe_0.2_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snpxe_0.3_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.3 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snpxe_0.3_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snpxe_0.4_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.4 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snpxe_0.4_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_snpxe_0.5_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.5 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_snpxe_0.5_512.out
+
+###   masking figure out the fraction
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_mask_0.1_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.1 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_mask_0.1_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_mask_0.2_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.2 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_mask_0.2_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_mask_0.3_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.3 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_mask_0.3_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_mask_0.4_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.4 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_mask_0.4_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_mask_0.5_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.5 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_mask_0.5_512.out
+
+### MASK XE
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_maskxe_0.1_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.1 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_maskxe_0.1_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_maskxe_0.2_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.2 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_maskxe_0.2_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_maskxe_0.3_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.3 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_maskxe_0.3_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_maskxe_0.4_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.4 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_maskxe_0.4_512.out
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_maskxe_0.5_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.5 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_maskxe_0.5_512.out
+
+### Use gaussian that's a mixture between the sweet spots.
+
+HERE
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_gaussiannoise_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type gaussian --corr_fraction 0.4 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt ada_grad --learning_rate 0.001 --momentum 0.5 --num_epochs 200 --batch_size 100 >> sig_sig_gaussiannoise_512.out
+
+### From here, use either snp or masking that gets best performance
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_crossentropy_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.1 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func cross_entropy --verbose 1 --opt ada_grad --learning_rate 0.001 --momentum 0.5 --num_epochs 100 --batch_size 100 >> sig_sig_crossentropy_256.out
+
+python run_autoencoder.py --model_name 'sigmoid_tanh_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type masking --corr_fraction 0.4 --enc_act_func sigmoid --dec_act_func tanh --loss_func mean_squared --verbose 1 --opt ada_grad --learning_rate 0.001 --momentum 0.5 --num_epochs 50 --batch_size 100 >> sig_tanh_512.out
+
+python run_autoencoder.py --model_name 'relu_relu_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.4 --enc_act_func relu --dec_act_func relu --loss_func mean_squared --verbose 1 --opt ada_grad --learning_rate 0.001 --momentum 0.5 --num_epochs 100 --batch_size 100 >> relu_relu_512.out
+
+gaussian noise
+
+python run_autoencoder.py --model_name 'sigmoid_sigmoid_gaussian_0.4_512' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 512 --corr_type salt_and_pepper --corr_fraction 0.4 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> sigmoid_sigmoid_gaussian_0.4_512.out
+
+python run_autoencoder.py --model_name 'forcnn_sigmoid_sigmoid_snp_0.4_675' --dataset cifar10 --cifar_dir ./cifar-10-batches-py --encode_train True --encode_test True --encode_valid True --n_components 675 --corr_type salt_and_pepper --corr_fraction 0.4 --enc_act_func sigmoid --dec_act_func sigmoid --loss_func mean_squared --verbose 1 --opt gradient_descent --learning_rate 0.01 --momentum 0.9 --num_epochs 100 --batch_size 100 >> forcnn_sigmoid_sigmoid_snp_0.4_675.out

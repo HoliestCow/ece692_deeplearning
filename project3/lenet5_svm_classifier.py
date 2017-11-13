@@ -12,8 +12,12 @@ import tensorflow as tf
 import urllib
 
 from sklearn import svm
+from sklearn.ensemble import BaggingClassifier
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import SVC
 from itertools import compress
 import glob
+import time
 
 def get_proper_images(raw):
     raw_float = np.array(raw, dtype=float)
@@ -115,7 +119,7 @@ def my_model(img_prep, img_aug):
     network = regression(network, optimizer='adam',
                          loss=objective_function,
                          learning_rate=initial_learning_rate)
-    # sgd = SGD(learning_rate=initial_learning_rate, lr_decay=learning_decay, decay_step=90)
+# QUESTION    # sgd = SGD(learning_rate=initial_learning_rate, lr_decay=learning_decay, decay_step=90)
     # network = regression(network, optimizer=sgd,
     #                      loss='categorical_crossentropy')
     return network, features
@@ -164,12 +168,22 @@ def main():
         meh = list(compress(range(len(mask)), mask))
         svm_y_test[i] = meh[0]
 
-    clf = svm.SVC()
+    # clf = svm.SVC()
+    # clf.fit(svm_features, svm_y)
+    # predicted_y = clf.predict(svm_features_test)
+    # accuracy_mask = svm_y_test == predicted_y
+    # accuracy = float(len(list(compress(range(len(accuracy_mask)), accuracy_mask)))) / float(len(accuracy_mask))
+    # print(accuracy)
+
+    n_estimators = 10
+    n_jobs = 4
+    start = time.time()
+    clf = OneVsRestClassifier(BaggingClassifier(
+        SVC(kernel='linear', probability=True, class_weight=None),
+        max_samples=1.0 / n_estimators, n_estimators=n_estimators, n_jobs=n_jobs))
     clf.fit(svm_features, svm_y)
-    predicted_y = clf.predict(svm_features_test)
-    accuracy_mask = svm_y_test == predicted_y
-    accuracy = float(len(list(compress(range(len(accuracy_mask)), accuracy_mask)))) / float(len(accuracy_mask))
-    print(accuracy)
+    end = time.time()
+    print("Bagging SVC", end - start, clf.score(svm_features_test, svm_y_test))
 
     # y_test vs. predicted_y metric
 
