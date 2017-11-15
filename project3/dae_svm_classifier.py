@@ -10,6 +10,8 @@ from sklearn.svm import SVC
 import numpy as np
 import os.path
 
+import datasets
+
 import time
 
 
@@ -120,7 +122,9 @@ def main():
     #         'sigmoid_sigmoid_mask_0.5_512',
     #         'relu_relu_snp_0.4_512']
 
-    runs = ['sigmoid_sigmoid_gaussian_0.4_512']
+    # runs = ['sigmoid_sigmoid_gaussian_0.4_512']
+
+    runs = ['forcnn_sigmoid_sigmoid_snp_0.4_675']
 
     print('time required to fix the answers {}'.format(time.time() - a))
 
@@ -138,19 +142,33 @@ def main():
     #     svm_features = np.load('./dae_svm_features.npy')
 
     model_directory = './data/dae/'
-    train_suffix = '-train.npy'
+    encode_w_suffix = '-encw.npy'
+    encode_b_suffix = '-encbh.npy'
+    # decode_w = '-decw.npy'
+    # decode_b = '-decb.npy'
+    # train_suffix = '-forcnn_sigmoid_sigmoid_snp_0.4_675.npy'
     train_suffix_answer = '-train-answers.npy'
-    test_suffix = '-test.npy'
+    # test_suffix = '-test.npy'
     test_suffix_answer = '-test-answers.npy'
     # validation_suffix = '-validate.npy'
+
+    x, y, x_test, y_test = datasets.load_cifar10_dataset('./cifar-10-batches-py', mode='supervised')
+    # y = onehot_labels(y)
+    # y_test = onehot_labels(y_test)
 
     for item in runs:
         # svm_features = np.load(os.path.join(model_directory, item + train_suffix))
         # svm_features_test = np.load(os.path.join(model_directory, item + test_suffix))
-        svm_y = np.load(os.path.join(model_directory, item + train_suffix_answer))
-        svm_y_test = np.load(os.path.join(model_directory, item + test_suffix_answer))
-
-        print(svm_features.shape, svm_features_test.shape, svm_y.shape, svm_y_test.shape)
+        encode_w = np.load(os.path.join(model_directory, item + encode_w_suffix))
+        encode_b = np.load(os.path.join(model_directory, item + encode_b_suffix))
+        encode = np.add(np.dot(x, encode_w), encode_b)
+        # svm_features = encode.reshape(x.shape[0], 3, 15, 15).transpose(0, 2, 3, 1)
+        svm_features = encode
+        encode = np.add(np.dot(x_test, encode_w), encode_b)
+        svm_features_test = encode
+        # svm_features_test = encode.reshape(x_test.shape[0], 3, 15, 15).transpose(0, 2, 3, 1)
+        # print(svm_features.shape, svm_features_test.shape, y.shape, y_test.shape)
+        # stop
 
         n_estimators = 10
         n_jobs = 4
@@ -159,9 +177,9 @@ def main():
         clf = OneVsRestClassifier(BaggingClassifier(
             SVC(kernel='linear', probability=True, class_weight=None),
             max_samples=1.0 / n_estimators, n_estimators=n_estimators, n_jobs=n_jobs))
-        clf.fit(svm_features, svm_y)
+        clf.fit(svm_features, y)
         end = time.time()
-        print("Bagging SVC", end - start, clf.score(svm_features_test, svm_y_test))
+        print("Bagging SVC", end - start, clf.score(svm_features_test, y_test))
 
 
 

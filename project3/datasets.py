@@ -68,7 +68,8 @@ def load_cifar10_dataset(cifar_dir, mode='supervised'):
 
         if not fn.startswith('batches') and not fn.startswith('readme'):
             fo = open(os.path.join(cifar_dir, fn), 'rb')
-            data_batch = pickle.load(fo)
+            # data_batch = pickle.load(fo)
+            data_batch = pickle.load(fo, encoding='latin1')
             fo.close()
 
             if fn.startswith('data'):
