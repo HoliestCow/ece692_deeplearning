@@ -4,12 +4,14 @@ from tflearn.models.dnn import DNN
 from tflearn.layers.core import input_data, dropout, fully_connected
 from tflearn.layers.conv import conv_2d, max_pool_2d
 from tflearn.layers.estimator import regression
-from tflearn.data_preprocessing import ImagePreprocessing
+from tflearn.data_preprocessing import ImagePreprocessing, DataPreprocessing
 from tflearn.data_augmentation import ImageAugmentation
 from tflearn.optimizers import SGD
 import numpy as np
 import tensorflow as tf
 import urllib
+
+import time
 
 import datasets
 
@@ -30,8 +32,10 @@ def unpickle(file):
     return dict
 
 def get_data():
-    data_norm = False
-    data_augmentation = False
+    # data_norm = False
+    # data_augmentation = False
+    data_norm = True
+    data_augmentation = True
 
     data1  = unpickle('../cifar-10-batches-py/data_batch_1')
     data2  = unpickle('../cifar-10-batches-py/data_batch_2')
@@ -62,7 +66,7 @@ def get_data():
     if data_augmentation:
         img_aug.add_random_flip_leftright()
         img_aug.add_random_rotation(max_angle=30.)
-        img_aug.add_random_crop((32, 32), 6)
+        img_aug.add_random_crop((15, 15), 2)
 
     return X, Y, X_test, Y_test, img_prep, img_aug
 
@@ -78,6 +82,10 @@ def my_model(img_prep, img_aug):
 #     activation_function = 'sigmoid'
     objective_function = 'categorical_crossentropy'
 #     objective_function = 'mean_square'
+
+    # DataPreprocessing.add_custom_preprocessing(dae_encoding)
+
+    
 
     network = input_data(shape=[None, 15, 15, 3],
                          data_preprocessing=img_prep,
@@ -102,6 +110,11 @@ def my_model(img_prep, img_aug):
     #                      loss='categorical_crossentropy')
     return network
 
+def dae_encoding(input, w, b):
+    encode = np.add(np.dot(x, w), b)
+    encode = encode.reshape(input.shape[0], 3, 15, 15).transpose(0, 2, 3, 1)
+    return encode
+
 def main():
     x, y, x_test, y_test, img_prep, img_aug = get_data()
     x, y, x_test, y_test = datasets.load_cifar10_dataset('./cifar-10-batches-py', mode='supervised')
@@ -114,18 +127,21 @@ def main():
     dae_bias = np.load('./data/dae/forcnn_sigmoid_sigmoid_snp_0.4_675-encbh.npy')
     print(dae_weights.shape, dae_bias.shape, x.shape)
     encoded_data = np.add(np.dot(x, dae_weights), dae_bias)
-    encoded_data = encoded_data.reshape(x.shape[0], 3, 15, 15).transpose(0,2,3,1).astype("uint8")
+    encoded_data = encoded_data.reshape(x.shape[0], 3, 15, 15).transpose(0,2,3,1)
     print(encoded_data.shape)
 
     encoded_data_test = np.add(np.dot(x_test, dae_weights), dae_bias)
-    encoded_data_test = encoded_data_test.reshape(x_test.shape[0], 3, 15, 15).transpose(0, 2, 3, 1).astype("uint8")
+    encoded_data_test = encoded_data_test.reshape(x_test.shape[0], 3, 15, 15).transpose(0, 2, 3, 1)
 
 #     with tf.device('/gpu:0'):
 #         with tf.contrib.framework.arg_scope([tflearn.variables.variable], device='/cpu:0'):
     model = my_model(img_prep, img_aug)
     network = DNN(model)
+    a = time.time()
     network.fit(encoded_data, y, n_epoch=100, shuffle=True, validation_set=(encoded_data_test, y_test), show_metric=True,
                 batch_size=100, run_id='aa2')
+    b = time.time()
+    print('total time taken: {}'.format(b-a))
     return
 
 main()

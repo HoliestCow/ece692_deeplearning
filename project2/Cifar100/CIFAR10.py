@@ -11,6 +11,8 @@ import numpy as np
 import tensorflow as tf
 import urllib
 
+import time
+
 def get_proper_images(raw):
     raw_float = np.array(raw, dtype=float)
     images = raw_float.reshape([-1, 3, 32, 32])
@@ -106,8 +108,11 @@ def main():
 #         with tf.contrib.framework.arg_scope([tflearn.variables.variable], device='/cpu:0'):
     model = my_model(img_prep, img_aug)
     network = DNN(model)
+    a = time.time()
     network.fit(x, y, n_epoch=100, shuffle=True, validation_set=(x_test, y_test), show_metric=True,
                 batch_size=100, run_id='aa2')
+    b = time.time()
+    print('total time: {}'.format(b-a))
     return
 
 main()

@@ -97,7 +97,8 @@ if __name__ == '__main__':
 
     # np.save(self.data_dir + self.model_name + '-' + name, encoded_data)
     np.save(dae.data_dir + dae.model_name + '-encw', stuff['enc_w'])
-    np.save(dae.data_dir + dae.model_name + '-encbh', stuff['enc_b'])
+    np.save(dae.data_dir + dae.model_name + '-encb', stuff['enc_b'])
+    np.save(dae.data_dir + dae.model_name + '-decb', stuff['dec_b'])
 
     # Decode the training data and store it
     # dae.transform_decode(trX, name='train_decode', save=FLAGS.encode_train)

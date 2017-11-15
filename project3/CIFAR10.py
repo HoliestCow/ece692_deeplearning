@@ -91,10 +91,15 @@ def my_model(img_prep, img_aug):
     network = max_pool_2d(network, 2, strides=None, padding='same')
     # from DAE
 
-    initial_weights = tf.constant_initializer(
-            np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encw.npy'))
-    initial_bias = tf.constant_initializer(
-            np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encbh.npy'))
+    # initial_weights = tf.constant_initializer(
+            # np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encw.npy'))
+    # initial_bias = tf.constant_initializer(
+            # np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encbh.npy'))
+    # initial_weights = np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encw.npy')
+    # initial_bias = np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encbh.npy')
+    # print(initial_weights.shape)
+    # print(initial_bias.shape)
+    stop
 
     features = fully_connected(network, 512, activation=activation_function, name='derived_features',
                                weights_init=initial_weights, bias_init=initial_bias)

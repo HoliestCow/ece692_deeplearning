@@ -10,8 +10,8 @@ from CIFAR10 import CIFAR10
 class cnnCIFAR10(object):
     def __init__(self, data):
         self.lr = 1e-3
-        self.epochs = 500
-        self.batch_size = 50 
+        self.epochs = 100
+        self.batch_size = 100 
         self.data = data
         self.num_channels = 3
         self.pixel_width = int(np.sqrt(self.data.input_size / self.num_channels))
@@ -37,6 +37,7 @@ class cnnCIFAR10(object):
 
         # print(self.x.shape)
         x_image = tf.reshape(self.x, [-1, self.pixel_width, self.pixel_width, self.num_channels])
+
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
         h_pool1 = self.max_pool_2x2(h_conv1)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
@@ -109,6 +110,9 @@ class cnnCIFAR10(object):
 
     def conv2d(self, x, W):
         return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
+
+    def deconv2d(self, x, W):
+        return tf.nn.conv2d_transpose(x, W, strides=[1, 1, 1, 1,], padding='SAME')
 
     def max_pool_2x2(self, x):
         return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
