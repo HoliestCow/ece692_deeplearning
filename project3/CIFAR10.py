@@ -99,10 +99,9 @@ def my_model(img_prep, img_aug):
     # initial_bias = np.load('./data/dae/sigmoid_sigmoid_snp_0.4_512-encbh.npy')
     # print(initial_weights.shape)
     # print(initial_bias.shape)
-    stop
 
     features = fully_connected(network, 512, activation=activation_function, name='derived_features',
-                               weights_init=initial_weights, bias_init=initial_bias)
+                               weights_init=initializer, bias_init=initializer)
     network = dropout(features, dropout_probability)
     network = fully_connected(network, 10, activation='softmax',
                               name='softmax_classification')

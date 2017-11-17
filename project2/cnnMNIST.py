@@ -30,7 +30,6 @@ class cnnMNIST(object):
         h_pool2 = self.max_pool_2x2(h_conv2)
 
         print(h_pool1.shape, h_pool2.shape)
-        stop
 
         # densely/fully connected layer
         W_fc1 = self.weight_variable([7 * 7 * 64, 1024])
@@ -58,6 +57,9 @@ class cnnMNIST(object):
         self.eval() # creating evaluation
         for i in range(self.epochs):
             batch = mnist.train.next_batch(50)
+            print(batch[0].shape)
+            print(batch[1].shape)
+            stop
             if i % 100 == 0:
                 train_acc = self.sess.run(self.accuracy,feed_dict={self.x: batch[0], self.y_: batch[1], self.keep_prob: 1.0})
                 print('step %d, training accuracy %g' % (i, train_acc))
