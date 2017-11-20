@@ -27,12 +27,13 @@ dataset = desired_file.read()
 print("converting dataset to list of sentences")
 sentences = re.sub(r'-|\t|\n',' ',dataset)
 sentences = sentences.split('.')
-sentences = [sentence[2:].translate(None, string.punctuation).lower().split() for sentence in sentences]
+# sentences = [sentence[2:].translate(None, string.punctuation).lower().split() for sentence in sentences]
+sentences = [sentence[2:].translate(string.punctuation).lower().split() for sentence in sentences]
 
 #train word2vec
 print("training word2vec")
 a = time.time()
-model = gensim.models.Word2Vec(sentences, min_count=5, size=50, workers=12)
+model = gensim.models.Word2Vec(sentences, min_count=5, size=100, workers=4)
 b = time.time()
 print('Training time elapsed: {} s'.format(b-a))
 
@@ -43,7 +44,7 @@ counts = collections.Counter(dataset).most_common(500)
 
 #reduce embeddings to 2d using tsne
 print("reducing embeddings to 2D")
-embeddings = np.empty((500,50))
+embeddings = np.empty((500,100))
 for i in range(500):
     embeddings[i,:] = model[counts[i][0]]
 tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=7500)
@@ -57,4 +58,6 @@ for i in range(500):
     ax.annotate(counts[i][0], (embeddings[i,0],embeddings[i,1]))
 
 #save to disk
-plt.savefig('plot.png')
+plt.savefig('w2v_visualization.png')
+
+model.save('w2v_model.gensim')
