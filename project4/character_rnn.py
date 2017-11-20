@@ -46,7 +46,7 @@ class character_rnn(object):
 
         #rnn layer
         self.gru = GRUCell(rnn_size)
-        outputs,states = tf.nn.dynamic_rnn(self.gru,one_hot,sequence_length=[seq_len],dtype=tf.float32)
+        outputs, states = tf.nn.dynamic_rnn(self.gru,one_hot,sequence_length=[seq_len],dtype=tf.float32)
         outputs = tf.squeeze(outputs,[0])
 
         #ignore all outputs during first read steps
