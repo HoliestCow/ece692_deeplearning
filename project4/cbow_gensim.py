@@ -10,26 +10,31 @@ import collections
 import logging
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
+import time
 
 #logging setup
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 #load 20 newsgroups dataset
 print("loading dataset")
-dataset = fetch_20newsgroups(subset='all',remove=('headers', 'footers', 'quotes')).data
-dataset = ' '.join(dataset)
-dataset = unicodedata.normalize('NFKD', dataset).encode('ascii','ignore')
+# dataset = fetch_20newsgroups(subset='all',remove=('headers', 'footers', 'quotes')).data
+# dataset = ' '.join(dataset)
+# dataset = unicodedata.normalize('NFKD', dataset).encode('ascii','ignore')
+desired_file = open('./wilde_pictureofdoriangray.txt', 'r')
+dataset = desired_file.read()
 
 #convert dataset to list of sentences
 print("converting dataset to list of sentences")
-print(dataset)
 sentences = re.sub(r'-|\t|\n',' ',dataset)
 sentences = sentences.split('.')
 sentences = [sentence[2:].translate(None, string.punctuation).lower().split() for sentence in sentences]
 
 #train word2vec
 print("training word2vec")
-model = gensim.models.Word2Vec(sentences, min_count=5, size=50, workers=4)
+a = time.time()
+model = gensim.models.Word2Vec(sentences, min_count=5, size=50, workers=12)
+b = time.time()
+print('Training time elapsed: {} s'.format(b-a))
 
 #get most common words
 print("getting common words")
