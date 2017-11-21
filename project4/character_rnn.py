@@ -38,7 +38,7 @@ class character_rnn(object):
         #training portion of language model
         '''
 
-        #input sequence of character indices
+        # input sequence of character indices
         self.input = tf.placeholder(tf.int32,[1,seq_len])
 
         #convert to one hot
@@ -46,7 +46,7 @@ class character_rnn(object):
 
         #rnn layer
         self.gru = GRUCell(rnn_size)
-        outputs, states = tf.nn.dynamic_rnn(self.gru,one_hot,sequence_length=[seq_len],dtype=tf.float32)
+        outputs, states = tf.nn.dynamic_rnn(self.gru, one_hot,sequence_length=[seq_len],dtype=tf.float32)
         outputs = tf.squeeze(outputs,[0])
 
         #ignore all outputs during first read steps
@@ -77,7 +77,10 @@ class character_rnn(object):
         for i in range(100):
 
             #run GRU cell and softmax
+            print(output.shape, state.shape)
             output,state = self.gru(output,state)
+            print(output.shape, state.shape)
+            stop
             logits = tf.layers.dense(output,self.num_chars,None,True,tf.orthogonal_initializer(),name='dense',reuse=True)
 
             #get index of most probable character
@@ -133,7 +136,7 @@ class character_rnn(object):
                 feed_dict = {self.input:[sequence]}
                 pred = self.sess.run(self.predictions,feed_dict=feed_dict)
                 sample = ''.join([self.idx2char[idx[0]] for idx in pred])
-                print("iteration %i generated sample: %s" % (i+1,sample))
+                print("iteration %i generated loss: {}, text sample: %s" % (i+1, loss, sample))
 
 
 if __name__ == "__main__":
