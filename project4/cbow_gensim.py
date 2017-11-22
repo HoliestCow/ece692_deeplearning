@@ -39,14 +39,12 @@ sentences = [sentence.translate(string.punctuation).lower().split() for sentence
 
 # 2D list to 1D list.
 # sentences = [j for i in sentences for j in i]
-print(sentences)
-stop
 
 #train word2vec
 print("training word2vec")
 a = time.time()
 model = gensim.models.Word2Vec(sentences, min_count=5, size=ae_size, workers=4)
-model.train(sentences, epochs=1000, total_examples=len(sentences))
+model.train(sentences, epochs=10, total_examples=len(sentences))
 b = time.time()
 print('Training time elapsed: {} s'.format(b-a))
 
@@ -71,6 +69,8 @@ for i in range(500):
     ax.annotate(counts[i][0], (embeddings[i,0],embeddings[i,1]))
 
 #save to disk
-plt.savefig('w2v_visualization.png')
+plt.savefig('w2v_visualization_ae250_10iter.png')
+
+stop
 
 model.save('w2v_model.gensim')
