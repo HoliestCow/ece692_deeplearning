@@ -28,8 +28,7 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        # f = h5py.File('naive_dataset_large.h5', 'r')
-        f = h5py.File('naive_dataset_small.h5', 'r')
+        f = h5py.File('naive_dataset.h5', 'r')
         g = f['training']
         X = np.zeros((0, 1024))
         Y = []
