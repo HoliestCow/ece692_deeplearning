@@ -12,11 +12,14 @@ import h5py
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 1
         self.build_graph()
 
     def onehot_labels(self, labels):
-        return np.eye(7)[labels]
+        out = np.zeros((labels.shape[0], 7))
+        for i in range(labels.shape[0]):
+            out[i, :] = np.eye(7)[labels[i]]
+        return out
 
     def onenothot_labels(self, labels):
         out = np.zeros((labels.shape[0],))
@@ -30,22 +33,12 @@ class cnnMNIST(object):
 
         f = h5py.File('naive_dataset.h5', 'r')
         g = f['training']
-        X = np.zeros((0, 1024))
-        Y = []
-        for item in g:
-            X = np.vstack((X, np.array(g[item]['spectra'])))
-            Y += [self.onehot_labels(np.array(g[item]['label'], dtype=np.int32))]
-
-        Y = np.array(Y, dtype=np.int32)
+        X = g['spectra']
+        Y = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
 
         g = f['testing']
-        X_test = np.zeros((0, 1024))
-        Y_test = []
-        for item in g:
-            X_test = np.vstack((X_test, np.array(g[item]['spectra'])))
-            Y_test += [self.onehot_labels(np.array(g[item]['label'], dtype=np.int32))]
-
-        Y_test = np.array(Y_test, dtype=np.int32)
+        X_test = g['spectra']
+        Y_test = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
 
         # img_prep = ImagePreprocessing()
         # if data_norm:
@@ -146,7 +139,9 @@ class cnnMNIST(object):
             # self.shuffle()
 
     def eval(self):
-        correct_prediction = tf.equal(tf.argmax(self.y_conv, 1), tf.argmax(self.y_, 1))
+        self.prediction = tf.argmax(self.y_conv, 1)
+        truth = tf.argmax(self.y_, 1)
+        correct_prediction = tf.equal(self.prediction, truth)
         self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     def test_eval(self):
@@ -176,6 +171,11 @@ class cnnMNIST(object):
         return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                                 strides=[1, 2, 2, 1], padding='SAME')
 
+    def get_label_predictions(self):
+        predictions = self.sess.run(self.prediction,
+                                    feed_dict={self.x: self.x_test,
+                                               self.keep_prob: 1.0})
+        return predictions
 
 if __name__ == '__main__':
     cnn = cnnMNIST()
@@ -190,3 +190,6 @@ if __name__ == '__main__':
     b = time.time()
     print('Training time: {} s'.format(b-a))
     cnn.test_eval()
+
+    predictions = cnn.get_label_predictions()
+
