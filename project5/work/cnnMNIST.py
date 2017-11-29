@@ -12,7 +12,7 @@ import h5py
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 2
+        self.epochs = 100
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -29,7 +29,7 @@ class cnnMNIST(object):
         # data_augmentation = False
 
         # f = h5py.File('naive_dataset_large.h5', 'r')
-        f = h5py.File('naive_dataset_really_small.h5', 'r')
+        f = h5py.File('naive_dataset_small.h5', 'r')
         g = f['training']
         X = np.zeros((0, 1024))
         Y = []
