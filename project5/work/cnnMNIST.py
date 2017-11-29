@@ -15,7 +15,7 @@ import itertools
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 1
+        self.epochs = 100
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -34,7 +34,7 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        f = h5py.File('naive_dataset.h5', 'r')
+        f = h5py.File('naive_dataset_large.h5', 'r')
         g = f['training']
         X = g['spectra']
         Y = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
@@ -232,33 +232,17 @@ def main():
 
     predictions = cnn.get_label_predictions()
 
-    predictions_decode = cnn.onenothot_labels(predictions)
-    labels_decode = cnn.onenothot_labels(cnn.y_test)
+    # predictions_decode = cnn.onenothot_labels(predictions)
+    # labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    class_names = ['Background',
-                   'HEU',
-                   'WGPu',
-                   'I131',
-                   'Co60',
-                   'Tc99',
-                   'HEUandTc99']
+    predictions_decode = predictions
+    labels_decode = cnn.y_test
 
-    cnf_matrix = confusion_matrix(predictions_decode, labels_decode)
+    np.save(predictions_decode, 'predictions.npy')
 
-    # print("The predicted labels are :", lables[f])
-    # prediction = model.predict(testImages)
-    # print("The predicted probabilities are :", prediction[f])
-    fig = plt.figure()
-    class_names = ['Background',
-                   'HEU',
-                   'WGPu',
-                   'I131',
-                   'Co60',
-                   'Tc99',
-                   'HEUandTc99']
-    plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                          title='Normalized confusion matrix')
-    fig.savefig('classification_confusion_matrix.png')
+    labels_decode = cnn.onenothot_labels(labels_decode)
+
+    np.save(labels_decode, 'ground_truth.npy')
 
     return
 
