@@ -39,14 +39,19 @@ class character_rnn(object):
         '''
 
         # input sequence of character indices
-        self.input = tf.placeholder(tf.int32,[1,seq_len])
+        # self.input = tf.placeholder(tf.int32,[1,seq_len])
+        # tf Graph input
+        x = tf.placeholder("float", [None, seq_max_len, 1])
+        y = tf.placeholder("float", [None, n_classes])
+        # A placeholder for indicating each sequence length
+        seqlen = tf.placeholder(tf.int32, [None])
 
         #convert to one hot
         one_hot = tf.one_hot(self.input,self.num_chars)
 
         #rnn layer
         self.gru = GRUCell(rnn_size)
-        outputs, states = tf.nn.dynamic_rnn(self.gru, one_hot,sequence_length=[seq_len],dtype=tf.float32)
+        outputs, states = tf.nn.dynamic_rnn(self.gru, one_hot,sequence_length=[seqlen],dtype=tf.float32)
         outputs = tf.squeeze(outputs,[0])
 
         #ignore all outputs during first read steps

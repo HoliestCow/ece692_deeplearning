@@ -41,8 +41,13 @@ sentences = re.sub('\!', ' EXCLAMATION_TOKEN', sentences)
 sentences = re.split('_TOKEN', sentences)
 sentences = [sentence.translate(string.punctuation).split() for sentence in sentences]
 
+print(len(sentences)) # number of sentences
 # 2D list to 1D list.
-# sentences = [j for i in sentences for j in i]
+words = [j for i in sentences for j in i]
+print(len(words))
+print(len(list(set(words)))) # number of unique words
+
+stop
 
 #train word2vec
 print("training word2vec")
@@ -89,8 +94,8 @@ sentences = empty
 #train word2vec
 print("training word2vec")
 a = time.time()
-model = gensim.models.Word2Vec(sentences, min_count=5, size=ae_size, workers=4)
-model.train(sentences, epochs=100, total_examples=len(sentences))
+# model = gensim.models.Word2Vec(sentences, min_count=5, size=ae_size, workers=4)
+# model.train(sentences, epochs=100, total_examples=len(sentences))
 b = time.time()
 print('Training time elapsed: {} s'.format(b-a))
 

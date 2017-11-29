@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 from itertools import islice
 
 # def window(seq, n=2):
-#     "Returns a sliding window (of width n) over data from the iterable"
+#     "Returns a sliding window (of width n) over data froxm the iterable"
 #     "   s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...                   "
 #     it = iter(seq)
 #     result = tuple(islice(it, n))
@@ -47,6 +47,10 @@ class ToySequenceData(object):
 
         # NOTE: THIS IS BUENO.
         model = gensim.models.Word2Vec.load('./1kiter_w2v_model_tokenized.gensim')
+
+        self.w2v = model.wv
+
+        # self.model = model
 
         # self.dataset = list(window(sentences, n=self.seq_len))
 
@@ -140,6 +144,7 @@ class ToySequenceData(object):
                 # s += [[0.] for i in range(max_seq_len - len)]
                 # self.data.append(s)
                 # self.labels.append([0., 1.])
+        del model
         self.batch_id = 0
 
     def next(self, batch_size):
@@ -179,13 +184,14 @@ def dynamicRNN(x, seqlen, weights, biases, neurons):
     # x = tf.unstack(x, seq_max_len, 1)  # I Don't think this is necessary.
     # Define a lstm cell with tensorflow
     lstm_cell = tf.contrib.rnn.GRUCell(neurons)
+    # seqlen = tf.placeholder(tf.int32, [None])
     # batch_size_T = tf.shape(x)[0]
     # lstm_cell.zero_state(batch_size_T, tf.float32)
 
     # Get lstm cell output, providing 'sequence_length' will perform dynamic
     # calculation.
-    outputs, states = tf.nn.dynamic_rnn(lstm_cell, x, dtype=tf.float32)
-                                        # sequence_length=[seqlen])
+    outputs, states = tf.nn.dynamic_rnn(lstm_cell, x, dtype=tf.float32,
+                                        sequence_length=seqlen)
 
     # When performing dynamic calculation, we must retrieve the last
     # dynamically computed output, i.e., if a sequence length is 10, we need
@@ -214,6 +220,10 @@ def dynamicRNN(x, seqlen, weights, biases, neurons):
     # Linear activation, using outputs computed above
     return tf.matmul(outputs, weights['out']) + biases['out']
 
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
 if __name__ == "__main__":
 
@@ -241,10 +251,10 @@ if __name__ == "__main__":
 
     # Parameters
     learning_rate = 0.01
-    training_steps = 10000
+    training_steps = 1000000
     batch_size = 128
-    display_step = 200
-    neurons = 64
+    display_step = 100
+    neurons = 250
 
     # Network Parameters
     seq_max_len = 15 # Sequence max length
@@ -256,10 +266,10 @@ if __name__ == "__main__":
     n_classes = trainset.n_classes
 
     # tf Graph input
-    x = tf.placeholder(tf.float32, [batch_size, seq_max_len, n_hidden], name='batch_input')
+    x = tf.placeholder(tf.float32, [None, seq_max_len, n_hidden], name='batch_input')
     y = tf.placeholder(tf.int32, [None, n_classes], name='batch_targets')
     # A placeholder for indicating each sequence length
-    seqlen = tf.placeholder(tf.int32, [None])
+    seqlen = tf.placeholder(tf.int32, [None], name='seqlen')
 
     # Define weights
     weights = {
@@ -269,11 +279,13 @@ if __name__ == "__main__":
         'out': tf.Variable(tf.random_normal([n_classes]))
     }
 
-    pred = dynamicRNN(x, seqlen, weights, biases, n_hidden, neurons)
+    pred = dynamicRNN(x, seqlen, weights, biases, neurons)
 
     # Define loss and optimizer
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
+    # optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
+    # optimizer = tf.train.AdamOptimizer(0.0002,0.9,0.999).minimize(cost)
+    optimizer = tf.train.AdamOptimizer(0.02,0.9,0.999).minimize(cost)
 
     # Evaluate model
     correct_pred = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
@@ -301,18 +313,51 @@ if __name__ == "__main__":
                                            seqlen: batch_seqlen})
             if step % display_step == 0 or step == 1:
                 # Calculate batch accuracy & loss
-                acc, loss = sess.run([accuracy, cost], feed_dict={x: batch_x, y: batch_y,
-                                                    seqlen: batch_seqlen})
-                print("Step " + str(step*batch_size) + ", Minibatch Loss= " + \
+                acc, loss, prediction = sess.run([accuracy, cost, pred], feed_dict={x: batch_x, y: batch_y,
+                                                  seqlen: batch_seqlen})
+                # print(np.argmax(prediction[0, :]))
+                print("Step " + str(step) + ", Minibatch Loss= " + \
                       "{:.6f}".format(loss) + ", Training Accuracy= " + \
                       "{:.5f}".format(acc))
+
+                sample_sentence = batch_string[0]
+                # print('seed')
+                # print(' '.join(sample_sentence))
+                sample = batch_x[0][0:15, :]
+                sample = sample.reshape((1, sample.shape[0], sample.shape[1]))
+                sample_seqlen = np.zeros((1,), dtype=int)
+                toggle = 0
+                print(sample[:, 0, 5])
+                print(sample[:, -1, 5])
+                for meh in range(100):
+                    sample_seqlen[0] = int(sample.shape[0])
+                    prediction = sess.run([pred], feed_dict={x: sample, seqlen: sample_seqlen})
+                    yolo = np.argmax(softmax(prediction[0][0, :]))
+                    if toggle == 0:
+                        first_yolo = yolo
+                        toggle = 1
+                    # print(prediction[0][0, 387])
+                    predicted_word = trainset.index2word[yolo]
+                    predicted_word_vector = trainset.w2v[predicted_word].reshape((1, 1, len(trainset.w2v[predicted_word])))
+                    sample = np.concatenate((sample, predicted_word_vector), axis=1)
+                    # print(sample.shape)
+                    sample = sample[:, 1:, :]
+                    # print(sample.shape)
+                    sample_sentence += [predicted_word]
+                print(' '.join(sample_sentence))
+                print(sample[:, 0, 5])
+                print(sample[:, -1, 5])
+                print(prediction[0][0, first_yolo])
+
+
+
 
         print("Optimization Finished!")
 
         # Calculate accuracy
-        test_data = testset.data
-        test_label = testset.labels
-        test_seqlen = testset.seqlen
-        print("Testing Accuracy:", \
-            sess.run(accuracy, feed_dict={x: test_data, y: test_label,
-            seqlen: test_seqlen}))
+        # test_data = testset.data
+        # test_label = testset.labels
+        # test_seqlen = testset.seqlen
+        # print("Testing Accuracy:", \
+        #     sess.run(accuracy, feed_dict={x: test_data, y: test_label,
+        #     seqlen: test_seqlen}))
