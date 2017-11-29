@@ -71,6 +71,7 @@ gan = tflearn.DNN(gen_model)
 # Generate noise to feed to the generator
 z = np.random.uniform(-1., 1., size=[total_samples, z_dim])
 # Start training, feed both noise and real images.
+print(X.shape)
 gan.fit(X_inputs={gen_input: z, disc_input: X},
         Y_targets=None,
         n_epoch=100)

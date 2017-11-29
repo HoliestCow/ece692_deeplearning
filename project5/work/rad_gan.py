@@ -15,22 +15,39 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tflearn
+import h5py
 
 # Data loading and preprocessing
 # import tflearn.datasets.mnist as mnist
 # X, Y, testX, testY = mnist.load_data()
-bg = np.load('./integrations/bg_spectra_only.npy')
+# bg = np.load('./integrations/bg_spectra_only.npy')
+dataset = h5py.File('./spectral_data.h5', 'r')
+x = np.array(dataset['training_data'], dtype=float)
+x_test = np.array(dataset['testing_data'], dtype=float)
+# validation_dataset = np.array(dataset['validation_data'])
 
 # image_dim = 784 # 28*28 pixels
 image_dim = 1024
 z_dim = 200 # Noise data points
-total_samples = len(X)
+total_samples = x.shape[0]
+
+def samplewise_mean(x):
+    for i in range(x.shape[0]):
+        mean = np.mean(x[i, :])
+        std = np.std(x[i, :])
+        z = np.divide(np.subtract(x[i, :], mean), std)
+        x[i, :] = z
+
+    return x
+
+x = samplewise_mean(x)
+x_test = samplewise_mean(x)
 
 
 # Generator
 def generator(x, reuse=False):
     with tf.variable_scope('Generator', reuse=reuse):
-        x = tflearn.fully_connected(x, 256, activation='relu')
+        x = tflearn.fully_connected(x, 512, activation='relu')
         x = tflearn.fully_connected(x, image_dim, activation='sigmoid')
         return x
 
@@ -38,13 +55,13 @@ def generator(x, reuse=False):
 # Discriminator
 def discriminator(x, reuse=False):
     with tf.variable_scope('Discriminator', reuse=reuse):
-        x = tflearn.fully_connected(x, 256, activation='relu')
+        x = tflearn.fully_connected(x, 512, activation='relu')
         x = tflearn.fully_connected(x, 1, activation='sigmoid')
         return x
 
 # Build Networks
 gen_input = tflearn.input_data(shape=[None, z_dim], name='input_noise')
-disc_input = tflearn.input_data(shape=[None, 784], name='disc_input')
+disc_input = tflearn.input_data(shape=[None, image_dim], name='disc_input')
 
 gen_sample = generator(gen_input)
 disc_real = discriminator(disc_input)
@@ -74,9 +91,9 @@ gan = tflearn.DNN(gen_model)
 z = np.random.uniform(-1., 1., size=[total_samples, z_dim])
 # z = np.random.poisson(lam=1, size=z_dim)
 # Start training, feed both noise and real images.
-gan.fit(X_inputs={gen_input: z, disc_input: X},
+gan.fit(X_inputs={gen_input: z, disc_input: x},
         Y_targets=None,
-        n_epoch=100)
+        n_epoch=20)
 
 # Generate images from noise, using the generator network.
 f, a = plt.subplots(2, 2, figsize=(10, 4))
