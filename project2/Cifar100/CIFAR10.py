@@ -33,11 +33,11 @@ def get_data():
     data_norm = True
     data_augmentation = True
 
-    data1  = unpickle('../cifar-10-batches-py/data_batch_1')
-    data2  = unpickle('../cifar-10-batches-py/data_batch_2')
-    data3  = unpickle('../cifar-10-batches-py/data_batch_3')
-    data4  = unpickle('../cifar-10-batches-py/data_batch_4')
-    data5  = unpickle('../cifar-10-batches-py/data_batch_5')
+    data1  = unpickle('../../cifar-10-batches-py/data_batch_1')
+    data2  = unpickle('../../cifar-10-batches-py/data_batch_2')
+    data3  = unpickle('../../cifar-10-batches-py/data_batch_3')
+    data4  = unpickle('../../cifar-10-batches-py/data_batch_4')
+    data5  = unpickle('../../cifar-10-batches-py/data_batch_5')
 
     X = np.concatenate((get_proper_images(data1['data']),
                         get_proper_images(data2['data']),
@@ -50,8 +50,8 @@ def get_data():
                         onehot_labels(data4['labels']),
                         onehot_labels(data5['labels'])))
 
-    X_test = get_proper_images(unpickle('../cifar-10-batches-py/test_batch')['data'])
-    Y_test = onehot_labels(unpickle('../cifar-10-batches-py/test_batch')['labels'])
+    X_test = get_proper_images(unpickle('../../cifar-10-batches-py/test_batch')['data'])
+    Y_test = onehot_labels(unpickle('../../cifar-10-batches-py/test_batch')['labels'])
 
     img_prep = ImagePreprocessing()
     if data_norm:
@@ -104,6 +104,8 @@ def my_model(img_prep, img_aug):
 
 def main():
     x, y, x_test, y_test, img_prep, img_aug = get_data()
+    print(y.shape)
+    stop
 #     with tf.device('/gpu:0'):
 #         with tf.contrib.framework.arg_scope([tflearn.variables.variable], device='/cpu:0'):
     model = my_model(img_prep, img_aug)
