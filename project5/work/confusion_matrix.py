@@ -36,8 +36,8 @@ def plot_confusion_matrix(cm, classes, normalize=False,
 
 def main():
 
-    predictions_decode = np.load('predictions.npy')
-    labels_decode = np.load('ground_truth.npy')
+    predictions_decode = np.load('sourceid_predictions.npy')
+    labels_decode = np.load('sourceid_ground_truth.npy')
     class_names = ['Background',
                    'HEU',
                    'WGPu',
@@ -50,6 +50,12 @@ def main():
     fig = plt.figure()
     plot_confusion_matrix(cnf_matrix, classes=class_names,
                           normalize=True, title='Normalized confusion matrix')
+    fig.savefig('classification_confusion_matrix_normalize.png')
+
+    fig = plt.figure()
+    plot_confusion_matrix(cnf_matrix, classes=class_names,
+                          normalize=False,
+                          title='Unnormalized confusion matrix')
     fig.savefig('classification_confusion_matrix.png')
     return
 

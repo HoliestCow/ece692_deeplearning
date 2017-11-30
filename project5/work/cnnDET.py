@@ -54,6 +54,9 @@ class cnnMNIST(object):
         #     img_aug.add_random_rotation(max_angle=30.)
         #     img_aug.add_random_crop((32, 32), 6)
 
+        y = np.ones((Y.shape[0], 2))
+        y_test = np.ones((Y_test.shape[0], 2))
+
         self.x_train = X
         self.y_train = Y
 
@@ -87,8 +90,8 @@ class cnnMNIST(object):
         h_pool2 = self.max_pool_2x2(h_conv2)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * 32, 256])
-        b_fc1 = self.bias_variable([256])
+        W_fc1 = self.weight_variable([256 * 32, 1024])
+        b_fc1 = self.bias_variable([1024])
 
         h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 32])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
@@ -98,7 +101,7 @@ class cnnMNIST(object):
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
-        W_fc2 = self.weight_variable([256, 7])
+        W_fc2 = self.weight_variable([1024, 7])
         b_fc2 = self.bias_variable([7])
 
         self.y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
@@ -168,10 +171,11 @@ class cnnMNIST(object):
                                 strides=[1, 2, 2, 1], padding='SAME')
 
     def get_label_predictions(self):
-        predictions = self.sess.run(self.prediction,
-                feed_dict={self.x: self.x_test[:1000, :],
-                                               self.keep_prob: 1.0})
-        return predictions
+        predictions, score = self.sess.run(
+            [self.prediction, self.y_conv],
+            feed_dict={self.x: self.x_test[:1000, :],
+                       self.keep_prob: 1.0})
+        return predictions, score
 
 
 def plot_confusion_matrix(cm, classes,
@@ -223,13 +227,18 @@ def main():
     print('Training time: {} s'.format(b-a))
     cnn.test_eval()
 
-    predictions = cnn.get_label_predictions()
+    predictions, score = cnn.get_label_predictions()
+
+    scores = np.zeros((score.shape[0],))
+    for i in range(len(scores)):
+        scores[i] = score[i, predictions[i]]
 
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    np.save('predictions.npy', predictions_decode)
-    np.save('ground_truth.npy', labels_decode[:1000])
+    np.save('sourceid_predictions.npy', predictions_decode)
+    np.save('sourceid_prediction_scores.npy', scores)
+    np.save('sourceid_ground_truth.npy', labels_decode[:1000])
 
     return
 
