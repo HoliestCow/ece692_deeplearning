@@ -5,4 +5,9 @@
 *.out
 *.p
 *.caffemodel
+*.h5
+*.png
+*.npy
+*.csv
+*.pkl
 project2/cifar-10-batches-py/*
