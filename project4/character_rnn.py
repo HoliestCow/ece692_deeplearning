@@ -82,10 +82,7 @@ class character_rnn(object):
         for i in range(100):
 
             #run GRU cell and softmax
-            print(output.shape, state.shape)
             output,state = self.gru(output,state)
-            print(output.shape, state.shape)
-            stop
             logits = tf.layers.dense(output,self.num_chars,None,True,tf.orthogonal_initializer(),name='dense',reuse=True)
 
             #get index of most probable character
@@ -132,8 +129,8 @@ class character_rnn(object):
             #train
             feed_dict = {self.input:[sequence]}
             loss,_ = self.sess.run([self.loss,self.optimizer],feed_dict=feed_dict)
-            sys.stdout.write("iterations %i loss: %f  \r" % (i+1,loss))
-            sys.stdout.flush()
+            # sys.stdout.write("iterations %i loss: %f  \r" % (i+1,loss))
+            # sys.stdout.flush()
 
             #show generated sample every 100 iterations
             if (i+1) % 100 == 0:
@@ -141,7 +138,9 @@ class character_rnn(object):
                 feed_dict = {self.input:[sequence]}
                 pred = self.sess.run(self.predictions,feed_dict=feed_dict)
                 sample = ''.join([self.idx2char[idx[0]] for idx in pred])
-                print("iteration %i generated loss: {}, text sample: %s" % (i+1, loss, sample))
+                print("iteration {} generated loss: {}, sample: {}".format(i+1, loss, sample))
+            if (i+1) % 1000 == 0:
+                sys.stdout.flush()
 
 
 if __name__ == "__main__":
@@ -167,7 +166,7 @@ if __name__ == "__main__":
     # text = text.replace("\begin{flushright}", " ")
 
     #train rnn
-    rnn = character_rnn()
+    rnn = character_rnn(seq_len=500, rnn_size=500)
     a = time.time()
     rnn.train(text)
     b = time.time()

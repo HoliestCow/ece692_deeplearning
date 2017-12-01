@@ -187,6 +187,8 @@ class character_rnn(object):
                 sample = ' '.join([self.index2word[idx[0]] for idx in pred])
                 print('iteration {} generated loss: {}, text sample: {}'.format(i+1, loss, sample))
                 # sys.stdout.flush()
+            if (i+1) % 1000 == 0:
+                sys.stdout.flush()
 
 
 if __name__ == "__main__":
@@ -214,7 +216,7 @@ if __name__ == "__main__":
     #train rnn
     rnn = character_rnn(seq_len=30, first_read=15, rnn_size=30, ae_size=500)
     a = time.time()
-    rnn.train(iterations=100000)
+    rnn.train(iterations=100000000)
     b = time.time()
     print('Training time elapsed: {}'.format(b-a))
 
