@@ -35,11 +35,18 @@ def plot_confusion_matrix(cm, classes, normalize=False,
         plt.xlabel('Predicted label')
 
 def main():
+    
+    prefix = 'sid'
+    # prefix = 'det'
+    # prefix = 'sourceid'
 
-    predictions_decode = np.load('sourceid_predictions.npy')
-    labels_decode = np.load('sourceid_ground_truth.npy')
-    class_names = ['Background',
-                   'HEU',
+    predictions_decode = np.load('{}_predictions.npy'.format(prefix))
+    labels_decode = np.load('{}_ground_truth.npy'.format(prefix))
+
+    # class_names = ['Background',
+    #                'Anomaly']
+
+    class_names = ['HEU',
                    'WGPu',
                    'I131',
                    'Co60',
@@ -50,13 +57,13 @@ def main():
     fig = plt.figure()
     plot_confusion_matrix(cnf_matrix, classes=class_names,
                           normalize=True, title='Normalized confusion matrix')
-    fig.savefig('classification_confusion_matrix_normalize.png')
+    fig.savefig('{}_classification_confusion_matrix_normalize.png'.format(prefix))
 
     fig = plt.figure()
     plot_confusion_matrix(cnf_matrix, classes=class_names,
                           normalize=False,
                           title='Unnormalized confusion matrix')
-    fig.savefig('classification_confusion_matrix.png')
+    fig.savefig('{}_classification_confusion_matrix.png'.format(prefix))
     return
 
 main()

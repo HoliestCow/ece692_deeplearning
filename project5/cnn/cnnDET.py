@@ -12,6 +12,9 @@ from copy import deepcopy
 
 import os
 import os.path
+import cPickle as pickle
+
+from collections import OrderedDict
 
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -23,9 +26,9 @@ class cnnMNIST(object):
         self.build_graph()
 
     def onehot_labels(self, labels):
-        out = np.zeros((labels.shape[0], 7))
+        out = np.zeros((labels.shape[0], 2))
         for i in range(labels.shape[0]):
-            out[i, :] = np.eye(7)[labels[i]]
+            out[i, :] = np.eye(2)[labels[i]]
         return out
 
     def onenothot_labels(self, labels):
@@ -37,8 +40,7 @@ class cnnMNIST(object):
     def get_data(self):
         # data_norm = True
         # data_augmentation = False
-
-        f = h5py.File('naive_dataset.h5', 'r')
+        f = h5py.File('naive_dataset_justanomaly.h5', 'r')
         g = f['training']
         X = np.array(g['spectra'])
         Y = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
@@ -77,7 +79,7 @@ class cnnMNIST(object):
             yield iterable[ndx:min(ndx + n, l), :]
     
     def validation_batcher(self):
-        f = h5py.File('./naive_dataset.h5', 'r')
+        f = h5py.File('./naive_dataset_justanomaly.h5', 'r')
         g = f['validation']
         samplelist = list(g.keys())
 
@@ -88,7 +90,7 @@ class cnnMNIST(object):
 
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
-        self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
+        self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
 
         x_image = self.hack_1dreshape(self.x)
         # define conv-layer variables
@@ -115,8 +117,8 @@ class cnnMNIST(object):
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
-        W_fc2 = self.weight_variable([1024, 7])
-        b_fc2 = self.bias_variable([7])
+        W_fc2 = self.weight_variable([1024, 2])
+        b_fc2 = self.bias_variable([2])
 
         self.y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
         cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
@@ -195,7 +197,7 @@ class cnnMNIST(object):
         x_batcher = self.batch(self.x_test, n=1000, shuffle=False)
         # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
         predictions = np.zeros((0, 1))
-        score = np.zeros((0, 7))
+        score = np.zeros((0, 2))
         for data in x_batcher:
             temp_predictions, temp_score = self.sess.run(
             [self.prediction, self.y_conv],
@@ -242,6 +244,14 @@ class cnnMNIST(object):
 #     plt.xlabel('Predicted label')
 
 
+def save_obj(obj, name ):
+    with open('obj/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name ):
+    with open('obj/' + name + '.pkl', 'rb') as f:
+        return pickle.load(f)
+
 def main():
     cnn = cnnMNIST()
     a = time.time()
@@ -267,13 +277,11 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    np.save('sourceid_predictions.npy', predictions_decode)
-    np.save('sourceid_prediction_scores.npy', scores)
-    np.save('sourceid_ground_truth.npy', labels_decode)
-    
-    answers = open('approach1_answers.csv', 'w')
-    answers.write('RunID,SourceID,SourceTime,Comments\n')
-    # counter = 0
+    np.save('det_predictions.npy', predictions_decode)
+    np.save('det_prediction_scores.npy', scores)
+    np.save('det_ground_truth.npy', labels_decode)
+
+    answers = OrderedDict()
     for sample in validation_data:
         x = np.array(sample['spectra'])
         x = x[30:, :]
@@ -287,19 +295,18 @@ def main():
         runname = sample.name.split('/')[-1]
         if np.sum(mask) != 0:
             counts = np.sum(x, axis=1)
-            # fig = plt.figure()
             t = time_index[mask]
             t = [int(i) for i in t]
             index_guess = np.argmax(counts[t])
-
-            current_predictions = predictions[mask]
-
-            answers.write('{},{},{},\n'.format(
-                runname, current_predictions[index_guess], t[index_guess] + 30))
+            
+            current_spectra = x[t[index_guess], :]
+            current_time = t[index_guess] + 30
+            answers[runname] = {'time': current_time,
+                                'spectra': current_spectra}
         else:
-            answers.write('{},{},{},\n'.format(
-                runname, 0, 0))
-    answers.close()
+            answers[runname] = {'time': 0,
+                                'spectra': 0}
+    save_obj(answers, 'hits')
     return
 
 main()

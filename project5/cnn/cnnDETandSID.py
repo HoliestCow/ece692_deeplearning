@@ -1,13 +1,17 @@
+
 # Sample code implementing LeNet-5 from Liu Liu
 
 import tensorflow as tf
 import numpy as np
 import time
 import h5py
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import itertools
 from copy import deepcopy
+
+import os
+import os.path
 
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -15,7 +19,7 @@ from copy import deepcopy
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 400
+        self.epochs = 500
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -34,7 +38,7 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        f = h5py.File('naive_dataset_large.h5', 'r')
+        f = h5py.File('naive_dataset.h5', 'r')
         g = f['training']
         X = np.array(g['spectra'])
         Y = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
@@ -54,23 +58,33 @@ class cnnMNIST(object):
         #     img_aug.add_random_rotation(max_angle=30.)
         #     img_aug.add_random_crop((32, 32), 6)
 
-        y = np.ones((Y.shape[0], 2))
-        y_test = np.ones((Y_test.shape[0], 2))
-
         self.x_train = X
         self.y_train = Y
 
         self.x_test = X_test
         self.y_test = Y_test
 
+        f.close()
+
         return
 
-    def batch(self, iterable, n=1):
-        self.shuffle()
+    def batch(self, iterable, n=1, shuffle=True):
+        if shuffle:
+            self.shuffle()
         # l = len(iterable)
         l = iterable.shape[0]
         for ndx in range(0, l, n):
             yield iterable[ndx:min(ndx + n, l), :]
+    
+    def validation_batcher(self):
+        f = h5py.File('./naive_dataset.h5', 'r')
+        g = f['validation']
+        samplelist = list(g.keys())
+
+        for i in range(len(samplelist)):
+            data = g[samplelist[i]]
+            yield data
+
 
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
@@ -78,10 +92,10 @@ class cnnMNIST(object):
 
         x_image = self.hack_1dreshape(self.x)
         # define conv-layer variables
-        W_conv1 = self.weight_variable([1, 5, 1, 16])    # first conv-layer has 32 kernels, size=5
-        b_conv1 = self.bias_variable([16])
-        W_conv2 = self.weight_variable([1, 5, 16, 32])
-        b_conv2 = self.bias_variable([32])
+        W_conv1 = self.weight_variable([1, 5, 1, 32])    # first conv-layer has 32 kernels, size=5
+        b_conv1 = self.bias_variable([32])
+        W_conv2 = self.weight_variable([1, 5, 32, 64])
+        b_conv2 = self.bias_variable([64])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
@@ -90,10 +104,10 @@ class cnnMNIST(object):
         h_pool2 = self.max_pool_2x2(h_conv2)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * 32, 1024])
+        W_fc1 = self.weight_variable([256 * 64, 1024])
         b_fc1 = self.bias_variable([1024])
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 32])
+        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 64])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
         # dropout regularization
@@ -138,6 +152,7 @@ class cnnMNIST(object):
             # self.shuffle()
 
     def eval(self):
+        # self.time_index = np.arange(self.y_conv.get_shape()[0])
         self.prediction = tf.argmax(self.y_conv, 1)
         truth = tf.argmax(self.y_, 1)
         correct_prediction = tf.equal(self.prediction, truth)
@@ -145,9 +160,15 @@ class cnnMNIST(object):
 
     def test_eval(self):
         self.eval()
-        test_acc = self.sess.run(self.accuracy, feed_dict={
-            self.x: self.x_test[:1000, :], self.y_: self.y_test[:1000, :], self.keep_prob: 1.0})
-        print('test accuracy %g' % test_acc)
+        x_generator = self.batch(self.x_test, n=100, shuffle=False)
+        y_generator = self.batch(self.y_test, n=100, shuffle=False)
+        test_acc = []
+        counter = 0
+        for data in x_generator:
+            test_acc += [self.sess.run(self.accuracy, feed_dict={
+            self.x: data, self.y_: next(y_generator), self.keep_prob: 1.0})]
+        total_test_acc = sum(test_acc) / float(len(test_acc))
+        print('test accuracy %g' % total_test_acc)
 
     def weight_variable(self, shape):
         initial = tf.truncated_normal(shape, stddev=0.1)
@@ -171,46 +192,54 @@ class cnnMNIST(object):
                                 strides=[1, 2, 2, 1], padding='SAME')
 
     def get_label_predictions(self):
-        predictions, score = self.sess.run(
+        x_batcher = self.batch(self.x_test, n=1000, shuffle=False)
+        # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
+        predictions = np.zeros((0, 1))
+        score = np.zeros((0, 7))
+        for data in x_batcher:
+            temp_predictions, temp_score = self.sess.run(
             [self.prediction, self.y_conv],
-            feed_dict={self.x: self.x_test[:1000, :],
+            feed_dict={self.x: data,
                        self.keep_prob: 1.0})
+            temp_predictions = temp_predictions.reshape((temp_predictions.shape[0], 1))
+            predictions = np.vstack((predictions, temp_predictions))
+            score = np.vstack((score, temp_score))
         return predictions, score
 
 
-def plot_confusion_matrix(cm, classes,
-                          normalize=False,
-                          title='Confusion matrix',
-                          cmap=plt.cm.Blues):
-    """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
-
-    print(cm)
-
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
-
-    plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+# def plot_confusion_matrix(cm, classes,
+#                           normalize=False,
+#                           title='Confusion matrix',
+#                           cmap=plt.cm.Blues):
+#     """
+#     This function prints and plots the confusion matrix.
+#     Normalization can be applied by setting `normalize=True`.
+#     """
+#     if normalize:
+#         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+#         print("Normalized confusion matrix")
+#     else:
+#         print('Confusion matrix, without normalization')
+# 
+#     print(cm)
+# 
+#     plt.imshow(cm, interpolation='nearest', cmap=cmap)
+#     plt.title(title)
+#     plt.colorbar()
+#     tick_marks = np.arange(len(classes))
+#     plt.xticks(tick_marks, classes, rotation=45)
+#     plt.yticks(tick_marks, classes)
+# 
+#     fmt = '.2f' if normalize else 'd'
+#     thresh = cm.max() / 2.
+#     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+#         plt.text(j, i, format(cm[i, j], fmt),
+#                  horizontalalignment="center",
+#                  color="white" if cm[i, j] > thresh else "black")
+# 
+#     plt.tight_layout()
+#     plt.ylabel('True label')
+#     plt.xlabel('Predicted label')
 
 
 def main():
@@ -220,6 +249,8 @@ def main():
     cnn.get_data()
     b = time.time()
     print('Built the data in {} s'.format(b-a))
+
+    validation_data = cnn.validation_batcher()
 
     a = time.time()
     cnn.train()
@@ -231,15 +262,44 @@ def main():
 
     scores = np.zeros((score.shape[0],))
     for i in range(len(scores)):
-        scores[i] = score[i, predictions[i]]
+        scores[i] = score[i, int(predictions[i])]
 
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
     np.save('sourceid_predictions.npy', predictions_decode)
     np.save('sourceid_prediction_scores.npy', scores)
-    np.save('sourceid_ground_truth.npy', labels_decode[:1000])
+    np.save('sourceid_ground_truth.npy', labels_decode)
+    
+    answers = open('approach1_answers.csv', 'w')
+    answers.write('RunID,SourceID,SourceTime,Comment\n')
+    # counter = 0
+    for sample in validation_data:
+        x = np.array(sample['spectra'])
+        x = x[30:, :]
+        predictions = cnn.sess.run(
+            cnn.prediction,
+            feed_dict = {cnn.x: x,
+                         cnn.keep_prob: 1.0})
+        time_index = np.arange(predictions.shape[0])
+        mask = predictions >= 0.5
 
+        runname = sample.name.split('/')[-1]
+        if np.sum(mask) != 0:
+            counts = np.sum(x, axis=1)
+            # fig = plt.figure()
+            t = time_index[mask]
+            t = [int(i) for i in t]
+            index_guess = np.argmax(counts[t])
+
+            current_predictions = predictions[mask]
+
+            answers.write('{},{},{},\n'.format(
+                runname, current_predictions[index_guess], t[index_guess] + 30))
+        else:
+            answers.write('{},{},{},\n'.format(
+                runname, 0, 0))
+    answers.close()
     return
 
 main()
