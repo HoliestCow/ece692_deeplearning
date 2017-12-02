@@ -6,12 +6,6 @@ import numpy as np
 import time
 import h5py
 # import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
-import itertools
-from copy import deepcopy
-
-import os
-import os.path
 
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -34,67 +28,18 @@ class cnnMNIST(object):
             out[i] = np.argmax(labels[i, :])
         return out
 
-    def get_data(self):
-        # data_norm = True
-        # data_augmentation = False
 
-        f = h5py.File('naive_dataset.h5', 'r')
-        g = f['training']
-        X = np.array(g['spectra'])
-        Y = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
-
-        g = f['testing']
-        X_test = np.array(g['spectra'])
-        Y_test = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
-
-        # img_prep = ImagePreprocessing()
-        # if data_norm:
-        #     img_prep.add_featurewise_zero_center()
-        #     img_prep.add_featurewise_stdnorm()
-        #
-        # img_aug = ImageAugmentation()
-        # if data_augmentation:
-        #     img_aug.add_random_flip_leftright()
-        #     img_aug.add_random_rotation(max_angle=30.)
-        #     img_aug.add_random_crop((32, 32), 6)
-
-        self.x_train = X
-        self.y_train = Y
-
-        self.x_test = X_test
-        self.y_test = Y_test
-
-        f.close()
-
-        return
-
-    def batch(self, iterable, n=1, shuffle=True):
-        if shuffle:
-            self.shuffle()
-        # l = len(iterable)
-        l = iterable.shape[0]
-        for ndx in range(0, l, n):
-            yield iterable[ndx:min(ndx + n, l), :]
-
-    def validation_batcher(self):
-        f = h5py.File('./naive_dataset.h5', 'r')
-        g = f['validation']
-        samplelist = list(g.keys())
-
-        for i in range(len(samplelist)):
-            data = g[samplelist[i]]
-            yield data
 
 
     def build_graph(self):
-        self.x = tf.placeholder(tf.float32, shape=[None, 1024])
+        self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
 
         x_image = self.hack_1dreshape(self.x)
         # define conv-layer variables
-        W_conv1 = self.weight_variable([1, 5, 1, 32])    # first conv-layer has 32 kernels, size=5
+        W_conv1 = self.weight_variable([5, 5, 1, 32])    # first conv-layer has 32 kernels, size=5
         b_conv1 = self.bias_variable([32])
-        W_conv2 = self.weight_variable([1, 5, 32, 64])
+        W_conv2 = self.weight_variable([5, 5, 32, 64])
         b_conv2 = self.bias_variable([64])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
@@ -104,8 +49,8 @@ class cnnMNIST(object):
         h_pool2 = self.max_pool_2x2(h_conv2)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * 64, 1024])
-        b_fc1 = self.bias_variable([1024])
+        W_fc1 = self.weight_variable([256 * 64, 256])
+        b_fc1 = self.bias_variable([256])
 
         h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 64])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
@@ -113,6 +58,9 @@ class cnnMNIST(object):
         # dropout regularization
         self.keep_prob = tf.placeholder(tf.float32)
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
+
+        # HERE THE FEATURES FROM THE CNN ARE COMPLETE. NOW TO FEED INTO AN RNN
+
 
         # linear classifier
         W_fc2 = self.weight_variable([1024, 7])
@@ -129,6 +77,51 @@ class cnnMNIST(object):
         np.random.set_state(rng_state)
         np.random.shuffle(self.y_train)
         return
+
+    def get_data(self):
+        # data_norm = True
+        # data_augmentation = False
+
+        f = h5py.File('./sequential_dataset.h5', 'r')
+
+        X = f['train']
+        X_test = f['test']
+
+        self.x_train = X
+        self.x_test = X_test
+        # NOTE: always use the keylist to get data
+        self.data_keylist = list(X.keys())
+
+        return
+
+    def batch(self, iterable, n=1, shuffle=True, small_test=True, usethesekeys = None):
+        if shuffle:
+            self.shuffle()
+        if usethesekeys is None:
+            keylist = self.data_keylist
+        else:
+            keylist = usethesekeys
+
+
+        # l = len(iterable)
+        for i in range(len(keylist)):
+            x = np.array(iterable[keylist[i]]['measured_spectra'])
+            y = np.array(iterable[keylist[i]]['labels'])
+            mask = y >= 0.5
+            z = np.ones((y.shape[0],))
+            z[mask] = 10.0
+            y = self.onehot_labels(y)
+            yield x, y, z
+
+    def validation_batcher(self):
+        f = h5py.File('./sequential_dataset_validation.h5', 'r')
+        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_validation.h5', 'r')
+        samplelist = list(f.keys())
+        # samplelist = samplelist[:10]
+
+        for i in range(len(samplelist)):
+            data = f[samplelist[i]]
+            yield data
 
     def train(self):
         self.sess = tf.Session()
@@ -192,19 +185,18 @@ class cnnMNIST(object):
                                 strides=[1, 2, 2, 1], padding='SAME')
 
     def get_label_predictions(self):
-        x_batcher = self.batch(self.x_test, n=1000, shuffle=False)
+        x_batcher = self.batch(self.x_test, n=1000, shuffle=False,
+                               usethesekeys=list(self.x_test.keys()))
         # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
-        predictions = np.zeros((0, 1))
-        score = np.zeros((0, 7))
-        for data in x_batcher:
-            temp_predictions, temp_score = self.sess.run(
-            [self.prediction, self.y_conv],
-            feed_dict={self.x: data,
-                       self.keep_prob: 1.0})
-            temp_predictions = temp_predictions.reshape((temp_predictions.shape[0], 1))
-            predictions = np.vstack((predictions, temp_predictions))
-            score = np.vstack((score, temp_score))
-        return predictions, score
+        predictions = []
+        correct_predictions = np.zeros((0, 2))
+        for x, y, z in x_batcher:
+            temp_predictions = self.sess.run(
+            self.prediction,
+            feed_dict={self.x: x})
+            predictions += temp_predictions.tolist()
+            correct_predictions = np.vstack((correct_predictions, y))
+        return predictions, correct_predictions
 
 
 # def plot_confusion_matrix(cm, classes,
@@ -250,8 +242,6 @@ def main():
     b = time.time()
     print('Built the data in {} s'.format(b-a))
 
-    validation_data = cnn.validation_batcher()
-
     a = time.time()
     cnn.train()
     b = time.time()
@@ -267,16 +257,16 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    np.save('sourceid_predictions.npy', predictions_decode)
-    np.save('sourceid_prediction_scores.npy', scores)
-    np.save('sourceid_ground_truth.npy', labels_decode)
+    np.save('cnndetandidseq_predictions.npy', predictions_decode)
+    np.save('cnndetandidseq_prediction_scores.npy', scores)
+    np.save('cnndetandidseq_ground_truth.npy', labels_decode)
 
-    answers = open('approach1_answers.csv', 'w')
+    validation_data = cnn.validation_batcher()
+    answers = open('approach3_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     # counter = 0
     for sample in validation_data:
-        x = np.array(sample['spectra'])
-        x = x[30:, :]
+        x = np.array(sample)
         predictions = cnn.sess.run(
             cnn.prediction,
             feed_dict = {cnn.x: x,
@@ -286,7 +276,7 @@ def main():
 
         runname = sample.name.split('/')[-1]
         if np.sum(mask) != 0:
-            counts = np.sum(x, axis=1)
+            counts = np.squeeze(np.sum(x[:, -1, :], axis=2))
             # fig = plt.figure()
             t = time_index[mask]
             t = [int(i) for i in t]
