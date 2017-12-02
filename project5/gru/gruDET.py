@@ -19,7 +19,7 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 1
+        self.epochs = 100
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -73,7 +73,7 @@ class cnnMNIST(object):
         f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_validation.h5', 'r')
         samplelist = list(f.keys())
-        samplelist = samplelist[:10]
+        # samplelist = samplelist[:10]
 
         for i in range(len(samplelist)):
             data = f[samplelist[i]]
