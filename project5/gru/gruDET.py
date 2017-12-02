@@ -10,6 +10,8 @@ from copy import deepcopy
 
 import os
 import os.path
+from collections import OrderedDict
+import pickle
 
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -62,11 +64,13 @@ class cnnMNIST(object):
             yield x, y, z
 
     def validation_batcher(self):
-        f = h5py.File('./sequential_dataset_validation.h5', 'r')
+        # f = h5py.File('./sequential_dataset_validation.h5', 'r')
+        f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_validation.h5', 'r')
         samplelist = list(f.keys())
+        samplelist = samplelist[:10]
 
         for i in range(len(samplelist)):
-            data = g[samplelist[i]]
+            data = f[samplelist[i]]
             yield data
 
 
@@ -95,7 +99,7 @@ class cnnMNIST(object):
         self.y_conv = tf.contrib.layers.fully_connected(
             last, out_size, activation_fn=None)
         # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
-        
+
         ratio = 500.0 / 100000.0
         class_weight = tf.constant([ratio, 1.0 - ratio])
         weighted_logits = tf.multiply(self.y_conv, class_weight) # shape [batch_size, 2]
@@ -224,7 +228,13 @@ class cnnMNIST(object):
 #     plt.tight_layout()
 #     plt.ylabel('True label')
 #     plt.xlabel('Predicted label')
+def save_obj(obj, name ):
+    with open('obj/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
+def load_obj(name ):
+    with open('obj/' + name + '.pkl', 'rb') as f:
+        return pickle.load(f)
 
 def main():
     cnn = cnnMNIST()
@@ -234,25 +244,46 @@ def main():
     b = time.time()
     print('Built the data in {} s'.format(b-a))
 
-    # validation_data = cnn.validation_batcher()
     a = time.time()
     cnn.train()
     b = time.time()
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    predictions, y = cnn.get_label_predictions()
-
-    predictions_decode = predictions
-    labels_decode = cnn.onenothot_labels(y)
-
-    np.save('grudet_predictions.npy', predictions_decode)
-    np.save('grudet_ground_truth.npy', labels_decode)
+    # predictions, y = cnn.get_label_predictions()
+    #
+    # predictions_decode = predictions
+    # labels_decode = cnn.onenothot_labels(y)
+    #
+    # np.save('grudet_predictions.npy', predictions_decode)
+    # np.save('grudet_ground_truth.npy', labels_decode)
 
     # Validation time
+    validation_data = cnn.validation_batcher()
     answers = OrderedDict()
     for sample in validation_data:
-        x = np.array(sample['spectra'])
+        x = np.array(sample)
+        predictions = cnn.sess.run(
+            cnn.prediction,
+            feed_dict = {cnn.x: x})
+        time_index = np.arange(predictions.shape[0])
+        mask = predictions >= 0.5
+
+        runname = sample.name.split('/')[-1]
+        if np.sum(mask) != 0:
+            counts = np.sum(np.squeeze(x[:, -1, :]), axis=-1)
+            t = time_index[mask]
+            t = [int(i) for i in t]
+            index_guess = np.argmax(counts[t])
+
+            current_spectra = x[t[index_guess], :]
+            current_time = t[index_guess] + 15 
+            answers[runname] = {'time': current_time,
+                                'spectra': current_spectra}
+        else:
+            answers[runname] = {'time': 0,
+                                'spectra': 0}
+    save_obj(answers, 'hits')
 
     return
 
