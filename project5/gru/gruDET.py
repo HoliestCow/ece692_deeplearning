@@ -50,13 +50,19 @@ class cnnMNIST(object):
 
         return
 
-    def batch(self, iterable, n=1, shuffle=True):
+    def batch(self, iterable, n=1, shuffle=True, small_test=True, usethesekeys = None):
         if shuffle:
             self.shuffle()
+        if usethesekeys is None:
+            keylist = self.data_keylist
+        else:
+            keylist = usethesekeys
+
+       
         # l = len(iterable)
-        for i in range(len(self.data_keylist)):
-            x = np.array(self.x_train[self.data_keylist[i]]['measured_spectra'])
-            y = np.array(self.x_train[self.data_keylist[i]]['labels'])
+        for i in range(len(keylist)):
+            x = np.array(iterable[keylist[i]]['measured_spectra'])
+            y = np.array(iterable[keylist[i]]['labels'])
             mask = y >= 0.5
             z = np.ones((y.shape[0],))
             z[mask] = 10.0
@@ -64,8 +70,8 @@ class cnnMNIST(object):
             yield x, y, z
 
     def validation_batcher(self):
-        # f = h5py.File('./sequential_dataset_validation.h5', 'r')
-        f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_validation.h5', 'r')
+        f = h5py.File('./sequential_dataset_validation.h5', 'r')
+        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_validation.h5', 'r')
         samplelist = list(f.keys())
         samplelist = samplelist[:10]
 
@@ -99,8 +105,7 @@ class cnnMNIST(object):
         self.y_conv = tf.contrib.layers.fully_connected(
             last, out_size, activation_fn=None)
         # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
-
-        ratio = 500.0 / 100000.0
+        ratio = 10.0 / 100000.0
         class_weight = tf.constant([ratio, 1.0 - ratio])
         weighted_logits = tf.multiply(self.y_conv, class_weight) # shape [batch_size, 2]
         self.loss = tf.nn.softmax_cross_entropy_with_logits(
@@ -126,14 +131,17 @@ class cnnMNIST(object):
             if i % 10 == 0 and i != 0:
                 counter = 0
                 sum_acc = 0
-                x_generator_test = self.batch(self.x_test, shuffle=True)
+                sum_loss
+                x_generator_test = self.batch(self.x_test,
+                                              usethesekeys=list(self.x_test.keys()))
                 for j, k, z in x_generator_test:
-                    train_acc = self.sess.run(self.loss,feed_dict={self.x: j,
+                    train_acc, train_loss = self.sess.run([self.accuracy, self.loss],feed_dict={self.x: j,
                                                                        self.y_: k})
                     sum_acc += np.sum(train_acc)
+                    sum_loss += np.sum(train_loss)
                     counter += len(train_acc)
                 b = time.time()
-                print('step {}, average testing loss {}. {} s elapsed'.format(i, sum_acc / counter, b-a))
+                print('step {}:\navg testing loss {}\navg accuracy {}\ntime elapsed: {} s'.format(i, sum_acc / counter, sum_loss / counter, b-a))
             x, y, z = next(x_generator)
             self.sess.run([self.train_step], feed_dict={
                               self.x: x,
@@ -182,7 +190,8 @@ class cnnMNIST(object):
                                 strides=[1, 2, 2, 1], padding='SAME')
 
     def get_label_predictions(self):
-        x_batcher = self.batch(self.x_test, n=1000, shuffle=False)
+        x_batcher = self.batch(self.x_test, n=1000, shuffle=False,
+                               usethesekeys=list(self.x_test.keys()))
         # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
         predictions = []
         correct_predictions = np.zeros((0, 2))
@@ -250,13 +259,13 @@ def main():
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    # predictions, y = cnn.get_label_predictions()
+    predictions, y = cnn.get_label_predictions()
+     
+    predictions_decode = predictions
+    labels_decode = cnn.onenothot_labels(y)
     #
-    # predictions_decode = predictions
-    # labels_decode = cnn.onenothot_labels(y)
-    #
-    # np.save('grudet_predictions.npy', predictions_decode)
-    # np.save('grudet_ground_truth.npy', labels_decode)
+    np.save('grudet_predictions2.npy', predictions_decode)
+    np.save('grudet_ground_truth2.npy', labels_decode)
 
     # Validation time
     validation_data = cnn.validation_batcher()
