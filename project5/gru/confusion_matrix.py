@@ -39,7 +39,7 @@ def main():
     # prefix = 'sid'
     # prefix = 'det'
     # prefix = 'sourceid'
-    prefix = 'grudet'
+    # prefix = 'grudet'
     prefix = 'grudet2'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))

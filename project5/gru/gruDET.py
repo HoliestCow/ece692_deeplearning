@@ -106,7 +106,7 @@ class cnnMNIST(object):
         self.y_conv = tf.contrib.layers.fully_connected(
             last, out_size, activation_fn=None)
         # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
-        ratio = 10.0 / 100000.0
+        ratio = 1.0 / 1000000.0
         class_weight = tf.constant([ratio, 1.0 - ratio])
         weighted_logits = tf.multiply(self.y_conv, class_weight) # shape [batch_size, 2]
         self.loss = tf.nn.softmax_cross_entropy_with_logits(
