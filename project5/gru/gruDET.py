@@ -1,6 +1,4 @@
 
-# Sample code implementing LeNet-5 from Liu Liu
-
 import tensorflow as tf
 import numpy as np
 import time
@@ -19,13 +17,13 @@ import os.path
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 500
+        self.epochs = 1
         self.build_graph()
 
     def onehot_labels(self, labels):
-        out = np.zeros((labels.shape[0], 7))
+        out = np.zeros((labels.shape[0], 2))
         for i in range(labels.shape[0]):
-            out[i, :] = np.eye(7)[labels[i]]
+            out[i, :] = np.eye(2)[int(labels[i])]
         return out
 
     def onenothot_labels(self, labels):
@@ -38,17 +36,16 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_testing.h5', 'r')
+        f = h5py.File('./sequential_dataset.h5', 'r')
 
         X = f['train']
         X_test = f['test']
 
-        self.data_train = X
-        self.data_test = X_test
+        self.x_train = X
+        self.x_test = X_test
         # NOTE: always use the keylist to get data
         self.data_keylist = list(X.keys())
 
-        f.close()
         return
 
     def batch(self, iterable, n=1, shuffle=True):
@@ -58,10 +55,14 @@ class cnnMNIST(object):
         for i in range(len(self.data_keylist)):
             x = np.array(self.x_train[self.data_keylist[i]]['measured_spectra'])
             y = np.array(self.x_train[self.data_keylist[i]]['labels'])
-            yield x, y
+            mask = y >= 0.5
+            z = np.ones((y.shape[0],))
+            z[mask] = 10.0
+            y = self.onehot_labels(y)
+            yield x, y, z
 
     def validation_batcher(self):
-        f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_validation.h5', 'r')
+        f = h5py.File('./sequential_dataset_validation.h5', 'r')
         samplelist = list(f.keys())
 
         for i in range(len(samplelist)):
@@ -72,9 +73,10 @@ class cnnMNIST(object):
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
+        self.weights = tf.placeholder(tf.float32)
 
         num_units = 32
-        num_layers = 2
+        num_layers = 1
         # dropout = tf.placeholder(tf.float32)
 
         cells = []
@@ -90,11 +92,18 @@ class cnnMNIST(object):
         last = tf.gather(output, int(output.get_shape()[0]) - 1)
 
         out_size = self.y_.get_shape()[1].value
-        logit = tf.contrib.layers.fully_connected(
+        self.y_conv = tf.contrib.layers.fully_connected(
             last, out_size, activation_fn=None)
-        self.y_conv = tf.nn.softmax(logit)
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
-        self.train_step = tf.train.AdamOptimizer(self.lr).minimize(loss)
+        # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
+        
+        ratio = 500.0 / 100000.0
+        class_weight = tf.constant([ratio, 1.0 - ratio])
+        weighted_logits = tf.multiply(self.y_conv, class_weight) # shape [batch_size, 2]
+        self.loss = tf.nn.softmax_cross_entropy_with_logits(
+                 logits=weighted_logits, labels=self.y_, name="xent_raw")
+        # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        # loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=self.weights))
+        self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
 
     def shuffle(self):
         np.random.shuffle(self.data_keylist)
@@ -105,6 +114,7 @@ class cnnMNIST(object):
         init = tf.global_variables_initializer()
         self.sess.run(init)
         self.eval() # creating evaluation
+        a = time.time()
         for i in range(self.epochs):
             # batch = mnist.train.next_batch(50)
             x_generator = self.batch(self.x_train, shuffle=True)
@@ -113,15 +123,18 @@ class cnnMNIST(object):
                 counter = 0
                 sum_acc = 0
                 x_generator_test = self.batch(self.x_test, shuffle=True)
-                for j, k in x_generator_test:
-                    train_acc = self.sess.run(self.accuracy,feed_dict={self.x: j,
+                for j, k, z in x_generator_test:
+                    train_acc = self.sess.run(self.loss,feed_dict={self.x: j,
                                                                        self.y_: k})
-                    sum_acc += train_acc
-                    counter += 1
-                print('step {}, average training accuracy {}'.format(i, sum_acc / counter))
-            x, y = next(x_generator)
-            self.sess.run([self.train_step], feed_dict={self.x: x,
-                                                        self.y_: y})
+                    sum_acc += np.sum(train_acc)
+                    counter += len(train_acc)
+                b = time.time()
+                print('step {}, average testing loss {}. {} s elapsed'.format(i, sum_acc / counter, b-a))
+            x, y, z = next(x_generator)
+            self.sess.run([self.train_step], feed_dict={
+                              self.x: x,
+                              self.y_: y,
+                              self.weights: 1000})
             # self.shuffle()
 
     def eval(self):
@@ -167,17 +180,15 @@ class cnnMNIST(object):
     def get_label_predictions(self):
         x_batcher = self.batch(self.x_test, n=1000, shuffle=False)
         # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
-        predictions = np.zeros((0, 1))
-        score = np.zeros((0, 7))
-        for data in x_batcher:
-            temp_predictions, temp_score = self.sess.run(
-            [self.prediction, self.y_conv],
-            feed_dict={self.x: data,
-                       self.keep_prob: 1.0})
-            temp_predictions = temp_predictions.reshape((temp_predictions.shape[0], 1))
-            predictions = np.vstack((predictions, temp_predictions))
-            score = np.vstack((score, temp_score))
-        return predictions, score
+        predictions = []
+        correct_predictions = np.zeros((0, 2))
+        for x, y, z in x_batcher:
+            temp_predictions = self.sess.run(
+            self.prediction,
+            feed_dict={self.x: x})
+            predictions += temp_predictions.tolist()
+            correct_predictions = np.vstack((correct_predictions, y))
+        return predictions, correct_predictions
 
 
 # def plot_confusion_matrix(cm, classes,
@@ -224,25 +235,24 @@ def main():
     print('Built the data in {} s'.format(b-a))
 
     # validation_data = cnn.validation_batcher()
-    stop
     a = time.time()
     cnn.train()
     b = time.time()
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    predictions, score = cnn.get_label_predictions()
-
-    scores = np.zeros((score.shape[0],))
-    for i in range(len(scores)):
-        scores[i] = score[i, int(predictions[i])]
+    predictions, y = cnn.get_label_predictions()
 
     predictions_decode = predictions
-    labels_decode = cnn.onenothot_labels(cnn.y_test)
+    labels_decode = cnn.onenothot_labels(y)
 
     np.save('grudet_predictions.npy', predictions_decode)
-    np.save('grudet_prediction_scores.npy', scores)
     np.save('grudet_ground_truth.npy', labels_decode)
+
+    # Validation time
+    answers = OrderedDict()
+    for sample in validation_data:
+        x = np.array(sample['spectra'])
 
     return
 
