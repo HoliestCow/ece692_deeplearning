@@ -12,6 +12,7 @@ import os
 import os.path
 from collections import OrderedDict
 import pickle
+# import cPickle as pickle
 
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -131,7 +132,7 @@ class cnnMNIST(object):
             if i % 10 == 0 and i != 0:
                 counter = 0
                 sum_acc = 0
-                sum_loss
+                sum_loss = 0
                 x_generator_test = self.batch(self.x_test,
                                               usethesekeys=list(self.x_test.keys()))
                 for j, k, z in x_generator_test:
@@ -139,7 +140,7 @@ class cnnMNIST(object):
                                                                        self.y_: k})
                     sum_acc += np.sum(train_acc)
                     sum_loss += np.sum(train_loss)
-                    counter += len(train_acc)
+                    counter += 1
                 b = time.time()
                 print('step {}:\navg testing loss {}\navg accuracy {}\ntime elapsed: {} s'.format(i, sum_acc / counter, sum_loss / counter, b-a))
             x, y, z = next(x_generator)
@@ -285,8 +286,9 @@ def main():
             t = [int(i) for i in t]
             index_guess = np.argmax(counts[t])
 
-            current_spectra = x[t[index_guess], :]
+            current_spectra = np.squeeze(x[t[index_guess], -1, :])
             current_time = t[index_guess] + 15 
+            print(current_time)
             answers[runname] = {'time': current_time,
                                 'spectra': current_spectra}
         else:

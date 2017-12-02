@@ -22,7 +22,7 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 500
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -284,6 +284,7 @@ def main():
         if data['time'] == 0:
             answers.write('{},{},{},\n'.format(key, 0, 0))
             continue
+        print('here')
         x = np.array(data['spectra'])
         x = x.reshape((1, len(x)))
         predictions = cnn.sess.run(
