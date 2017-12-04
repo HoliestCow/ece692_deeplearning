@@ -3,13 +3,13 @@ import tensorflow as tf
 import numpy as np
 import time
 import h5py
-# import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
-import itertools
-from copy import deepcopy
+import matplotlib.pyplot as plt
+# from sklearn.metrics import confusion_matrix
+# import itertools
+# from copy import deepcopy
 
-import os
-import os.path
+# import os
+# import os.path
 from collections import OrderedDict
 import pickle
 # import cPickle as pickle
@@ -19,8 +19,8 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-3
-        self.epochs = 60000
+        self.lr = 1e-5
+        self.epochs = 1000
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -39,7 +39,7 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        f = h5py.File('./sequential_dataset.h5', 'r')
+        f = h5py.File('./sequential_dataset_balanced.h5', 'r')
 
         X = f['train']
         X_test = f['test']
@@ -59,7 +59,7 @@ class cnnMNIST(object):
         else:
             keylist = usethesekeys
             if shortset:
-                keylist = usethesekeys[:100]
+                keylist = usethesekeys[:1000]
 
        
         # l = len(iterable)
@@ -88,7 +88,7 @@ class cnnMNIST(object):
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
         # self.weights = tf.placeholder(tf.float32, shape=[None])
 
-        num_units = 512
+        num_units = 128
         num_layers = 2
         # dropout = tf.placeholder(tf.float32)
 
@@ -117,11 +117,11 @@ class cnnMNIST(object):
         # NOTE: Normal gru
         # self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE Normal gru with summing instead of mean
-        # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE: Weighted gru
         # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=200.0))
         # NOTE: Weighted gru with summing instead of mean
-        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        # self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=10.0))
 
         # self.loss = tf.losses.sparse_softmax_cross_entropy(self.y_, self.y_conv, weights=self.weights)
 
@@ -141,7 +141,7 @@ class cnnMNIST(object):
             # batch = mnist.train.next_batch(50)
             x_generator = self.batch(self.x_train, shuffle=True)
 
-            if i % 10 == 0 and i != 0:
+            if i % 100 == 0 and i != 0:
                 counter = 0
                 sum_acc = 0
                 sum_loss = 0
@@ -157,6 +157,15 @@ class cnnMNIST(object):
                 b = time.time()
                 print('step {}:\navg loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_loss / counter, hits, b-a))
             x, y, z = next(x_generator)
+            # stop
+            # for j in range(x.shape[1]):
+            #     spectra = x[7, j, :]
+            #     fig = plt.figure()
+            #     plt.plot(spectra)
+            #     fig.savefig('seqspec_{}'.format(j))
+            #     plt.close()
+            # print(y[7, :])
+            # stop    
             self.sess.run([self.train_step], feed_dict={
                               self.x: x,
                               self.y_: y})
@@ -277,8 +286,8 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(y)
     #
-    np.save('grudetweightedsum_predictions.npy', predictions_decode)
-    np.save('grudetweightedsum_ground_truth.npy', labels_decode)
+    np.save('grudetnormalsum_predictions.npy', predictions_decode)
+    np.save('grudetnormalsum_ground_truth.npy', labels_decode)
 
     # Validation time
     validation_data = cnn.validation_batcher()
@@ -305,7 +314,7 @@ def main():
         else:
             answers[runname] = {'time': 0,
                                 'spectra': 0}
-    save_obj(answers, 'weightedsumgru_hits')
+    save_obj(answers, 'normalgru_hits')
 
     return
 

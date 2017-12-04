@@ -34,7 +34,7 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        f = h5py.File('../gru/sequential_dataset.h5', 'r')
+        f = h5py.File('../gru/sequential_dataset_balanced.h5', 'r')
 
         X = f['train']
         X_test = f['test']
@@ -94,6 +94,7 @@ class cnnMNIST(object):
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
         h_pool2 = self.max_pool_2x2(h_conv2)
 
+
         # densely/fully connected layer
         W_fc1 = self.weight_variable([256 * 64 * 4, 1024])
         b_fc1 = self.bias_variable([1024])
@@ -110,7 +111,7 @@ class cnnMNIST(object):
         b_fc2 = self.bias_variable([2])
 
         self.y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
-        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
         self.train_step = tf.train.MomentumOptimizer(
             self.lr, 0.4, use_nesterov=True).minimize(self.loss)
@@ -205,7 +206,8 @@ class cnnMNIST(object):
         for x, y, z in x_batcher:
             temp_predictions = self.sess.run(
                 self.prediction,
-                feed_dict={self.x: x})
+                feed_dict={self.x: x,
+                           self.keep_prob: 1.0})
             predictions += temp_predictions.tolist()
             correct_predictions = np.vstack((correct_predictions, y))
         return predictions, correct_predictions
@@ -234,20 +236,20 @@ def main():
     cnn.train()
     b = time.time()
     print('Training time: {} s'.format(b-a))
-    cnn.test_eval()
 
-    predictions, score = cnn.get_label_predictions()
+    predictions, y = cnn.get_label_predictions()
 
-    scores = np.zeros((score.shape[0],))
-    for i in range(len(scores)):
-        scores[i] = score[i, int(predictions[i])]
+    # scores = np.zeros((score.shape[0],))
+    # for i in range(len(scores)):
+    #     scores[i] = score[i, int(predictions[i])]
 
     predictions_decode = predictions
-    labels_decode = cnn.onenothot_labels(cnn.y_test)
+    labels_decode = cnn.onenothot_labels(y)
 
     np.save('cnnseqsiddet_predictions.npy', predictions_decode)
-    np.save('cnnseqsiddet_prediction_scores.npy', scores)
     np.save('cnnseqsiddet_ground_truth.npy', labels_decode)
+
+    stop
 
     validation_data = cnn.validation_batcher()
     answers = open('approach1_answers.csv', 'w')

@@ -36,9 +36,10 @@ def plot_confusion_matrix(cm, classes, normalize=False,
 
 def main():
     
-    prefix = 'sid'
+    # prefix = 'sid'
     # prefix = 'det'
     # prefix = 'sourceid'
+    prefix = 'cnnseqsiddet'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))

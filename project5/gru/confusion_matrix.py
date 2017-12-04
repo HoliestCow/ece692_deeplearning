@@ -45,7 +45,7 @@ def main():
     # prefix = 'grudetweighted200'
     # prefix = 'grudetnormal'
     # prefix = 'grudetnormalsum'
-    prefix = 'grudetweightedsum'
+    # prefix = 'grudetweightedsum'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))
