@@ -85,15 +85,19 @@ class cnnMNIST(object):
 
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
+        #                                         [batch, height, width, channels]
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
         # self.weights = tf.placeholder(tf.float32, shape=[None])
 
-        x_image = self.hack_1dreshape(self.x)
+        # x_image = self.hack_1dreshape(self.x)
+        x_image = tf.reshape(self.x, [-1, 1, 1024, 15])
         # define conv-layer variables
-        W_conv1 = self.weight_variable([1, 5, 15, 32])    # first conv-layer has 32 kernels, size=5
-        b_conv1 = self.bias_variable([32])
-        W_conv2 = self.weight_variable([1, 5, 32, 64])
-        b_conv2 = self.bias_variable([64])
+        # [5, 5, 1, 32]
+        print(x_image.shape)
+        W_conv1 = self.weight_variable([1, 5, 15, 15])    # first conv-layer has 32 kernels, size=5
+        b_conv1 = self.bias_variable([15])
+        W_conv2 = self.weight_variable([1, 5, 15, 15])
+        b_conv2 = self.bias_variable([15])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
@@ -101,12 +105,10 @@ class cnnMNIST(object):
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
         h_pool2 = self.max_pool_2x2(h_conv2)
 
-        # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * 64, 1024])
-        b_fc1 = self.bias_variable([1024])
+        print(h_pool2.shape)
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 64])
-        h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+        new_features = tf.reshape(h_pool2, [-1, 15, 256])
+        print(new_features.shape)
 
         num_units = 128
         num_layers = 2
@@ -120,7 +122,7 @@ class cnnMNIST(object):
             cells.append(cell)
         cell = tf.contrib.rnn.MultiRNNCell(cells)
 
-        output, state = tf.nn.dynamic_rnn(cell, h_fc1, dtype=tf.float32)
+        output, state = tf.nn.dynamic_rnn(cell, new_features, dtype=tf.float32)
         output = tf.transpose(output, [1, 0, 2])
         last = tf.gather(output, int(output.get_shape()[0]) - 1)
 
@@ -137,11 +139,11 @@ class cnnMNIST(object):
         # NOTE: Normal gru
         # self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE Normal gru with summing instead of mean
-        # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE: Weighted gru
         # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=200.0))
         # NOTE: Weighted gru with summing instead of mean
-        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
 
         # self.loss = tf.losses.sparse_softmax_cross_entropy(self.y_, self.y_conv, weights=self.weights)
 
@@ -217,10 +219,8 @@ class cnnMNIST(object):
 
     def hack_1dreshape(self, x):
         # expand its dimensionality to fit into conv2d
-        tensor_expand = tf.expand_dims(x, 1)
-        print(tensor_expand.shape)
-        stop
-        # tensor_expand = tf.expand_dims(tensor_expand, -1)
+        # tensor_expand = tf.expand_dims(x, 1)
+        tensor_expand = tf.transpose(x, [0, 2, 1])
         return tensor_expand
 
     def conv2d(self, x, W):

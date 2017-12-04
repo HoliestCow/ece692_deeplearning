@@ -106,7 +106,7 @@ class cnnMNIST(object):
 
         out_size = self.y_.get_shape()[1].value
         self.y_conv = tf.contrib.layers.fully_connected(
-            last, out_size, activation_fn=None)
+            last, out_size) #, activation_fn=None)
         # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
         # ratio = 1.0 / 1000000.0
         # ratio = 1.0 / ratio
