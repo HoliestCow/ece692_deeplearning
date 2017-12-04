@@ -20,13 +20,13 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 60000
         self.build_graph()
 
     def onehot_labels(self, labels):
         out = np.zeros((labels.shape[0], 2))
         for i in range(labels.shape[0]):
-            out[i, :] = np.eye(2)[int(labels[i])]
+            out[i, :] = np.eye(2, dtype=int)[int(labels[i])]
         return out
 
     def onenothot_labels(self, labels):
@@ -51,13 +51,15 @@ class cnnMNIST(object):
 
         return
 
-    def batch(self, iterable, n=1, shuffle=True, small_test=True, usethesekeys = None):
+    def batch(self, iterable, n=1, shuffle=True, small_test=True, usethesekeys = None, shortset=False):
         if shuffle:
             self.shuffle()
         if usethesekeys is None:
             keylist = self.data_keylist
         else:
             keylist = usethesekeys
+            if shortset:
+                keylist = usethesekeys[:100]
 
        
         # l = len(iterable)
@@ -66,7 +68,7 @@ class cnnMNIST(object):
             y = np.array(iterable[keylist[i]]['labels'])
             mask = y >= 0.5
             z = np.ones((y.shape[0],))
-            z[mask] = 10.0
+            z[mask] = 100000.0
             y = self.onehot_labels(y)
             yield x, y, z
 
@@ -84,10 +86,10 @@ class cnnMNIST(object):
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
-        self.weights = tf.placeholder(tf.float32)
+        # self.weights = tf.placeholder(tf.float32, shape=[None])
 
-        num_units = 32
-        num_layers = 1
+        num_units = 512
+        num_layers = 2
         # dropout = tf.placeholder(tf.float32)
 
         cells = []
@@ -106,13 +108,23 @@ class cnnMNIST(object):
         self.y_conv = tf.contrib.layers.fully_connected(
             last, out_size, activation_fn=None)
         # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
-        ratio = 1.0 / 1000000.0
-        class_weight = tf.constant([ratio, 1.0 - ratio])
-        weighted_logits = tf.multiply(self.y_conv, class_weight) # shape [batch_size, 2]
-        self.loss = tf.nn.softmax_cross_entropy_with_logits(
-                 logits=weighted_logits, labels=self.y_, name="xent_raw")
-        # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
-        # loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=self.weights))
+        # ratio = 1.0 / 1000000.0
+        # ratio = 1.0 / ratio
+        # class_weight = tf.constant([ratio, 1.0 - ratio])
+        # weighted_logits = tf.multiply(self.y_conv, class_weight) # shape [batch_size, 2]
+        # self.loss = tf.nn.softmax_cross_entropy_with_logits(
+                 # logits=weighted_logits, labels=self.y_, name="xent_raw")
+        # NOTE: Normal gru
+        # self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        # NOTE Normal gru with summing instead of mean
+        # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        # NOTE: Weighted gru
+        # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=200.0))
+        # NOTE: Weighted gru with summing instead of mean
+        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+
+        # self.loss = tf.losses.sparse_softmax_cross_entropy(self.y_, self.y_conv, weights=self.weights)
+
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
 
     def shuffle(self):
@@ -133,21 +145,21 @@ class cnnMNIST(object):
                 counter = 0
                 sum_acc = 0
                 sum_loss = 0
+                hits = 0
                 x_generator_test = self.batch(self.x_test,
-                                              usethesekeys=list(self.x_test.keys()))
+                                              usethesekeys=list(self.x_test.keys()), shortset=True)
                 for j, k, z in x_generator_test:
-                    train_acc, train_loss = self.sess.run([self.accuracy, self.loss],feed_dict={self.x: j,
+                    train_loss, prediction = self.sess.run([self.loss, self.prediction],feed_dict={self.x: j,
                                                                        self.y_: k})
-                    sum_acc += np.sum(train_acc)
                     sum_loss += np.sum(train_loss)
+                    hits += np.sum(prediction)
                     counter += 1
                 b = time.time()
-                print('step {}:\navg testing loss {}\navg accuracy {}\ntime elapsed: {} s'.format(i, sum_acc / counter, sum_loss / counter, b-a))
+                print('step {}:\navg loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_loss / counter, hits, b-a))
             x, y, z = next(x_generator)
             self.sess.run([self.train_step], feed_dict={
                               self.x: x,
-                              self.y_: y,
-                              self.weights: 1000})
+                              self.y_: y})
             # self.shuffle()
 
     def eval(self):
@@ -265,8 +277,8 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(y)
     #
-    np.save('grudet_predictions2.npy', predictions_decode)
-    np.save('grudet_ground_truth2.npy', labels_decode)
+    np.save('grudetweightedsum_predictions.npy', predictions_decode)
+    np.save('grudetweightedsum_ground_truth.npy', labels_decode)
 
     # Validation time
     validation_data = cnn.validation_batcher()
@@ -288,13 +300,12 @@ def main():
 
             current_spectra = np.squeeze(x[t[index_guess], -1, :])
             current_time = t[index_guess] + 15 
-            print(current_time)
             answers[runname] = {'time': current_time,
                                 'spectra': current_spectra}
         else:
             answers[runname] = {'time': 0,
                                 'spectra': 0}
-    save_obj(answers, 'hits')
+    save_obj(answers, 'weightedsumgru_hits')
 
     return
 

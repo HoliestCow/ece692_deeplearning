@@ -40,7 +40,12 @@ def main():
     # prefix = 'det'
     # prefix = 'sourceid'
     # prefix = 'grudet'
-    prefix = 'grudet2'
+    # prefix = 'grudet2'
+    # prefix = 'grudet2inverse'
+    # prefix = 'grudetweighted200'
+    # prefix = 'grudetnormal'
+    # prefix = 'grudetnormalsum'
+    prefix = 'grudetweightedsum'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))

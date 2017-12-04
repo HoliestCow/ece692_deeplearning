@@ -34,8 +34,8 @@ class cnnMNIST(object):
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
-
-        x_image = self.hack_1dreshape(self.x)
+        
+        # x_image = self.x
         # define conv-layer variables
         W_conv1 = self.weight_variable([5, 5, 1, 32])    # first conv-layer has 32 kernels, size=5
         b_conv1 = self.bias_variable([32])
