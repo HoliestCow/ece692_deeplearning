@@ -113,8 +113,8 @@ class cnnMNIST(object):
         self.y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
         self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
-        self.train_step = tf.train.MomentumOptimizer(
-            self.lr, 0.4, use_nesterov=True).minimize(self.loss)
+        # self.train_step = tf.train.MomentumOptimizer(
+            # self.lr, 0.4, use_nesterov=True).minimize(self.loss)
 
 
     def shuffle(self):
@@ -130,7 +130,7 @@ class cnnMNIST(object):
         for i in range(self.epochs):
             x_generator = self.batch(self.x_train, shuffle=True)
             x, y, z = next(x_generator)
-            if i % 10 == 0 and i != 0:
+            if i % 1 == 0 and i != 0:
                 counter = 0
                 sum_loss = 0
                 sum_acc = 0
@@ -248,8 +248,6 @@ def main():
 
     np.save('cnnseqsiddet_predictions.npy', predictions_decode)
     np.save('cnnseqsiddet_ground_truth.npy', labels_decode)
-
-    stop
 
     validation_data = cnn.validation_batcher()
     answers = open('approach1_answers.csv', 'w')

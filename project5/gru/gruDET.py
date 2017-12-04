@@ -86,7 +86,7 @@ class cnnMNIST(object):
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
-        # self.weights = tf.placeholder(tf.float32, shape=[None])
+        self.weights = tf.placeholder(tf.float32, shape=[None])
 
         num_units = 128
         num_layers = 2
@@ -117,13 +117,13 @@ class cnnMNIST(object):
         # NOTE: Normal gru
         # self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE Normal gru with summing instead of mean
-        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE: Weighted gru
         # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=200.0))
         # NOTE: Weighted gru with summing instead of mean
-        # self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=10.0))
+        self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=2.0))
 
-        # self.loss = tf.losses.sparse_softmax_cross_entropy(self.y_, self.y_conv, weights=self.weights)
+        # self.loss = tf.reduce_sum(tf.losses.sparse_softmax_cross_entropy(labels=self.y_), logits=self.y_conv, weights=self.weights))
 
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
 
@@ -150,7 +150,8 @@ class cnnMNIST(object):
                                               usethesekeys=list(self.x_test.keys()), shortset=True)
                 for j, k, z in x_generator_test:
                     train_loss, prediction = self.sess.run([self.loss, self.prediction],feed_dict={self.x: j,
-                                                                       self.y_: k})
+                                                                       self.y_: k,
+                                                                       self.weights: z})
                     sum_loss += np.sum(train_loss)
                     hits += np.sum(prediction)
                     counter += 1
@@ -168,7 +169,8 @@ class cnnMNIST(object):
             # stop    
             self.sess.run([self.train_step], feed_dict={
                               self.x: x,
-                              self.y_: y})
+                              self.y_: y,
+                              self.weights: z})
             # self.shuffle()
 
     def eval(self):
