@@ -19,13 +19,13 @@ import os.path
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 500
+        self.epochs = 1000
         self.build_graph()
 
     def onehot_labels(self, labels):
-        out = np.zeros((labels.shape[0], 2))
+        out = np.zeros((labels.shape[0], 7))
         for i in range(labels.shape[0]):
-            out[i, :] = np.eye(2, dtype=int)[int(labels[i])]
+            out[i, :] = np.eye(7)[labels[i]]
         return out
 
     def onenothot_labels(self, labels):
@@ -38,48 +38,53 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        f = h5py.File('./vanilla_dataset.h5', 'r')
+        f = h5py.File('naive_dataset.h5', 'r')
+        g = f['training']
+        X = np.array(g['spectra'])
+        Y = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
 
-        X = f['train']
-        X_test = f['test']
+        g = f['testing']
+        X_test = np.array(g['spectra'])
+        Y_test = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
+
+        # img_prep = ImagePreprocessing()
+        # if data_norm:
+        #     img_prep.add_featurewise_zero_center()
+        #     img_prep.add_featurewise_stdnorm()
+        #
+        # img_aug = ImageAugmentation()
+        # if data_augmentation:
+        #     img_aug.add_random_flip_leftright()
+        #     img_aug.add_random_rotation(max_angle=30.)
+        #     img_aug.add_random_crop((32, 32), 6)
 
         self.x_train = X
+        self.y_train = Y
+
         self.x_test = X_test
-        # NOTE: always use the keylist to get data
-        self.data_keylist = list(X.keys())
+        self.y_test = Y_test
+
+        f.close()
 
         return
 
-    def batch(self, iterable, n=1, shuffle=True, small_test=True, usethesekeys = None, shortset=False):
+    def batch(self, iterable, n=1, shuffle=True):
         if shuffle:
             self.shuffle()
-        if usethesekeys is None:
-            keylist = self.data_keylist
-        else:
-            keylist = usethesekeys
-            if shortset:
-                keylist = usethesekeys[:1000]
-
-
         # l = len(iterable)
-        for i in range(len(keylist)):
-            x = np.array(iterable[keylist[i]]['measured_spectra'])
-            y = np.array(iterable[keylist[i]]['labels'])
-            mask = y >= 0.5
-            z = np.ones((y.shape[0],))
-            z[mask] = 100000.0
-            y = self.onehot_labels(y)
-            yield x, y, z
+        l = iterable.shape[0]
+        for ndx in range(0, l, n):
+            yield iterable[ndx:min(ndx + n, l), :]
 
     def validation_batcher(self):
-        f = h5py.File('./vanilla_dataset.h5', 'r')
-        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_validation.h5', 'r')
-        samplelist = list(f.keys())
-        # samplelist = samplelist[:10]
+        f = h5py.File('./naive_dataset.h5', 'r')
+        g = f['validation']
+        samplelist = list(g.keys())
 
         for i in range(len(samplelist)):
-            data = f[samplelist[i]]
+            data = g[samplelist[i]]
             yield data
+
 
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
@@ -105,11 +110,11 @@ class cnnMNIST(object):
         h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 64])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-        self.features = h_fc1
-
         # dropout regularization
         self.keep_prob = tf.placeholder(tf.float32)
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
+
+        self.features = h_fc1_drop
 
         # linear classifier
         W_fc2 = self.weight_variable([1024, 7])
@@ -120,7 +125,11 @@ class cnnMNIST(object):
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(cross_entropy)
 
     def shuffle(self):
-        np.random.shuffle(self.data_keylist)
+        rng_state = np.random.get_state()
+        np.random.set_state(rng_state)
+        np.random.shuffle(self.x_train)
+        np.random.set_state(rng_state)
+        np.random.shuffle(self.y_train)
         return
 
     def train(self):
@@ -129,27 +138,19 @@ class cnnMNIST(object):
         self.sess.run(init)
         self.eval() # creating evaluation
         for i in range(self.epochs):
-            x_generator = self.batch(self.x_train, shuffle=True)
-
-            if i % 100 == 0 and i != 0:
-                counter = 0
-                sum_acc = 0
-                sum_loss = 0
-                hits = 0
-                x_generator_test = self.batch(self.x_test,
-                                              usethesekeys=list(self.x_test.keys()), shortset=True)
-                for j, k, z in x_generator_test:
-                    train_loss, prediction = self.sess.run([self.loss, self.prediction],feed_dict={self.x: j,
-                                                                       self.y_: k,
-                                                                       self.weights: z})
-                    sum_loss += np.sum(train_loss)
-                    hits += np.sum(prediction)
-                    counter += 1
-                b = time.time()
-                print('step {}:\navg loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_loss / counter, hits, b-a))
-            x, y, z = next(x_generator)
-            self.sess.run([self.train_step], feed_dict={self.x: x,
-                                                        self.y_: y})
+            # batch = mnist.train.next_batch(50)
+            x_generator = self.batch(self.x_train, n=32)
+            y_generator = self.batch(self.y_train, n=32)
+            # print(batch[0].shape)
+            # print(batch[1].shape)
+            if i % 10 == 0 and i != 0:
+                train_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:1000, :],
+                    self.y_: self.y_test[:1000, :],
+                                                                   self.keep_prob: 1.0})
+                print('step %d, training accuracy %g' % (i, train_acc))
+            self.sess.run([self.train_step], feed_dict={self.x: next(x_generator),
+                                                        self.y_: next(y_generator),
+                                                        self.keep_prob: 0.5})
             # self.shuffle()
 
     def eval(self):
@@ -159,17 +160,17 @@ class cnnMNIST(object):
         correct_prediction = tf.equal(self.prediction, truth)
         self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-    # def test_eval(self):
-    #     self.eval()
-    #     x_generator = self.batch(self.x_test, n=100, shuffle=False)
-    #     y_generator = self.batch(self.y_test, n=100, shuffle=False)
-    #     test_acc = []
-    #     counter = 0
-    #     for data in x_generator:
-    #         test_acc += [self.sess.run(self.accuracy, feed_dict={
-    #         self.x: data, self.y_: next(y_generator), self.keep_prob: 1.0})]
-    #     total_test_acc = sum(test_acc) / float(len(test_acc))
-    #     print('test accuracy %g' % total_test_acc)
+    def test_eval(self):
+        self.eval()
+        x_generator = self.batch(self.x_test, n=100, shuffle=False)
+        y_generator = self.batch(self.y_test, n=100, shuffle=False)
+        test_acc = []
+        counter = 0
+        for data in x_generator:
+            test_acc += [self.sess.run(self.accuracy, feed_dict={
+            self.x: data, self.y_: next(y_generator), self.keep_prob: 1.0})]
+        total_test_acc = sum(test_acc) / float(len(test_acc))
+        print('test accuracy %g' % total_test_acc)
 
     def weight_variable(self, shape):
         initial = tf.truncated_normal(shape, stddev=0.1)
@@ -206,10 +207,6 @@ class cnnMNIST(object):
             predictions = np.vstack((predictions, temp_predictions))
             score = np.vstack((score, temp_score))
         return predictions, score
-
-    def get_features(self):
-
-        return
 
 
 # def plot_confusion_matrix(cm, classes,
@@ -255,7 +252,7 @@ def main():
     b = time.time()
     print('Built the data in {} s'.format(b-a))
 
-    # validation_data = cnn.validation_batcher()
+    validation_data = cnn.validation_batcher()
 
     a = time.time()
     cnn.train()
@@ -272,58 +269,52 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    np.save('features_predictions.npy', predictions_decode)
-    np.save('features_prediction_scores.npy', scores)
-    np.save('features_ground_truth.npy', labels_decode)
+    np.save('sourceid_predictions.npy', predictions_decode)
+    np.save('sourceid_ground_truth.npy', labels_decode)
 
-    # answers = open('approach1_answers.csv', 'w')
-    # answers.write('RunID,SourceID,SourceTime,Comment\n')
-    # counter = 0
-    f = h5py.File('cnnfeatures_dataset.h5')
-    train = f.create_group('train')
-    test = f.create_group('test')
-    validate = f.create_group('validate')
+    f = h5py.File('vanilla_dataset.h5', 'r')
+    g = h5py.File('cnnfeatures_dataset.h5', 'w')
 
-    tosave = list(cnn.x_train.keys())
+    train = g.create_group('training')
+    test = g.create_group('testing')
+    
+    ff = f['training']
+    samplelist = list(ff.keys())
 
-    for sample in tosave:
-        x = np.array(cnn.x_train[sample]['measured_spectra'])
-        y = np.array(cnn.x_train[sample]['labels'])
-        features = cnn.sess.run(
-            cnn.features,
+    for sample in samplelist:
+        x = np.array(ff[sample]['spectra'])
+        y = np.array(ff[sample]['label'])
+        features = cnn.sess.run(cnn.features,
             feed_dict = {cnn.x: x,
                          cnn.keep_prob: 1.0})
-        grp = train.create_group('{}'.format(sample))
-        grp.create_dataset('measured_spectra', data=features)
-        grp.create_dataset('labels', data=y)
+        gg = train.create_group(sample)
+        gg.create_dataset('features', data=features, compression='gzip')
+        gg.create_dataset('label', data=y, compression='gzip')
 
-    tosave = list(cnn.x_test.keys())
+    ff = f['testing']
+    samplelist = list(ff.keys())
 
-    for sample in tosave:
-        x = np.array(cnn.x_test[sample]['measured_spectra'])
-        y = np.array(cnn.x_test[sample]['labels'])
-        features = cnn.sess.run(
-            cnn.features,
+    for sample in samplelist:
+        x = np.array(ff[sample]['spectra'])
+        y = np.array(ff[sample]['label'])
+        features = cnn.sess.run(cnn.features,
             feed_dict = {cnn.x: x,
                          cnn.keep_prob: 1.0})
-        grp = test.create_group('{}'.format(sample))
-        grp.create_dataset('measured_spectra', data=features)
-        grp.create_dataset('labels', data=y)
+        gg = test.create_group(sample)
+        gg.create_dataset('features', data=features, compression='gzip')
+        gg.create_dataset('labels', data=y, compression='gzip')
+    
+    ff = f['validation']
+    samplelist = list(ff.keys())
 
-    validation_data = h5py.File('vanilla_dataset.h5', 'r')
-    tosave = list(validation_data.keys())
-
-    for sample in tosave:
-        x = np.array(validation_data[sample]['measured_spectra'])
-        # y = np.array(validation_dat[sample]['labels'])
-        features = cnn.sess.run(
-            cnn.features,
+    for sample in samplelist:
+        x = np.array(ff[sample]['spectra'])
+        features = cnn.sess.run(cnn.features,
             feed_dict = {cnn.x: x,
                          cnn.keep_prob: 1.0})
-        grp = validate.create_group('{}'.format(sample))
-        grp.create_dataset('measured_spectra', data=features)
-        # grp.create_dataset('labels', data=y)
-    f.close()
+        gg = validation.create_group(sample)
+        gg.create_dataset('spectra', data=features, compression='gzip')
+        
     return
 
 main()
