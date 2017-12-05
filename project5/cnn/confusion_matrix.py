@@ -31,15 +31,17 @@ def plot_confusion_matrix(cm, classes, normalize=False,
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
         plt.tight_layout()
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
+        # plt.ylabel('True label')   # swapped these two
+        # plt.xlabel('Predicted label')
+        plt.xlabel('True Label')
+        plt.ylabel('Predicted Label')
 
 def main():
     
     # prefix = 'sid'
     # prefix = 'det'
-    # prefix = 'sourceid'
-    prefix = 'cnnseqsiddet'
+    prefix = 'sourceid'
+    # prefix = 'cnnseqsiddet'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))
@@ -47,7 +49,8 @@ def main():
     # class_names = ['Background',
     #                'Anomaly']
 
-    class_names = ['HEU',
+    class_names = ['Background',
+                   'HEU',
                    'WGPu',
                    'I131',
                    'Co60',
