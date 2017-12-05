@@ -19,7 +19,7 @@ import os.path
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 500
+        self.epochs = 1000
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -271,7 +271,7 @@ def main():
     np.save('sourceid_prediction_scores.npy', scores)
     np.save('sourceid_ground_truth.npy', labels_decode)
 
-    answers = open('approach1_answers.csv', 'w')
+    answers = open('approach1b_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     # counter = 0
     for sample in validation_data:
