@@ -31,8 +31,8 @@ def plot_confusion_matrix(cm, classes, normalize=False,
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
         plt.tight_layout()
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
+        plt.ylabel('Predicted label')  # I've swapped these two
+        plt.xlabel('True label')  # I've swapped these two
 
 def main():
     
@@ -44,8 +44,10 @@ def main():
     # prefix = 'grudet2inverse'
     # prefix = 'grudetweighted200'
     # prefix = 'grudetnormal'
-    # prefix = 'grudetnormalsum'
+    # prefix = 'grudetnormalsum10k'
     # prefix = 'grudetweightedsum'
+    # prefix = 'grudetnormalsum100k'
+    prefix = 'grudetnormalsum25k'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))

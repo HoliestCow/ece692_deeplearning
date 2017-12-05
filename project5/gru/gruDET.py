@@ -19,8 +19,8 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-5
-        self.epochs = 1000
+        self.lr = 1e-3
+        self.epochs = 50000
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -117,11 +117,11 @@ class cnnMNIST(object):
         # NOTE: Normal gru
         # self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE Normal gru with summing instead of mean
-        # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE: Weighted gru
         # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=200.0))
         # NOTE: Weighted gru with summing instead of mean
-        self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=2.0))
+        # self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=5.0))
 
         # self.loss = tf.reduce_sum(tf.losses.sparse_softmax_cross_entropy(labels=self.y_), logits=self.y_conv, weights=self.weights))
 
@@ -149,14 +149,15 @@ class cnnMNIST(object):
                 x_generator_test = self.batch(self.x_test,
                                               usethesekeys=list(self.x_test.keys()), shortset=True)
                 for j, k, z in x_generator_test:
-                    train_loss, prediction = self.sess.run([self.loss, self.prediction],feed_dict={self.x: j,
+                    accuracy, train_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction],feed_dict={self.x: j,
                                                                        self.y_: k,
                                                                        self.weights: z})
                     sum_loss += np.sum(train_loss)
                     hits += np.sum(prediction)
+                    sum_acc += np.sum(accuracy)
                     counter += 1
                 b = time.time()
-                print('step {}:\navg loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_loss / counter, hits, b-a))
+                print('step {}:\navg acc {}\navg loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i,sum_acc / counter, sum_loss / counter, hits, b-a))
             x, y, z = next(x_generator)
             # stop
             # for j in range(x.shape[1]):
@@ -288,8 +289,10 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(y)
     #
-    np.save('grudetnormalsum_predictions.npy', predictions_decode)
-    np.save('grudetnormalsum_ground_truth.npy', labels_decode)
+    np.save('grudetnormalsum50k_predictions.npy', predictions_decode)
+    np.save('grudetnormalsum50k_ground_truth.npy', labels_decode)
+
+    stop
 
     # Validation time
     validation_data = cnn.validation_batcher()
@@ -316,7 +319,7 @@ def main():
         else:
             answers[runname] = {'time': 0,
                                 'spectra': 0}
-    save_obj(answers, 'normalgru_hits')
+    save_obj(answers, '50knormalgru_hits')
 
     return
 

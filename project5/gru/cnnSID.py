@@ -273,8 +273,8 @@ def main():
     np.save('sid_ground_truth.npy', labels_decode)
     
     # counter = 0
-    hits = load_obj('hits')
-    answers = open('approach2_answers.csv', 'w')
+    hits = load_obj('normalgru_hits')
+    answers = open('approach3_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
 
 
