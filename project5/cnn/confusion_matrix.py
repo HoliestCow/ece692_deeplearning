@@ -31,10 +31,8 @@ def plot_confusion_matrix(cm, classes, normalize=False,
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
         plt.tight_layout()
-        # plt.ylabel('True label')   # swapped these two
-        # plt.xlabel('Predicted label')
-        plt.xlabel('True Label')
-        plt.ylabel('Predicted Label')
+        plt.ylabel('True label') 
+        plt.xlabel('Predicted label')
 
 def main():
     

@@ -55,15 +55,16 @@ def main():
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))
 
-    # class_names = ['Background',
-    #                'Anomaly']
+    class_names = ['Background',
+                    'Anomaly']
 
-    class_names = ['HEU',
-                   'WGPu',
-                   'I131',
-                   'Co60',
-                   'Tc99',
-                   'HEUandTc99']
+    # class_names = ['Background',
+    #                'HEU',
+    #                'WGPu',
+    #                'I131',
+    #                'Co60',
+    #                'Tc99',
+    #                'HEUandTc99']
 
     cnf_matrix = confusion_matrix(predictions_decode, labels_decode)
     fig = plt.figure()
