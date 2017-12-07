@@ -47,20 +47,23 @@ def main():
     # prefix = 'grudetnormalsum10k'
     # prefix = 'grudetweightedsum'
     # prefix = 'grudetnormalsum100k'
-    prefix = 'grudetnormalsum25k'
+    # prefix = 'grudetnormalsum25k'
+    # prefix = 'grusidcnn'
+    # prefix = 'grudetcnn'
+    prefix = 'grudetcnn_100000'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))
 
-    class_names = ['Background',
-                   'Anomaly']
+    # class_names = ['Background',
+    #                'Anomaly']
 
-    # class_names = ['HEU',
-    #                'WGPu',
-    #                'I131',
-    #                'Co60',
-    #                'Tc99',
-    #                'HEUandTc99']
+    class_names = ['HEU',
+                   'WGPu',
+                   'I131',
+                   'Co60',
+                   'Tc99',
+                   'HEUandTc99']
 
     cnf_matrix = confusion_matrix(predictions_decode, labels_decode)
     fig = plt.figure()

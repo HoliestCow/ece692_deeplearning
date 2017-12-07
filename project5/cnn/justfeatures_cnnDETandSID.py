@@ -277,6 +277,7 @@ def main():
 
     train = g.create_group('training')
     test = g.create_group('testing')
+    validate = g.create_group('validation')
     
     ff = f['training']
     samplelist = list(ff.keys())
@@ -312,7 +313,7 @@ def main():
         features = cnn.sess.run(cnn.features,
             feed_dict = {cnn.x: x,
                          cnn.keep_prob: 1.0})
-        gg = validation.create_group(sample)
+        gg = validate.create_group(sample)
         gg.create_dataset('spectra', data=features, compression='gzip')
         
     return
