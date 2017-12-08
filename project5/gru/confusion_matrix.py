@@ -36,21 +36,7 @@ def plot_confusion_matrix(cm, classes, normalize=False,
 
 def main():
     
-    # prefix = 'sid'
-    # prefix = 'det'
-    # prefix = 'sourceid'
-    # prefix = 'grudet'
-    # prefix = 'grudet2'
-    # prefix = 'grudet2inverse'
-    # prefix = 'grudetweighted200'
-    # prefix = 'grudetnormal'
-    # prefix = 'grudetnormalsum10k'
-    # prefix = 'grudetweightedsum'
-    # prefix = 'grudetnormalsum100k'
-    # prefix = 'grudetnormalsum25k'
-    # prefix = 'grusidcnn'
-    # prefix = 'grudetcnn'
-    prefix = 'grudetcnn_100000'
+    prefix = 'grudet_ep1000_lr0.001'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))

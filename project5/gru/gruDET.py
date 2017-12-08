@@ -20,7 +20,8 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 50000
+        self.epochs = 1000
+        self.runname = 'grudet_ep{}_lr{}'.format(self.epochs, self.lr)
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -67,6 +68,7 @@ class cnnMNIST(object):
             x = np.array(iterable[keylist[i]]['measured_spectra'])
             y = np.array(iterable[keylist[i]]['labels'])
             mask = y >= 0.5
+            y[mask] = 1
             z = np.ones((y.shape[0],))
             z[mask] = 100000.0
             y = self.onehot_labels(y)
@@ -88,7 +90,7 @@ class cnnMNIST(object):
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
         self.weights = tf.placeholder(tf.float32, shape=[None])
 
-        num_units = 128
+        num_units = 512
         num_layers = 2
         # dropout = tf.placeholder(tf.float32)
 
@@ -105,13 +107,13 @@ class cnnMNIST(object):
         last = tf.gather(output, int(output.get_shape()[0]) - 1)
 
         out_size = self.y_.get_shape()[1].value
-        self.y_conv = tf.contrib.layers.fully_connected(
+        y_conv = tf.contrib.layers.fully_connected(
             last, out_size) #, activation_fn=None)
         # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
-        # ratio = 1.0 / 1000000.0
+        ratio = 1.0 / 100.0
         # ratio = 1.0 / ratio
-        # class_weight = tf.constant([ratio, 1.0 - ratio])
-        # weighted_logits = tf.multiply(self.y_conv, class_weight) # shape [batch_size, 2]
+        class_weight = tf.constant([ratio, 1.0 - ratio])
+        self.y_conv = tf.multiply(y_conv, class_weight) # shape [batch_size, 2]
         # self.loss = tf.nn.softmax_cross_entropy_with_logits(
                  # logits=weighted_logits, labels=self.y_, name="xent_raw")
         # NOTE: Normal gru
@@ -289,8 +291,8 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(y)
     #
-    np.save('grudetnormalsum50k_predictions.npy', predictions_decode)
-    np.save('grudetnormalsum50k_ground_truth.npy', labels_decode)
+    np.save('{}_predictions.npy'.format(cnn.runname), predictions_decode)
+    np.save('{}_ground_truth.npy'.format(cnn.runname), labels_decode)
 
     stop
 
