@@ -18,7 +18,7 @@ import cPickle as pickle
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
-class cnnMNIST(object):
+class cnnSID(object):
     def __init__(self):
         self.lr = 1e-3
         self.epochs = 1000
@@ -77,7 +77,7 @@ class cnnMNIST(object):
         l = iterable.shape[0]
         for ndx in range(0, l, n):
             yield iterable[ndx:min(ndx + n, l), :]
-    
+
     def validation_batcher(self):
         f = h5py.File('./naive_dataset.h5', 'r')
         g = f['validation']
@@ -220,23 +220,23 @@ class cnnMNIST(object):
 #         print("Normalized confusion matrix")
 #     else:
 #         print('Confusion matrix, without normalization')
-# 
+#
 #     print(cm)
-# 
+#
 #     plt.imshow(cm, interpolation='nearest', cmap=cmap)
 #     plt.title(title)
 #     plt.colorbar()
 #     tick_marks = np.arange(len(classes))
 #     plt.xticks(tick_marks, classes, rotation=45)
 #     plt.yticks(tick_marks, classes)
-# 
+#
 #     fmt = '.2f' if normalize else 'd'
 #     thresh = cm.max() / 2.
 #     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
 #         plt.text(j, i, format(cm[i, j], fmt),
 #                  horizontalalignment="center",
 #                  color="white" if cm[i, j] > thresh else "black")
-# 
+#
 #     plt.tight_layout()
 #     plt.ylabel('True label')
 #     plt.xlabel('Predicted label')
@@ -250,7 +250,7 @@ def load_obj(name):
         return pickle.load(f)
 
 def main():
-    cnn = cnnMNIST()
+    cnn = cnnSID()
     a = time.time()
     print('Retrieving data')
     cnn.get_data()
@@ -270,7 +270,7 @@ def main():
 
     np.save('sid_predictions.npy', predictions_decode)
     np.save('sid_ground_truth.npy', labels_decode)
-    
+
     # counter = 0
     hits = load_obj('hits')
     answers = open('approach1a_answers.csv', 'w')

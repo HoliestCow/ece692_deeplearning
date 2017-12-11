@@ -81,7 +81,7 @@ class cnnMNIST(object):
     def validation_batcher(self):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # NOTE: for using cnnfeatures sequential dataset
-        f = h5py.File('./cnnfeatures_sequential_dataset.h5', 'r')        
+        f = h5py.File('./cnnfeatures_sequential_dataset.h5', 'r')
         samplelist = list(f.keys())
         # samplelist = samplelist[:10]
 
@@ -101,7 +101,7 @@ class cnnMNIST(object):
         lstm_in = tf.transpose(self.x, [1,0,2])
         lstm_in = tf.reshape(lstm_in, [-1, 1024])
         lstm_in = tf.layers.dense(lstm_in, num_units,  activation=None)
-        
+
         lstm_in = tf.split(lstm_in, 15, 0)
 
         lstm = tf.contrib.rnn.GRUCell(num_units)
@@ -115,7 +115,7 @@ class cnnMNIST(object):
         self.y_conv = tf.layers.dense(output[-1], 2, name='logits')
         # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(
         #     logits=self.y_conv, labels=self.y_))
-        
+
         # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
         # ratio = 1.0 / 1000000.0
         # ratio = 1.0 / ratio
@@ -311,19 +311,22 @@ def main():
     stop
     # Validation time
     # I have to rewrite this. Pickle is exceeding the swap space.
-    # I could probably write the deck directly from here now that I think about it. 
+    # I could probably write the deck directly from here now that I think about it.
     validation_data = cnn.validation_batcher()
-    answers = OrderedDict()
     for sample in validation_data:
         x = np.array(sample)
         # x_features = x / x.sum(axis=-1, keepdims=True)
         predictions = cnn.sess.run(
             cnn.prediction,
-            feed_dict = {cnn.x: x_features})
+            feed_dict = {cnn.x: x})
         time_index = np.arange(predictions.shape[0])
         mask = predictions >= 0.5
 
         runname = sample.name.split('/')[-1]
+
+        # Current spectra needs to be vanilla
+        # current time needs to be zero
+
         if np.sum(mask) != 0:
             counts = np.sum(np.squeeze(x[:, -1, :]), axis=-1)
             t = time_index[mask]
@@ -331,13 +334,26 @@ def main():
             index_guess = np.argmax(counts[t])
 
             current_spectra = np.squeeze(x[t[index_guess], -1, :])
-            current_time = t[index_guess] + 15
-            answers[runname] = {'time': current_time,
-                                'spectra': current_spectra}
-        else:
-            answers[runname] = {'time': 0,
-                                'spectra': 0}
-    save_obj(answers, '{}_hits'.format(runname))
+            current_time = t[index_guess] + 15  # Not sure if its + 15?
+    # answers = open('approach3_answers.csv', 'w')
+    # answers.write('RunID,SourceID,SourceTime,Comment\n')
+    #
+    # for sample in hits:
+    #     key = sample
+    #     data = hits[key]
+    #     if data['time'] == 0:
+    #         answers.write('{},{},{},\n'.format(key, 0, 0))
+    #         continue
+    #     x = np.array(data['spectra'])
+    #     x = x.reshape((1, len(x)))
+    #     predictions = cnn.sess.run(
+    #         cnn.prediction,
+    #         feed_dict = {cnn.x: x,
+    #                      cnn.keep_prob: 1.0})
+    #     t = np.array(data['time'])
+    #     answers.write('{},{},{},\n'.format(
+    #         key, predictions[0] + 1, t))
+    # answers.close()
 
     return
 
