@@ -19,7 +19,8 @@ import os.path
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 1000
+        self.epochs = 500
+        self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -47,17 +48,6 @@ class cnnMNIST(object):
         X_test = np.array(g['spectra'])
         Y_test = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
 
-        # img_prep = ImagePreprocessing()
-        # if data_norm:
-        #     img_prep.add_featurewise_zero_center()
-        #     img_prep.add_featurewise_stdnorm()
-        #
-        # img_aug = ImageAugmentation()
-        # if data_augmentation:
-        #     img_aug.add_random_flip_leftright()
-        #     img_aug.add_random_rotation(max_angle=30.)
-        #     img_aug.add_random_crop((32, 32), 6)
-
         self.x_train = X
         self.y_train = Y
 
@@ -74,7 +64,11 @@ class cnnMNIST(object):
         # l = len(iterable)
         l = iterable.shape[0]
         for ndx in range(0, l, n):
-            yield iterable[ndx:min(ndx + n, l), :]
+            data = iterable[ndx:min(ndx + n, l), :]
+            # normalization = np.linalg.norm(data, 1, axis=1)
+            # for j in range(data.shape[0]):
+            #     data[j, :] = np.divide(data[j, :], normalization[j])
+            yield data
 
     def validation_batcher(self):
         f = h5py.File('./naive_dataset.h5', 'r')
@@ -87,15 +81,21 @@ class cnnMNIST(object):
 
 
     def build_graph(self):
+
+        feature_map1 = 32
+        feature_map2 = 64
+
+        final_hidden_nodes = 1024
+
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
 
         x_image = self.hack_1dreshape(self.x)
         # define conv-layer variables
-        W_conv1 = self.weight_variable([1, 5, 1, 32])    # first conv-layer has 32 kernels, size=5
-        b_conv1 = self.bias_variable([32])
-        W_conv2 = self.weight_variable([1, 5, 32, 64])
-        b_conv2 = self.bias_variable([64])
+        W_conv1 = self.weight_variable([1, 3, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
+        b_conv1 = self.bias_variable([feature_map1])
+        W_conv2 = self.weight_variable([1, 3, feature_map1, feature_map2])
+        b_conv2 = self.bias_variable([feature_map2])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
@@ -103,24 +103,44 @@ class cnnMNIST(object):
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
         h_pool2 = self.max_pool_2x2(h_conv2)
 
-        # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * 64, 1024])
-        b_fc1 = self.bias_variable([1024])
+        # W_conv3 = self.weight_variable([1, 3, feature_map2, feature_map3])
+        # b_conv3 = self.bias_variable([feature_map3])
+        # W_conv4 = self.weight_variable([1, 3, feature_map3, feature_map4])
+        # b_conv4 = self.bias_variable([feature_map4])
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 64])
+        # h_conv3 = tf.nn.relu(self.conv2d(h_pool2, W_conv3) + b_conv3)
+        # h_pool3 = self.max_pool_2x2(h_conv3)
+        # h_conv4 = tf.nn.relu(self.conv2d(h_pool3, W_conv4) + b_conv4)
+        # h_pool4 = self.max_pool_2x2(h_conv4)
+
+        # densely/fully connected layer
+        W_fc1 = self.weight_variable([256 * feature_map2, final_hidden_nodes])
+        b_fc1 = self.bias_variable([final_hidden_nodes])
+
+        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * feature_map2])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+
+        # W_fc1 = self.weight_variable([64 * feature_map4, final_hidden_nodes])
+        # b_fc1 = self.bias_variable([final_hidden_nodes])
+
+        # h_pool4_flat = tf.reshape(h_pool4, [-1, 64 * feature_map4])
+        # h_fc1 = tf.nn.relu(tf.matmul(h_pool4_flat, W_fc1) + b_fc1)
 
         # dropout regularization
         self.keep_prob = tf.placeholder(tf.float32)
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
-        self.features = h_fc1_drop
-
         # linear classifier
-        W_fc2 = self.weight_variable([1024, 7])
+        W_fc2 = self.weight_variable([final_hidden_nodes, 7])
         b_fc2 = self.bias_variable([7])
 
-        self.y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+        self.features = h_fc1_drop
+
+        y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+
+        # Now I have to weight to logits
+        class_weights = tf.constant([0.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        self.y_conv = tf.multiply(y_conv, class_weights)
         cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(cross_entropy)
 
@@ -139,18 +159,23 @@ class cnnMNIST(object):
         self.eval() # creating evaluation
         for i in range(self.epochs):
             # batch = mnist.train.next_batch(50)
-            x_generator = self.batch(self.x_train, n=32)
-            y_generator = self.batch(self.y_train, n=32)
+            x_generator = self.batch(self.x_train, n=128)
+            y_generator = self.batch(self.y_train, n=128)
             # print(batch[0].shape)
             # print(batch[1].shape)
             if i % 10 == 0 and i != 0:
-                train_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:1000, :],
+                test_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:1000, :],
                     self.y_: self.y_test[:1000, :],
                                                                    self.keep_prob: 1.0})
-                print('step %d, training accuracy %g' % (i, train_acc))
-            self.sess.run([self.train_step], feed_dict={self.x: next(x_generator),
-                                                        self.y_: next(y_generator),
-                                                        self.keep_prob: 0.5})
+                train_acc = self.sess.run(self.accuracy, feed_dict={self.x: current_x,
+                                                                   self.y_: current_y,
+                                                                   self.keep_prob: 1.0})
+                print('step %d, training accuracy %g, testing accuracy %g' % (i, train_acc, test_acc))
+            current_x = next(x_generator)
+            current_y = next(y_generator)
+            self.sess.run([self.train_step], feed_dict={self.x: current_x,
+                                                        self.y_: current_y,
+                                                        self.keep_prob: 0.50})
             # self.shuffle()
 
     def eval(self):
@@ -197,16 +222,14 @@ class cnnMNIST(object):
         x_batcher = self.batch(self.x_test, n=1000, shuffle=False)
         # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
         predictions = np.zeros((0, 1))
-        score = np.zeros((0, 7))
         for data in x_batcher:
-            temp_predictions, temp_score = self.sess.run(
-            [self.prediction, self.y_conv],
+            temp_predictions = self.sess.run(
+            self.prediction,
             feed_dict={self.x: data,
                        self.keep_prob: 1.0})
             temp_predictions = temp_predictions.reshape((temp_predictions.shape[0], 1))
             predictions = np.vstack((predictions, temp_predictions))
-            score = np.vstack((score, temp_score))
-        return predictions, score
+        return predictions
 
 
 # def plot_confusion_matrix(cm, classes,
@@ -260,17 +283,13 @@ def main():
     print('Training time: {} s'.format(b-a))
     cnn.test_eval()
 
-    predictions, score = cnn.get_label_predictions()
-
-    scores = np.zeros((score.shape[0],))
-    for i in range(len(scores)):
-        scores[i] = score[i, int(predictions[i])]
+    predictions = cnn.get_label_predictions()
 
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    np.save('sourceid_predictions.npy', predictions_decode)
-    np.save('sourceid_ground_truth.npy', labels_decode)
+    np.save('{}_predictions.npy'.format(cnn.runname), predictions_decode)
+    np.save('{}_ground_truth.npy'.format(cnn.runname), labels_decode)
 
     f = h5py.File('vanilla_dataset.h5', 'r')
     g = h5py.File('cnnfeatures_dataset.h5', 'w')
@@ -278,7 +297,7 @@ def main():
     train = g.create_group('training')
     test = g.create_group('testing')
     validate = g.create_group('validation')
-    
+
     ff = f['training']
     samplelist = list(ff.keys())
 
@@ -304,7 +323,7 @@ def main():
         gg = test.create_group(sample)
         gg.create_dataset('features', data=features, compression='gzip')
         gg.create_dataset('labels', data=y, compression='gzip')
-    
+
     ff = f['validation']
     samplelist = list(ff.keys())
 
@@ -315,7 +334,7 @@ def main():
                          cnn.keep_prob: 1.0})
         gg = validate.create_group(sample)
         gg.create_dataset('spectra', data=features, compression='gzip')
-        
+
     return
 
 main()

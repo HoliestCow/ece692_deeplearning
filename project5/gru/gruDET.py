@@ -20,7 +20,7 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 1000
+        self.epochs = 50000
         self.runname = 'grudet_ep{}_lr{}'.format(self.epochs, self.lr)
         self.build_graph()
 
