@@ -80,7 +80,7 @@ class cnnMNIST(object):
     def validation_batcher(self):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # NOTE: for using cnnfeatures sequential dataset
-        f = h5py.File('./cnnfeatures_sequential_dataset.h5', 'r')        
+        f = h5py.File('./cnnfeatures_sequential_dataset.h5', 'r')
         samplelist = list(f.keys())
         # samplelist = samplelist[:10]
 
@@ -99,8 +99,8 @@ class cnnMNIST(object):
 
         lstm_in = tf.transpose(self.x, [1,0,2])
         lstm_in = tf.reshape(lstm_in, [-1, 1024])
-        lstm_in = tf.layers.dense(lstm_in, num_units,  activation=None)
-        
+        lstm_in = tf.layers.dense(lstm_in, num_units, activation=None)
+
         lstm_in = tf.split(lstm_in, 15, 0)
 
         lstm = tf.contrib.rnn.GRUCell(num_units)
@@ -114,7 +114,7 @@ class cnnMNIST(object):
         self.y_conv = tf.layers.dense(output[-1], 7, name='logits')
         # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(
         #     logits=self.y_conv, labels=self.y_))
-        
+
         # self.y_conv = tf.nn.softmax(logit) # probably a mistake here
         # ratio = 1.0 / 1000000.0
         # ratio = 1.0 / ratio
@@ -159,7 +159,7 @@ class cnnMNIST(object):
                                               usethesekeys=list(self.x_test.keys()), shortset=True)
                 for j, k, z in x_generator_test:
                     # NOTE: quick and dirty preprocessing once again
-                    feedme = j / j.sum(axis=-1, keepdims=True)
+                    # feedme = j / j.sum(axis=-1, keepdims=True)
                     accuracy, train_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction],feed_dict={self.x: feedme,
                                                                        self.y_: k,
                                                                        self.weights: z})
@@ -172,7 +172,7 @@ class cnnMNIST(object):
                 print('step {}:\navg acc {}\navg loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_acc / meh, sum_loss / counter, hits, b-a))
             x, y, z = next(x_generator)
             # NOTE: QUick and dirty preprocessing. normalize to counts
-            x = x / x.sum(axis=-1, keepdims=True)
+            # x = x / x.sum(axis=-1, keepdims=True)
             # stop
             # for j in range(x.shape[1]):
             #     spectra = x[7, j, :]
@@ -235,7 +235,8 @@ class cnnMNIST(object):
         predictions = []
         correct_predictions = np.zeros((0, 7))
         for x, y, z in x_batcher:
-            x_features = x / x.sum(axis=-1, keepdims=True)
+            # x_features = x / x.sum(axis=-1, keepdims=True)
+            x_features = x
             temp_predictions = self.sess.run(
             self.prediction,
             feed_dict={self.x: x_features})
