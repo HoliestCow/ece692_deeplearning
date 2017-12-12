@@ -21,7 +21,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-5
         self.epochs = 10000
-        self.runname = 'grudetcnnalt2_{}'.format(self.epochs)
+        self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -42,7 +42,7 @@ class cnnMNIST(object):
 
         # f = h5py.File('./sequential_dataset_balanced.h5', 'r')
         # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/cnnfeatures_sequential_dataset.h5', 'r')
-        f = h5py.File('./cnnfeatures_sequential_dataset.h5', 'r')
+        f = h5py.File('./sequential_dataset_balanced.h5', 'r')
 
         X = f['train']
         X_test = f['test']
@@ -83,7 +83,7 @@ class cnnMNIST(object):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # NOTE: for using cnnfeatures sequential dataset
         # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/cnnfeatures_sequential_dataset.h5', 'r')
-        f = h5py.File('cnnfeatures_sequential_dataset.h5', 'r')
+        f = h5py.File('sequential_dataset_balanced.h5', 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
@@ -94,7 +94,7 @@ class cnnMNIST(object):
 
 
     def build_graph(self):
-        self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
+        self.x = tf.placeholder(tf.float32, shape=[15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
         self.weights = tf.placeholder(tf.float32, shape=[None])
 

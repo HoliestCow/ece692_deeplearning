@@ -31,28 +31,31 @@ def plot_confusion_matrix(cm, classes, normalize=False,
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
         plt.tight_layout()
-        plt.ylabel('Predicted label')  # I've swapped these two
-        plt.xlabel('True label')  # I've swapped these two
+        plt.ylabel('True label')  # I've swapped these two
+        plt.xlabel('Predicted label')  # I've swapped these two
 
 def main():
     
     # prefix = 'grudet_ep1000_lr0.001'
-    prefix = 'grudetnormalsum100k'
+    # prefix = 'grudetnormalsum100k'
     # prefix = 'grudet_ep50000_lr0.001'
+    prefix = 'grudetcnnalt2_10000'
+    # prefix = 'grudetcnnalt2_100000'
+    # prefix = 'grudetcnnalt2_1000'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))
 
-    class_names = ['Background',
-                    'Anomaly']
-
     # class_names = ['Background',
-    #                'HEU',
-    #                'WGPu',
-    #                'I131',
-    #                'Co60',
-    #                'Tc99',
-    #                'HEUandTc99']
+    #                'Anomaly']
+
+    class_names = ['Background',
+                   'HEU',
+                   'WGPu',
+                   'I131',
+                   'Co60',
+                   'Tc99',
+                    'HEUandTc99']
 
     cnf_matrix = confusion_matrix(predictions_decode, labels_decode)
     fig = plt.figure()
