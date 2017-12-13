@@ -20,8 +20,8 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-5
-        self.epochs = 10000
-        self.runname = 'grudetcnnalt2_{}'.format(self.epochs)
+        self.epochs = 100000
+        self.runname = 'grusidcnnalt2_{}'.format(self.epochs)
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -75,7 +75,7 @@ class cnnMNIST(object):
             mask = y >= 0.5
             # y[mask] = 1
             z = np.ones((y.shape[0],))
-            z[mask] = 5.0
+            # z[mask] = 5.0
             y = self.onehot_labels(y)
             yield x, y, z
 
@@ -142,7 +142,25 @@ class cnnMNIST(object):
         # NOTE: Weighted gru with summing instead of mean
         # self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=weighted_logits, pos_weight=5.0))
         loss_per_example = tf.nn.softmax_cross_entropy_with_logits(logits=self.y_conv, labels=self.y_)
-        self.loss = tf.reduce_sum(tf.multiply(self.weights, loss_per_example))
+        self.loss = tf.reduce_sum(loss_per_example)
+        # modified_loss_per_example = tf.Variable(loss_per_example)
+        ###### False Negatives AKA misses
+        # background predictions
+        # mask1 = tf.equal(self.y_conv, tf.zeros_like(self.y_conv))
+        # not actually background ground truth
+        # mask2 = tf.not_equal(self.y_, tf.zeros_like(self.y_))
+        # combine mask12
+        # mask12 = tf.cast(tf.equal(mask1, mask2), tf.int32)
+        ###### False Positives
+        # alarms
+        # mask3 = tf.not_equal(self.y_conv, tf.zeros_like(self.y_conv))
+        # not actually a source
+        # mask4 = tf.not_equal(self.y_, tf.zeros_like(self.y_))
+        #  combine
+        # mask34 = tf.cast(tf.equal(mask3, mask4), tf.int32)
+
+        # weight manipulations
+        # self.loss = tf.reduce_sum(tf.multiply(weights, loss_per_example))
 
         # self.loss = tf.reduce_sum(tf.losses.sparse_softmax_cross_entropy(labels=self.y_), logits=self.y_conv, weights=self.weights))
 
@@ -353,6 +371,9 @@ def main():
             t = time_index[mask]
             t = [int(i) for i in t]
             index_guess = np.argmax(score_list[t])
+            print(score_list)
+            print(predictions[mask])
+            print(index_guess)
 
             # current_spectra = np.squeeze(x[t[index_guess], -1, :])
             current_time = t[index_guess] + 15  # Not sure if its + 15?
