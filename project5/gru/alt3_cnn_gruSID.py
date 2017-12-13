@@ -20,7 +20,7 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-5
-        self.epochs = 10000
+        self.epochs = 100
         self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
 
@@ -41,8 +41,8 @@ class cnnMNIST(object):
         # data_augmentation = False
 
         # f = h5py.File('./sequential_dataset_balanced.h5', 'r')
-        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/cnnfeatures_sequential_dataset.h5', 'r')
-        f = h5py.File('./sequential_dataset_balanced.h5', 'r')
+        f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+        # f = h5py.File('./sequential_dataset_balanced.h5', 'r')
 
         X = f['train']
         X_test = f['test']
@@ -55,6 +55,7 @@ class cnnMNIST(object):
         return
 
     def batch(self, iterable, n=1, shuffle=True, small_test=True, usethesekeys = None, shortset=False):
+        print('reloaded')
         if shuffle:
             self.shuffle()
         if usethesekeys is None:
@@ -67,50 +68,95 @@ class cnnMNIST(object):
 
         # l = len(iterable)
         for i in range(len(keylist)):
-            # x = np.array(iterable[keylist[i]]['measured_spectra'])
-            # y = np.array(iterable[keylist[i]]['labels'])
-            # NOTE: For using cnnfeatures sequential dataset
-            x = np.array(iterable[keylist[i]]['features'])
+            x = np.array(iterable[keylist[i]]['measured_spectra'])
             y = np.array(iterable[keylist[i]]['labels'])
+            # NOTE: For using cnnfeatures sequential dataset
+            # x = np.array(iterable[keylist[i]]['features'])
+            # y = np.array(iterable[keylist[i]]['labels'])
             mask = y >= 0.5
             # y[mask] = 1
             z = np.ones((y.shape[0],))
             z[mask] = 5.0
             y = self.onehot_labels(y)
-            yield x, y, z
+            self.current_batch_length = x.shape[0]
+
+            for j in range(self.current_batch_length):
+                stuff = y[j,:]
+                stuff = stuff.reshape((1, 7))
+                yield x[j, :], stuff, z[j]
+            # yield x, y, z
 
     def validation_batcher(self):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # NOTE: for using cnnfeatures sequential dataset
-        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/cnnfeatures_sequential_dataset.h5', 'r')
-        f = h5py.File('sequential_dataset_balanced.h5', 'r')
+        f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+        # f = h5py.File('sequential_dataset_balanced.h5', 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
 
         for i in range(len(samplelist)):
-            data = g[samplelist[i]]
+            data = np.array(g[samplelist[i]]['measured_spectra'])
+            # data = np.array(g[samplelist[i]]['features'])
             yield data
 
 
     def build_graph(self):
+        # NOTE: CNN
+        # self.x = tf.placeholder(tf.float32, shape=[None, 1024])
+        # self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
         self.x = tf.placeholder(tf.float32, shape=[15, 1024])
-        self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
-        self.weights = tf.placeholder(tf.float32, shape=[None])
+        self.y_ = tf.placeholder(tf.float32, shape=[1, 7])
+        # self.weights = tf.placeholder(tf.float32, shape=[None])
 
-        num_units = 128
+        feature_map1 = 32
+        feature_map2 = 64
+
+        final_hidden_nodes = 128
+
+        num_units = 32
         num_layers = 2
 
-        lstm_in = tf.transpose(self.x, [1,0,2])
-        lstm_in = tf.reshape(lstm_in, [-1, 1024])
-        lstm_in = tf.layers.dense(lstm_in, num_units,  activation=None)
+        x_image = self.hack_1dreshape(self.x)
+        # define conv-layer variables
+        W_conv1 = self.weight_variable([1, 3, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
+        b_conv1 = self.bias_variable([feature_map1])
+        W_conv2 = self.weight_variable([1, 3, feature_map1, feature_map2])
+        b_conv2 = self.bias_variable([feature_map2])
+
+        # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
+        h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
+        h_pool1 = self.max_pool_2x2(h_conv1)
+        h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
+        h_pool2 = self.max_pool_2x2(h_conv2)
+
+        # densely/fully connected layer
+        W_fc1 = self.weight_variable([256 * feature_map2, final_hidden_nodes])
+        b_fc1 = self.bias_variable([final_hidden_nodes])
+
+        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * feature_map2])
+        h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+
+        # the features are now the h_fc1
+        h_fc1 = tf.expand_dims(h_fc1, 0)
+
+        # dropout regularization
+        # self.keep_prob = tf.placeholder(tf.float32)
+        # h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
+
+        # linear classifier
+        # W_fc2 = self.weight_variable([final_hidden_nodes, 7])
+
+        lstm_in = tf.transpose(h_fc1, [1, 0, 2])
+        lstm_in = tf.reshape(lstm_in, [-1, final_hidden_nodes])
+        lstm_in = tf.layers.dense(lstm_in, num_units, activation=None)
 
         lstm_in = tf.split(lstm_in, 15, 0)
 
         lstm = tf.contrib.rnn.GRUCell(num_units)
         cell = tf.contrib.rnn.MultiRNNCell([lstm] * num_layers)
 
-        batch_size = tf.shape(self.x)[0]
+        batch_size = tf.shape(h_fc1)[0]
         initial_state = cell.zero_state(batch_size, tf.float32)
 
         output, state = tf.contrib.rnn.static_rnn(cell, lstm_in, dtype=tf.float32, initial_state=initial_state)
@@ -142,7 +188,8 @@ class cnnMNIST(object):
         # NOTE: Weighted gru with summing instead of mean
         # self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=weighted_logits, pos_weight=5.0))
         loss_per_example = tf.nn.softmax_cross_entropy_with_logits(logits=self.y_conv, labels=self.y_)
-        self.loss = tf.reduce_sum(tf.multiply(self.weights, loss_per_example))
+        # self.loss = tf.reduce_sum(tf.multiply(self.weights, loss_per_example))
+        self.loss = tf.reduce_sum(loss_per_example)
 
         # self.loss = tf.reduce_sum(tf.losses.sparse_softmax_cross_entropy(labels=self.y_), logits=self.y_conv, weights=self.weights))
 
@@ -156,13 +203,11 @@ class cnnMNIST(object):
         self.sess = tf.Session()
         init = tf.global_variables_initializer()
         self.sess.run(init)
-        self.eval() # creating evaluation
+        self.eval()  # creating evaluation
         a = time.time()
         for i in range(self.epochs):
             # batch = mnist.train.next_batch(50)
-            x_generator = self.batch(self.x_train, shuffle=True)
-
-            if i % 100 == 0 and i != 0:
+            if i % 10 == 0 and i != 0:
                 counter = 0
                 sum_acc = 0
                 sum_loss = 0
@@ -174,10 +219,9 @@ class cnnMNIST(object):
                     # NOTE: quick and dirty preprocessing once again
                     # feedme = j / j.sum(axis=-1, keepdims=True)
                     feedme = j
-                    
-                    accuracy, train_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction],feed_dict={self.x: feedme,
-                                                                       self.y_: k,
-                                                                       self.weights: z})
+                    accuracy, train_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction], feed_dict={self.x: feedme,
+                                                            self.y_: k})
+                                                           # self.weights: z})
                     sum_loss += np.sum(train_loss)
                     hits += np.sum(prediction)
                     sum_acc += accuracy
@@ -185,22 +229,17 @@ class cnnMNIST(object):
                     meh += 1
                 b = time.time()
                 print('step {}:\navg acc {}\navg loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_acc / meh, sum_loss / counter, hits, b-a))
-            x, y, z = next(x_generator)
             # NOTE: QUick and dirty preprocessing. normalize to counts
             # x = x / x.sum(axis=-1, keepdims=True)
-            # stop
-            # for j in range(x.shape[1]):
-            #     spectra = x[7, j, :]
-            #     fig = plt.figure()
-            #     plt.plot(spectra)
-            #     fig.savefig('seqspec_{}'.format(j))
-            #     plt.close()
-            # print(y[7, :])
-            # stop
-            self.sess.run([self.train_step], feed_dict={
-                              self.x: x,
-                              self.y_: y,
-                              self.weights: z})
+            x_generator = self.batch(self.x_train, shuffle=True)
+            x, y, z = next(x_generator)
+            for j in range(self.current_batch_length):
+                # x, y, z = next(x_generator)
+                self.sess.run([self.train_step], feed_dict={
+                                  self.x: x,
+                                  self.y_: y})
+                                  # self.weights: z})
+                x, y, z = next(x_generator)
             # self.shuffle()
 
     def eval(self):
@@ -330,20 +369,27 @@ def main():
     answers = open('approach3_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     for sample in validation_data:
-        # print(sample.keys())
-        x = np.array(sample['features'])
-        # x_features = x / x.sum(axis=-1, keepdims=True)
-        predictions, score = cnn.sess.run(
-            [cnn.prediction, cnn.y_conv],
-            feed_dict = {cnn.x: x})
-        time_index = np.arange(predictions.shape[0])
-        mask = predictions >= 0.5
-
         runname = sample.name.split('/')[-1]
+        prediction_list = []
+        score_list = []
+        # print(sample.keys())
+        for i in range(sample.shape[0]):
+            x = np.squeeze(sample.shape[i, :, :])
+            # x_features = x / x.sum(axis=-1, keepdims=True)
+            predictions, score = cnn.sess.run(
+                [cnn.prediction, cnn.y_conv],
+                feed_dict = {cnn.x: x})
+            # time_index = np.arange(predictions.shape[0])
+            prediction_list += predictions
+            score_list += score
+
+
 
         # Current spectra needs to be vanilla
         # current time needs to be zero
-
+        print(prediction_list)
+        stop
+        # print(score_list)
         if np.sum(mask) != 0:
             counts = np.argmax(score, axis=1)
             score_list = []
