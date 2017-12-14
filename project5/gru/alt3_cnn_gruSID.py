@@ -110,10 +110,10 @@ class cnnMNIST(object):
         self.y_ = tf.placeholder(tf.float32, shape=[1, 7])
         self.weights = tf.placeholder(tf.float32, shape=[])
 
-        feature_map1 = 8
-        feature_map2 = 16
+        feature_map1 = 16
+        feature_map2 = 32
 
-        final_hidden_nodes = 128
+        final_hidden_nodes = 256
 
         num_units = 16
         num_layers = 1
@@ -196,7 +196,6 @@ class cnnMNIST(object):
         # self.loss = tf.reduce_sum(loss_per_example)
 
         # self.loss = tf.reduce_sum(tf.losses.sparse_softmax_cross_entropy(labels=self.y_), logits=self.y_conv, weights=self.weights))
-
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
 
     def shuffle(self):
