@@ -192,7 +192,7 @@ class cnnMNIST(object):
                     # NOTE: quick and dirty preprocessing once again
                     # feedme = j / j.sum(axis=-1, keepdims=True)
                     feedme = j
-                    
+
                     accuracy, train_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction],feed_dict={self.x: feedme,
                                                                        self.y_: k,
                                                                        self.weights: z})
@@ -349,7 +349,7 @@ def main():
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     for sample in validation_data:
         # print(sample.keys())
-        x = np.array(sample['features'])
+        x = sample
         # x_features = x / x.sum(axis=-1, keepdims=True)
         predictions, score = cnn.sess.run(
             [cnn.prediction, cnn.y_conv],

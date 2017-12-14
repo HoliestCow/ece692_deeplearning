@@ -19,8 +19,8 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-5
-        self.epochs = 100
+        self.lr = 1e-4
+        self.epochs = 800
         self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
 
@@ -55,7 +55,6 @@ class cnnMNIST(object):
         return
 
     def batch(self, iterable, n=1, shuffle=True, small_test=True, usethesekeys = None, shortset=False):
-        print('reloaded')
         if shuffle:
             self.shuffle()
         if usethesekeys is None:
@@ -90,13 +89,12 @@ class cnnMNIST(object):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # NOTE: for using cnnfeatures sequential dataset
         f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
-        # f = h5py.File('sequential_dataset_balanced.h5', 'r')
-        g = f['validate']
-        samplelist = list(g.keys())
+        # f = h5py.File('sequential_dataset_validation.h5', 'r')
+        samplelist = list(f.keys())
         # samplelist = samplelist[:10]
 
         for i in range(len(samplelist)):
-            data = np.array(g[samplelist[i]]['measured_spectra'])
+            data = np.array(f[samplelist[i]])
             # data = np.array(g[samplelist[i]]['features'])
             yield data
 
@@ -186,10 +184,13 @@ class cnnMNIST(object):
         # NOTE: Weighted gru
         # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=200.0))
         # NOTE: Weighted gru with summing instead of mean
-        # self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=weighted_logits, pos_weight=5.0))
-        loss_per_example = tf.nn.softmax_cross_entropy_with_logits(logits=self.y_conv, labels=self.y_)
+        self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(
+            targets=self.y_,
+            logits=self.y_conv,
+            pos_weight=100.0))
+        # loss_per_example = tf.nn.softmax_cross_entropy_with_logits(logits=self.y_conv, labels=self.y_)
         # self.loss = tf.reduce_sum(tf.multiply(self.weights, loss_per_example))
-        self.loss = tf.reduce_sum(loss_per_example)
+        # self.loss = tf.reduce_sum(loss_per_example)
 
         # self.loss = tf.reduce_sum(tf.losses.sparse_softmax_cross_entropy(labels=self.y_), logits=self.y_conv, weights=self.weights))
 
@@ -220,7 +221,7 @@ class cnnMNIST(object):
                     # feedme = j / j.sum(axis=-1, keepdims=True)
                     feedme = j
                     accuracy, train_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction], feed_dict={self.x: feedme,
-                                                            self.y_: k})
+                               self.y_: k})
                                                            # self.weights: z})
                     sum_loss += np.sum(train_loss)
                     hits += np.sum(prediction)
@@ -288,8 +289,13 @@ class cnnMNIST(object):
         # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
         predictions = []
         correct_predictions = np.zeros((0, 7))
+        counter = 0
+        a = time.time()
         for x, y, z in x_batcher:
+            counter += 1
             # x_features = x / x.sum(axis=-1, keepdims=True)
+            if counter % 1000 == 0:
+                print('label predictions done: {} in {} s'.format(counter, time.time() - a))
             x_features = x
             temp_predictions, score = self.sess.run(
             [self.prediction, self.y_conv],
@@ -369,27 +375,20 @@ def main():
     answers = open('approach3_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     for sample in validation_data:
-        runname = sample.name.split('/')[-1]
-        prediction_list = []
-        score_list = []
         # print(sample.keys())
-        for i in range(sample.shape[0]):
-            x = np.squeeze(sample.shape[i, :, :])
-            # x_features = x / x.sum(axis=-1, keepdims=True)
-            predictions, score = cnn.sess.run(
-                [cnn.prediction, cnn.y_conv],
-                feed_dict = {cnn.x: x})
-            # time_index = np.arange(predictions.shape[0])
-            prediction_list += predictions
-            score_list += score
+        x = np.array(sample['features'])
+        # x_features = x / x.sum(axis=-1, keepdims=True)
+        predictions, score = cnn.sess.run(
+            [cnn.prediction, cnn.y_conv],
+            feed_dict = {cnn.x: x})
+        time_index = np.arange(predictions.shape[0])
+        mask = predictions >= 0.5
 
-
+        runname = sample.name.split('/')[-1]
 
         # Current spectra needs to be vanilla
         # current time needs to be zero
-        print(prediction_list)
-        stop
-        # print(score_list)
+
         if np.sum(mask) != 0:
             counts = np.argmax(score, axis=1)
             score_list = []
@@ -399,6 +398,9 @@ def main():
             t = time_index[mask]
             t = [int(i) for i in t]
             index_guess = np.argmax(score_list[t])
+            # print(score_list)
+            # print(predictions[mask])
+            # print(index_guess)
 
             # current_spectra = np.squeeze(x[t[index_guess], -1, :])
             current_time = t[index_guess] + 15  # Not sure if its + 15?
