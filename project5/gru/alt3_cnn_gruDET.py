@@ -77,7 +77,7 @@ class cnnMNIST(object):
             z[mask] = 6.0
             y = self.onehot_labels(y)
             self.current_batch_length = x.shape[0]
-            
+
             yield x, y, z
 
             # for j in range(self.current_batch_length):
@@ -387,7 +387,7 @@ def main():
     validation_data = cnn.validation_batcher()
     answers = open('approach3_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
-    
+
     counter = 0
     for sample in validation_data:
         if counter % 100 == 0:
