@@ -19,8 +19,8 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-2
-        self.epochs = 1000
+        self.lr = 1e-3
+        self.epochs = 100
         self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
 
@@ -77,12 +77,13 @@ class cnnMNIST(object):
             z[mask] = 6.0
             y = self.onehot_labels(y)
             self.current_batch_length = x.shape[0]
+            
+            yield x, y, z
 
-            for j in range(self.current_batch_length):
-                stuff = y[j,:]
-                stuff = stuff.reshape((1, 7))
-                yield x[j, :], stuff, z[j]
-            # yield x, y, z
+            # for j in range(self.current_batch_length):
+            #     stuff = y[j,:]
+            #     stuff = stuff.reshape((1, 7))
+            #     yield x[j, :], stuff, z[j]
 
     def validation_batcher(self):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
@@ -98,17 +99,18 @@ class cnnMNIST(object):
             self.current_sample_name = samplelist[i]
             data = np.array(g[samplelist[i]])
             self.current_batch_length = data.shape[0]
-            for j in range(self.current_batch_length):
-                current_x = np.squeeze(data[j, :, :])
-                yield current_x
+            yield data
+            # for j in range(self.current_batch_length):
+            #     current_x = np.squeeze(data[j, :, :])
+            #     yield current_x
 
     def build_graph(self):
         # NOTE: CNN
         # self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         # self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
-        self.x = tf.placeholder(tf.float32, shape=[15, 1024])
-        self.y_ = tf.placeholder(tf.float32, shape=[1, 7])
-        self.weights = tf.placeholder(tf.float32, shape=[])
+        self.x = tf.placeholder(tf.float32, shape=[30, 15, 1024])
+        self.y_ = tf.placeholder(tf.float32, shape=[30, 7])
+        self.weights = tf.placeholder(tf.float32, shape=[30])
 
         feature_map1 = 8
         feature_map2 = 16
@@ -116,30 +118,31 @@ class cnnMNIST(object):
         final_hidden_nodes = 128
 
         num_units = 16
-        num_layers = 1
+        num_layers = 2
 
         x_image = self.hack_1dreshape(self.x)
         # define conv-layer variables
-        W_conv1 = self.weight_variable([1, 3, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
+        W_conv1 = self.weight_variable([3, 9, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
         b_conv1 = self.bias_variable([feature_map1])
-        W_conv2 = self.weight_variable([1, 3, feature_map1, feature_map2])
+        W_conv2 = self.weight_variable([3, 9, feature_map1, feature_map2])
         b_conv2 = self.bias_variable([feature_map2])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
-        h_pool1 = self.max_pool_2x2(h_conv1)
+        # h_pool1 = self.max_pool_2x2(h_conv1)
+        h_pool1 = self.max_pool_spectra(h_conv1)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
-        h_pool2 = self.max_pool_2x2(h_conv2)
+        # h_pool2 = self.max_pool_2x2(h_conv2)
+        h_pool2 = self.max_pool_spectra(h_conv2)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * feature_map2, final_hidden_nodes])
+        W_fc1 = self.weight_variable([30, 256 * feature_map2, final_hidden_nodes])
         b_fc1 = self.bias_variable([final_hidden_nodes])
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * feature_map2])
+        h_pool2_flat = tf.reshape(h_pool2, [30, 15, 256 * feature_map2])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
         # the features are now the h_fc1
-        h_fc1 = tf.expand_dims(h_fc1, 0)
 
         # dropout regularization
         # self.keep_prob = tf.placeholder(tf.float32)
@@ -182,6 +185,7 @@ class cnnMNIST(object):
                  # logits=weighted_logits, labels=self.y_, name="xent_raw")
         # NOTE: Normal gru
         pure_loss = tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv)
+        self.loss = tf.reduce_mean(pure_loss)
         # NOTE Normal gru with summing instead of mean
         # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE: Weighted gru
@@ -192,7 +196,8 @@ class cnnMNIST(object):
         #     logits=self.y_conv,
         #     pos_weight=10000.0))
         # loss_per_example = tf.nn.softmax_cross_entropy_with_logits(logits=self.y_conv, labels=self.y_)
-        self.loss = tf.reduce_sum(tf.multiply(self.weights, pure_loss))
+        # self.loss = tf.reduce_sum(tf.multiply(self.weights, pure_loss))
+        # self.loss = tf.reduce_mean(tf.multiply(self.weights, pure_loss))
         # self.loss = tf.reduce_sum(loss_per_example)
 
         # self.loss = tf.reduce_sum(tf.losses.sparse_softmax_cross_entropy(labels=self.y_), logits=self.y_conv, weights=self.weights))
@@ -275,8 +280,8 @@ class cnnMNIST(object):
 
     def hack_1dreshape(self, x):
         # expand its dimensionality to fit into conv2d
-        tensor_expand = tf.expand_dims(x, 1)
-        tensor_expand = tf.expand_dims(tensor_expand, -1)
+        # tensor_expand = tf.expand_dims(x, 1)
+        tensor_expand = tf.expand_dims(x, -1)
         return tensor_expand
 
     def conv2d(self, x, W):
@@ -285,6 +290,10 @@ class cnnMNIST(object):
     def max_pool_2x2(self, x):
         return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                                 strides=[1, 2, 2, 1], padding='SAME')
+
+    def max_pool_spectra(self, x):
+        return tf.nn.max_pool(x, ksize=[1, 1, 2, 1],
+                              strides=[1, 1, 2, 1], padding='SAME')
 
     def get_label_predictions(self):
         x_batcher = self.batch(self.x_test, n=1000, shuffle=False,
@@ -364,13 +373,13 @@ def main():
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    # predictions, y, score = cnn.get_label_predictions()
+    predictions, y, score = cnn.get_label_predictions()
 
-    # predictions_decode = predictions
-    # labels_decode = cnn.onenothot_labels(y)
+    predictions_decode = predictions
+    labels_decode = cnn.onenothot_labels(y)
     #
-    # np.save('{}_predictions.npy'.format(runname), predictions_decode)
-    # np.save('{}_ground_truth.npy's.format(runname), labels_decode)
+    np.save('{}_predictions.npy'.format(runname), predictions_decode)
+    np.save('{}_ground_truth.npy'.format(runname), labels_decode)
     # Validation time
     # I have to rewrite this. Pickle is exceeding the swap space.
     # I could probably write the deck directly from here now that I think about it.

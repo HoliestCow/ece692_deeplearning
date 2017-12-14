@@ -19,7 +19,7 @@ import os.path
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 500
+        self.epochs = 1000
         self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
         self.build_graph()
 
@@ -85,10 +85,11 @@ class cnnMNIST(object):
         feature_map1 = 32
         feature_map2 = 64
 
-        final_hidden_nodes = 1024
+        final_hidden_nodes = 8192
 
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
+        self.keep_prob = tf.placeholder(tf.float32)
 
         x_image = self.hack_1dreshape(self.x)
         # define conv-layer variables
@@ -127,7 +128,6 @@ class cnnMNIST(object):
         # h_fc1 = tf.nn.relu(tf.matmul(h_pool4_flat, W_fc1) + b_fc1)
 
         # dropout regularization
-        self.keep_prob = tf.placeholder(tf.float32)
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
@@ -173,7 +173,7 @@ class cnnMNIST(object):
             current_y = next(y_generator)
             self.sess.run([self.train_step], feed_dict={self.x: current_x,
                                                         self.y_: current_y,
-                                                        self.keep_prob: 0.50})
+                                                        self.keep_prob: 0.10})
             # self.shuffle()
 
     def eval(self):
