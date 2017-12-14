@@ -40,9 +40,8 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        # f = h5py.File('./sequential_dataset_balanced.h5', 'r')
-        f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
-        # f = h5py.File('./sequential_dataset_balanced.h5', 'r')
+        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+        f = h5py.File('./sequential_dataset_balanced.h5', 'r')
 
         X = f['train']
         X_test = f['test']
@@ -88,8 +87,9 @@ class cnnMNIST(object):
     def validation_batcher(self):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # NOTE: for using cnnfeatures sequential dataset
-        f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
         # f = h5py.File('sequential_dataset_validation.h5', 'r')
+        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+        f = h5py.File('sequential_dataset_balanced.h5', 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
