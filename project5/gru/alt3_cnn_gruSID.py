@@ -19,8 +19,8 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-4
-        self.epochs = 800
+        self.lr = 1e-2
+        self.epochs = 100
         self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
 
@@ -90,14 +90,17 @@ class cnnMNIST(object):
         # NOTE: for using cnnfeatures sequential dataset
         f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
         # f = h5py.File('sequential_dataset_validation.h5', 'r')
-        samplelist = list(f.keys())
+        g = f['validate']
+        samplelist = list(g.keys())
         # samplelist = samplelist[:10]
 
         for i in range(len(samplelist)):
-            data = np.array(f[samplelist[i]])
-            # data = np.array(g[samplelist[i]]['features'])
-            yield data
-
+            self.current_sample_name = samplelist[i]
+            data = np.array(g[samplelist[i]])
+            self.current_batch_length = data.shape[0]
+            for j in range(self.current_batch_length):
+                current_x = np.squeeze(data[j, :, :])
+                yield current_x
 
     def build_graph(self):
         # NOTE: CNN
@@ -107,12 +110,12 @@ class cnnMNIST(object):
         self.y_ = tf.placeholder(tf.float32, shape=[1, 7])
         # self.weights = tf.placeholder(tf.float32, shape=[None])
 
-        feature_map1 = 32
-        feature_map2 = 64
+        feature_map1 = 8
+        feature_map2 = 16
 
         final_hidden_nodes = 128
 
-        num_units = 32
+        num_units = 16
         num_layers = 2
 
         x_image = self.hack_1dreshape(self.x)
@@ -179,15 +182,16 @@ class cnnMNIST(object):
                  # logits=weighted_logits, labels=self.y_, name="xent_raw")
         # NOTE: Normal gru
         # self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE Normal gru with summing instead of mean
         # self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         # NOTE: Weighted gru
         # self.loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.y_, logits=self.y_conv, pos_weight=200.0))
         # NOTE: Weighted gru with summing instead of mean
-        self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(
-            targets=self.y_,
-            logits=self.y_conv,
-            pos_weight=100.0))
+        # self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(
+        #     targets=self.y_,
+        #     logits=self.y_conv,
+        #     pos_weight=10000.0))
         # loss_per_example = tf.nn.softmax_cross_entropy_with_logits(logits=self.y_conv, labels=self.y_)
         # self.loss = tf.reduce_sum(tf.multiply(self.weights, loss_per_example))
         # self.loss = tf.reduce_sum(loss_per_example)
@@ -361,39 +365,51 @@ def main():
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    predictions, y, score = cnn.get_label_predictions()
+    # predictions, y, score = cnn.get_label_predictions()
 
-    predictions_decode = predictions
-    labels_decode = cnn.onenothot_labels(y)
+    # predictions_decode = predictions
+    # labels_decode = cnn.onenothot_labels(y)
     #
-    np.save('{}_predictions.npy'.format(runname), predictions_decode)
-    np.save('{}_ground_truth.npy'.format(runname), labels_decode)
+    # np.save('{}_predictions.npy'.format(runname), predictions_decode)
+    # np.save('{}_ground_truth.npy's.format(runname), labels_decode)
     # Validation time
     # I have to rewrite this. Pickle is exceeding the swap space.
     # I could probably write the deck directly from here now that I think about it.
+    a = time.time()
     validation_data = cnn.validation_batcher()
     answers = open('approach3_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
+    
+    counter = 0
     for sample in validation_data:
-        # print(sample.keys())
-        x = np.array(sample['features'])
-        # x_features = x / x.sum(axis=-1, keepdims=True)
-        predictions, score = cnn.sess.run(
-            [cnn.prediction, cnn.y_conv],
-            feed_dict = {cnn.x: x})
-        time_index = np.arange(predictions.shape[0])
-        mask = predictions >= 0.5
+        if counter % 100 == 0:
+            print('{} samples processed in {} s'.format(counter, time.time() - a))
+        counter += 1
+        print('start ' + cnn.current_sample_name)
+        sample_prediction_list = np.zeros((cnn.current_batch_length,))
+        sample_score_list = np.zeros((cnn.current_batch_length, 7))
+        for j in range(cnn.current_batch_length - 1):
+            predictions, score = cnn.sess.run(
+                [cnn.prediction, cnn.y_conv],
+                feed_dict = {cnn.x: sample})
+            sample_prediction_list[j] = predictions[0]
+            sample_score_list[j, :] = score[0, :]
+            sample = next(validation_data)
+        time_index = np.arange(sample_prediction_list.shape[0])
+        mask = sample_prediction_list >= 0.5
 
-        runname = sample.name.split('/')[-1]
+        # runname = sample.name.split('/')[-1]
+        runname = cnn.current_sample_name
+        print('end ' + runname)
 
         # Current spectra needs to be vanilla
         # current time needs to be zero
 
         if np.sum(mask) != 0:
-            counts = np.argmax(score, axis=1)
+            counts = np.argmax(sample_score_list, axis=1)
             score_list = []
             for j in counts:
-                score_list += [score[j, counts[j]]]
+                score_list += [sample_score_list[j, counts[j]]]
             score_list = np.array(score_list)
             t = time_index[mask]
             t = [int(i) for i in t]
@@ -404,12 +420,14 @@ def main():
 
             # current_spectra = np.squeeze(x[t[index_guess], -1, :])
             current_time = t[index_guess] + 15  # Not sure if its + 15?
-            current_prediction = predictions[mask][index_guess]
+            current_prediction = sample_prediction_list[mask][index_guess]
 
             answers.write('{},{},{},\n'.format(runname, current_time, current_prediction))
         else:
             answers.write('{},0,0,\n'.format(runname))
     answers.close()
+
+    print('Validation written in {} s'.format(time.time() - a))
 
     return
 
