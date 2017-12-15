@@ -45,7 +45,7 @@ def main():
     # prefix = 'grusidcnnalt2_100000'
     # prefix = 'grudetcnnalt3_20'
     # prefix = 'grudetcnnalt3_800'
-    prefix = 'grudetcnnalt3_100'
+    prefix = 'grudetcnnalt3_1000'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))

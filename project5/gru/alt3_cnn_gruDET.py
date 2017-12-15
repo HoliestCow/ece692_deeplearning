@@ -116,13 +116,11 @@ class cnnMNIST(object):
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
-        feature_map1 = 16
-        feature_map2 = 32
+        feature_map1 = 32
+        feature_map2 = 64
 
-        final_hidden_nodes = 128
-
-        num_units = 32
-        num_layers = 1
+        num_units = 64
+        num_layers = 2
 
         # x_image = self.hack_1dreshape(self.x)
         # print(x_image.shape)
@@ -169,7 +167,9 @@ class cnnMNIST(object):
 
         self.y_conv = tf.contrib.layers.fully_connected(last, out_size, activation_fn=None)
 
-        classes_weights = tf.constant([0.1, 1.0])
+        # classes_weights = tf.constant([0.1, 0.6])
+        # classes_weights = tf.constant([0.1, 1.0])  # works ok after 300 epochs
+        classes_weights = tf.constant([0.1, 1.5])
         cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits=self.y_conv, targets=self.y_, pos_weight=classes_weights)
         self.loss = tf.reduce_sum(cross_entropy)
 
@@ -322,55 +322,6 @@ def main():
     # I could probably write the deck directly from here now that I think about it.
     a = time.time()
     validation_data = cnn.validation_batcher()
-    answers = open('approach3_answers.csv', 'w')
-    answers.write('RunID,SourceID,SourceTime,Comment\n')
-
-    counter = 0
-    for sample in validation_data:
-        if counter % 100 == 0:
-            print('{} samples processed in {} s'.format(counter, time.time() - a))
-        counter += 1
-        print('start ' + cnn.current_sample_name)
-        sample_prediction_list = np.zeros((cnn.current_batch_length,))
-        sample_score_list = np.zeros((cnn.current_batch_length, 2))
-        for j in range(cnn.current_batch_length - 1):
-            predictions, score = cnn.sess.run(
-                [cnn.prediction, cnn.y_conv],
-                feed_dict = {cnn.x: sample})
-            sample_prediction_list[j] = predictions[0]
-            sample_score_list[j, :] = score[0, :]
-            sample = next(validation_data)
-        time_index = np.arange(sample_prediction_list.shape[0])
-        mask = sample_prediction_list >= 0.5
-
-        # runname = sample.name.split('/')[-1]
-        runname = cnn.current_sample_name
-        print('end ' + runname)
-
-        # Current spectra needs to be vanilla
-        # current time needs to be zero
-
-        if np.sum(mask) != 0:
-            counts = np.argmax(sample_score_list, axis=1)
-            score_list = []
-            for j in counts:
-                score_list += [sample_score_list[j, counts[j]]]
-            score_list = np.array(score_list)
-            t = time_index[mask]
-            t = [int(i) for i in t]
-            index_guess = np.argmax(score_list[t])
-            # print(score_list)
-            # print(predictions[mask])
-            # print(index_guess)
-
-            # current_spectra = np.squeeze(x[t[index_guess], -1, :])
-            current_time = t[index_guess] + 15  # Not sure if its + 15?
-            current_prediction = sample_prediction_list[mask][index_guess]
-
-            answers.write('{},{},{},\n'.format(runname, current_time, current_prediction))
-        else:
-            answers.write('{},0,0,\n'.format(runname))
-    answers.close()
 
     print('Validation written in {} s'.format(time.time() - a))
 
