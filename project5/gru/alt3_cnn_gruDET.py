@@ -320,9 +320,38 @@ def main():
     # Validation time
     # I have to rewrite this. Pickle is exceeding the swap space.
     # I could probably write the deck directly from here now that I think about it.
+    g = h5py.File('vanilla_dataset.h5', 'r')
+    h = g['validation']
+    # spectra_list = list(h.keys())
+
     a = time.time()
     validation_data = cnn.validation_batcher()
+    answers = OrderedDict()
+    for sample in validation_data:
+        x = np.array(sample['spectra'])
+        x = x[30:, :]
+        predictions = cnn.sess.run(
+            cnn.prediction,
+            feed_dict = {cnn.x: x,
+                         cnn.keep_prob: 1.0})
+        time_index = np.arange(predictions.shape[0])
+        mask = predictions >= 0.5
 
+        runname = sample.name.split('/')[-1]
+        if np.sum(mask) != 0:
+            counts = np.sum(x, axis=1)
+            t = time_index[mask]
+            t = [int(i) for i in t]
+            index_guess = np.argmax(counts[t])
+
+            # current_spectra = x[t[index_guess], :]
+            current_time = t[index_guess] + 15
+            answers[runname] = {'time': current_time,
+                                'spectra': np.array(h[runname]['spectra'])[current_time, :]}
+        else:
+            answers[runname] = {'time': 0,
+                                'spectra': 0}
+    save_obj(answers, 'hits')
     print('Validation written in {} s'.format(time.time() - a))
 
     return
