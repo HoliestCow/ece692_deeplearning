@@ -19,8 +19,8 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-3
-        self.epochs = 1000
+        self.lr = 1e-4
+        self.epochs = 10000
         self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
 
@@ -99,11 +99,11 @@ class cnnMNIST(object):
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
 
-        for i in range(len(samplelist)):
+        for i in range(len(samplelist[:10])):
             self.current_sample_name = samplelist[i]
             data = np.array(g[samplelist[i]])
             self.current_batch_length = data.shape[0]
-            yield data
+            yield data, samplelist[i]
             # for j in range(self.current_batch_length):
             #     current_x = np.squeeze(data[j, :, :])
             #     yield current_x
@@ -168,8 +168,8 @@ class cnnMNIST(object):
         self.y_conv = tf.contrib.layers.fully_connected(last, out_size, activation_fn=None)
 
         # classes_weights = tf.constant([0.1, 0.6])
-        # classes_weights = tf.constant([0.1, 1.0])  # works ok after 300 epochs
-        classes_weights = tf.constant([0.1, 1.5])
+        classes_weights = tf.constant([0.1, 1.0])  # works ok after 300 epochs
+        # classes_weights = tf.constant([0.1, 1.5])  # I haven't tried this one yet.
         cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits=self.y_conv, targets=self.y_, pos_weight=classes_weights)
         self.loss = tf.reduce_sum(cross_entropy)
 
@@ -199,16 +199,18 @@ class cnnMNIST(object):
                     # NOTE: quick and dirty preprocessing once again
                     # feedme = j / j.sum(axis=-1, keepdims=True)
                     feedme = j
-                    accuracy, train_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction], feed_dict={self.x: feedme,
+                    accuracy, test_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction], feed_dict={self.x: feedme,
                                self.y_: k})
                             #    self.weights: z})
-                    sum_loss += np.sum(train_loss)
+                    sum_loss += np.sum(test_loss)
                     hits += np.sum(prediction)
                     sum_acc += accuracy
                     counter += feedme.shape[0]
                     meh += 1
+                train_acc, train_loss = self.sess.run([self.accuracy, self.loss],
+                                                      feed_dict={self.x: x, self.y_: y})
                 b = time.time()
-                print('step {}:\navg acc {}\navg loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_acc / meh, sum_loss / counter, hits, b-a))
+                print('step {}:\navg test acc {} | avg train acc {}\navg test loss {} | avg train loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_acc / meh, train_acc, sum_loss / counter, train_loss, hits, b-a))
             # NOTE: QUick and dirty preprocessing. normalize to counts
             # x = x / x.sum(axis=-1, keepdims=True)
             x_generator = self.batch(self.x_train, shuffle=True)
@@ -310,13 +312,15 @@ def main():
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    predictions, y, score = cnn.get_label_predictions()
+    # predictions, y, score = cnn.get_label_predictions()
 
-    predictions_decode = predictions
-    labels_decode = cnn.onenothot_labels(y)
+    # predictions_decode = predictions
+    # labels_decode = cnn.onenothot_labels(y)
     #
-    np.save('{}_predictions.npy'.format(runname), predictions_decode)
-    np.save('{}_ground_truth.npy'.format(runname), labels_decode)
+    # np.save('{}_predictions.npy'.format(runname), predictions_decode)
+    # np.save('{}_ground_truth.npy'.format(runname), labels_decode)
+
+    print('Confusion matrix data saved')
     # Validation time
     # I have to rewrite this. Pickle is exceeding the swap space.
     # I could probably write the deck directly from here now that I think about it.
@@ -326,18 +330,20 @@ def main():
 
     a = time.time()
     validation_data = cnn.validation_batcher()
+    
+    counter = 0
     answers = OrderedDict()
-    for sample in validation_data:
-        x = np.array(sample['spectra'])
-        x = x[30:, :]
+    for sample, samplename in validation_data:
+        counter += 1
+        if counter % 10 == 0 and counter != 0:
+            print('{} validation samples done in {} s'.format(counter, time.time() - a))
+        x = sample
         predictions = cnn.sess.run(
             cnn.prediction,
-            feed_dict = {cnn.x: x,
-                         cnn.keep_prob: 1.0})
+            feed_dict = {cnn.x: x})
         time_index = np.arange(predictions.shape[0])
         mask = predictions >= 0.5
 
-        runname = sample.name.split('/')[-1]
         if np.sum(mask) != 0:
             counts = np.sum(x, axis=1)
             t = time_index[mask]
@@ -346,12 +352,12 @@ def main():
 
             # current_spectra = x[t[index_guess], :]
             current_time = t[index_guess] + 15
-            answers[runname] = {'time': current_time,
+            answers[samplename] = {'time': current_time,
                                 'spectra': np.array(h[runname]['spectra'])[current_time, :]}
         else:
-            answers[runname] = {'time': 0,
+            answers[samplename] = {'time': 0,
                                 'spectra': 0}
-    save_obj(answers, 'hits')
+    save_obj(answers, '{}_hits'.format(runname))
     print('Validation written in {} s'.format(time.time() - a))
 
     return

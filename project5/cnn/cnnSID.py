@@ -13,7 +13,8 @@ from copy import deepcopy
 import os
 import os.path
 
-import cPickle as pickle
+# import cPickle as pickle
+import pickle
 
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -21,7 +22,7 @@ import cPickle as pickle
 class cnnSID(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 1000
+        self.epochs = 1
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -246,10 +247,13 @@ def save_obj(obj, name ):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name):
-    with open('obj/' + name + '.pkl', 'rb') as f:
+    with open(name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
 def main():
+
+    interest = '../gru/obj/grudetcnnalt3_1_hits'
+
     cnn = cnnSID()
     a = time.time()
     print('Retrieving data')
@@ -272,8 +276,8 @@ def main():
     np.save('sid_ground_truth.npy', labels_decode)
 
     # counter = 0
-    hits = load_obj('hits')
-    answers = open('approach1a_answers.csv', 'w')
+    hits = load_obj(interest)
+    answers = open('approach4_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
 
 
