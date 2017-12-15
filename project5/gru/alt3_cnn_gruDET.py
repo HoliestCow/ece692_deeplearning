@@ -20,7 +20,7 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 1000
         self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
 
@@ -116,13 +116,13 @@ class cnnMNIST(object):
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
-        feature_map1 = 32
-        feature_map2 = 64
+        feature_map1 = 16
+        feature_map2 = 32
 
         final_hidden_nodes = 128
 
         num_units = 32
-        num_layers = 2
+        num_layers = 1
 
         # x_image = self.hack_1dreshape(self.x)
         # print(x_image.shape)
@@ -146,10 +146,7 @@ class cnnMNIST(object):
 
         cnn_output = h_fc1
 
-        num_units = 32
-        num_layers = 1
         # dropout = tf.placeholder(tf.float32)
-
         cells = []
         for _ in range(num_layers):
           cell = tf.contrib.rnn.GRUCell(num_units)  # Or LSTMCell(num_units)
@@ -171,7 +168,10 @@ class cnnMNIST(object):
         # self.loss = tf.reduce_sum(tf.losses.softmax_cross_entropy(self.y_, self.y_conv))
 
         self.y_conv = tf.contrib.layers.fully_connected(last, out_size, activation_fn=None)
-        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+
+        classes_weights = tf.constant([0.1, 1.0])
+        cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits=self.y_conv, targets=self.y_, pos_weight=classes_weights)
+        self.loss = tf.reduce_sum(cross_entropy)
 
         # self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
         self.train_step = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
