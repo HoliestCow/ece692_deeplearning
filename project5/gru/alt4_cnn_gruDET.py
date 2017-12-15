@@ -19,7 +19,7 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-1
+        self.lr = 1e-3
         self.epochs = 100
         self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
@@ -79,12 +79,12 @@ class cnnMNIST(object):
             y = self.onehot_labels(y)
             self.current_batch_length = x.shape[0]
 
-            yield x, y, z
+            # yield x, y, z
 
-            # for j in range(self.current_batch_length):
-            #     stuff = y[j,:]
-            #     stuff = stuff.reshape((1, 2))
-            #     yield x[j, :], stuff, z[j]
+            for j in range(self.current_batch_length):
+                stuff = y[j,:]
+                stuff = stuff.reshape((1, 2))
+                yield x[j, :], stuff, z[j]
 
     def validation_batcher(self):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
@@ -102,17 +102,17 @@ class cnnMNIST(object):
             self.current_sample_name = samplelist[i]
             data = np.array(g[samplelist[i]])
             self.current_batch_length = data.shape[0]
-            yield data
-            # for j in range(self.current_batch_length):
-            #     current_x = np.squeeze(data[j, :, :])
-            #     yield current_x
+            # yield data
+            for j in range(self.current_batch_length):
+                current_x = np.squeeze(data[j, :, :])
+                yield current_x
 
     def build_graph(self):
         # NOTE: CNN
         # self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         # self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
-        self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
-        self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
+        self.x = tf.placeholder(tf.float32, shape=[15, 1024])
+        self.y_ = tf.placeholder(tf.float32, shape=[1, 2])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
         feature_map1 = 8
@@ -121,55 +121,73 @@ class cnnMNIST(object):
         final_hidden_nodes = 128
 
         num_units = 16
-        num_layers = 1
+        num_layers = 2
 
-        # x_image = self.hack_1dreshape(self.x)
-        # print(x_image.shape)
+        x_image = self.hack_1dreshape(self.x)
+        print(x_image.shape)
         # define conv-layer variables
         W_conv1 = self.weight_variable([1, 9, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
         b_conv1 = self.bias_variable([feature_map1])
-        x_expanded = tf.expand_dims(self.x, 3)
         W_conv2 = self.weight_variable([1, 9, feature_map1, feature_map2])
         b_conv2 = self.bias_variable([feature_map2])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
-        h_conv1 = tf.nn.relu(self.conv2d(x_expanded, W_conv1) + b_conv1)
+        h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
         # h_pool1 = self.max_pool_2x2(h_conv1)
         h_pool1 = self.max_pool_spectra(h_conv1)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
         # h_pool2 = self.max_pool_2x2(h_conv2)
         h_pool2 = self.max_pool_spectra(h_conv2)
 
-        # h_fc1 = tf.contrib.layers.flatten(h_pool2)
-        h_fc1 = tf.reshape(h_pool2, [-1, 15, 256 * feature_map2])
+        # densely/fully connected layer
+        W_fc1 = self.weight_variable([256 * feature_map2, final_hidden_nodes])
+        b_fc1 = self.bias_variable([final_hidden_nodes])
 
-        cnn_output = h_fc1
+        h_pool2_flat = tf.reshape(h_pool2, [15, 256 * feature_map2])
+        h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-        num_units = 32
-        num_layers = 1
-        # dropout = tf.placeholder(tf.float32)
+        # the features are now the h_fc1
+        cnn_output = tf.reshape(h_fc1, [1, 15, final_hidden_nodes])
 
-        cells = []
-        for _ in range(num_layers):
-          cell = tf.contrib.rnn.GRUCell(num_units)  # Or LSTMCell(num_units)
-        #   cell = tf.contrib.rnn.DropoutWrapper(
-        #       cell, output_keep_prob=1.0 - dropout)
-          cells.append(cell)
-        cell = tf.contrib.rnn.MultiRNNCell(cells)
+        # dropout regularization
+        # self.keep_prob = tf.placeholder(tf.float32)
+        # h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
-        # output, state = tf.nn.dynamic_rnn(cell, cnn_output, dtype=tf.float32)
+        # linear classifier
+        # W_fc2 = self.weight_variable([final_hidden_nodes, 2])
 
-        output, _ = tf.nn.dynamic_rnn(cell, cnn_output, dtype=tf.float32)
+        lstm_in = tf.transpose(cnn_output, [1, 0, 2])
+        lstm_in = tf.reshape(lstm_in, [-1, final_hidden_nodes])
+        lstm_in = tf.layers.dense(lstm_in, num_units, activation=None)
+
+        lstm_in = tf.split(lstm_in, 15, 0)
+
+        lstm = tf.contrib.rnn.GRUCell(num_units)
+        cell = tf.contrib.rnn.MultiRNNCell([lstm] * num_layers)
+
+        # batch_size = tf.shape(h_fc1)[0]
+        # initial_state = cell.zero_state(batch_size, tf.float32)
+
+        output, state = tf.contrib.rnn.static_rnn(cell, lstm_in, dtype=tf.float32)
         output = tf.transpose(output, [1, 0, 2])
         last = tf.gather(output, int(output.get_shape()[0]) - 1)
-
+        # self.y_conv = tf.layers.dense(output[-1], 2, name='logits')
         out_size = self.y_.get_shape()[1].value
         logit = tf.contrib.layers.fully_connected(
             last, out_size, activation_fn=None)
-        self.y_conv = tf.nn.softmax(logit)
-        self.loss = tf.losses.softmax_cross_entropy(self.y_, self.y_conv)
+        temp_logit = tf.reshape(tf.gather(logit, int(logit.get_shape()[0]) - 1), [1, 2])
+        ratio = 1.0 / 100.0
+        weights = tf.constant([ratio, 1-ratio])
+        weighted_loss = tf.multiply(weights, temp_logit)
+        # temp = tf.nn.softmax(weighted_loss)
+        # self.y_conv = tf.reshape(tf.gather(temp, int(temp.get_shape()[0]) - 1), [1, 2])
+        self.y_conv = weighted_loss
+        pure_loss = tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv)
 
-        self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+        # pure_loss = tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv)
+
+        self.loss = tf.reduce_sum(weighted_loss)
+        self.train_step = tf.train.AdamOptimizer(self.lr, 0.9999, 0.9999999).minimize(self.loss)
 
     def shuffle(self):
         np.random.shuffle(self.data_keylist)
@@ -182,6 +200,7 @@ class cnnMNIST(object):
         self.eval()  # creating evaluation
         a = time.time()
         for i in range(self.epochs):
+            # batch = mnist.train.next_batch(50)
             if i % 10 == 0 and i != 0:
                 counter = 0
                 sum_acc = 0
@@ -247,7 +266,7 @@ class cnnMNIST(object):
     def hack_1dreshape(self, x):
         # expand its dimensionality to fit into conv2d
         tensor_expand = tf.expand_dims(x, -1)
-        # tensor_expand = tf.expand_dims(tensor_expand, 1)
+        tensor_expand = tf.expand_dims(tensor_expand, 1)
         return tensor_expand
 
     def conv2d(self, x, W):
