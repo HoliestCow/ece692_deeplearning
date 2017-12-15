@@ -19,7 +19,7 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-1
+        self.lr = 1e-3
         self.epochs = 100
         self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
         self.build_graph()
@@ -62,11 +62,12 @@ class cnnMNIST(object):
         else:
             keylist = usethesekeys
             if shortset:
-                keylist = usethesekeys[:1000]
+                keylist = usethesekeys[:100]
 
 
         # l = len(iterable)
         for i in range(len(keylist)):
+            self.current_key = keylist[i]
             x = np.array(iterable[keylist[i]]['measured_spectra'])
             y = np.array(iterable[keylist[i]]['labels'])
             # NOTE: For using cnnfeatures sequential dataset
@@ -115,13 +116,13 @@ class cnnMNIST(object):
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
-        feature_map1 = 8
-        feature_map2 = 16
+        feature_map1 = 32
+        feature_map2 = 64
 
         final_hidden_nodes = 128
 
-        num_units = 16
-        num_layers = 1
+        num_units = 32
+        num_layers = 2
 
         # x_image = self.hack_1dreshape(self.x)
         # print(x_image.shape)
@@ -164,12 +165,16 @@ class cnnMNIST(object):
         last = tf.gather(output, int(output.get_shape()[0]) - 1)
 
         out_size = self.y_.get_shape()[1].value
-        logit = tf.contrib.layers.fully_connected(
-            last, out_size, activation_fn=None)
-        self.y_conv = tf.nn.softmax(logit)
-        self.loss = tf.losses.softmax_cross_entropy(self.y_, self.y_conv)
+        # logit = tf.contrib.layers.fully_connected(
+        #     last, out_size, activation_fn=None)
+        # self.y_conv = tf.nn.softmax(logit)
+        # self.loss = tf.reduce_sum(tf.losses.softmax_cross_entropy(self.y_, self.y_conv))
 
-        self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+        self.y_conv = tf.contrib.layers.fully_connected(last, out_size, activation_fn=None)
+        self.loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+
+        # self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+        self.train_step = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
     def shuffle(self):
         np.random.shuffle(self.data_keylist)
@@ -182,7 +187,7 @@ class cnnMNIST(object):
         self.eval()  # creating evaluation
         a = time.time()
         for i in range(self.epochs):
-            if i % 10 == 0 and i != 0:
+            if i % 100 == 0 and i != 0:
                 counter = 0
                 sum_acc = 0
                 sum_loss = 0
@@ -208,13 +213,13 @@ class cnnMNIST(object):
             # x = x / x.sum(axis=-1, keepdims=True)
             x_generator = self.batch(self.x_train, shuffle=True)
             x, y, z = next(x_generator)
-            for j in range(self.current_batch_length):
+            # print(self.current_key, x.shape)
+            # for j in range(self.current_batch_length):
                 # x, y, z = next(x_generator)
-                self.sess.run([self.train_step], feed_dict={
-                                  self.x: x,
-                                  self.y_: y})
-                                #   self.weights: z})
-                x, y, z = next(x_generator)
+            self.sess.run([self.train_step], feed_dict={
+                           self.x: x,
+                           self.y_: y})
+                           #   self.weights: z})
             # self.shuffle()
 
     def eval(self):
