@@ -370,7 +370,7 @@ def main():
             if counter % 100 == 0 and counter != 0:
                 print('{} validation samples done in {} s'.format(counter, time.time() - a))
             x = sample
-            print(x.shape)
+            # print(x.shape)
             predictions = cnn.sess.run(
                 cnn.prediction,
                 feed_dict = {cnn.x: x})
