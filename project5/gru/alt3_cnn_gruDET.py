@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 # import os.path
 from collections import OrderedDict
 import pickle
+from itertools import islice
 # import cPickle as pickle
 
 # from tensorflow.examples.tutorials.mnist import input_data
@@ -42,7 +43,8 @@ class cnnMNIST(object):
         try:
             f = h5py.File('./sequential_dataset_balanced.h5', 'r')
         except:
-            f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+            # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+            f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
 
         X = f['train']
         X_test = f['test']
@@ -64,23 +66,31 @@ class cnnMNIST(object):
             if shortset:
                 keylist = usethesekeys[:100]
 
+        sequence_length = 15
 
         # l = len(iterable)
         for i in range(len(keylist)):
             self.current_key = keylist[i]
             x = np.array(iterable[keylist[i]]['measured_spectra'])
             y = np.array(iterable[keylist[i]]['labels'])
-            # NOTE: For using cnnfeatures sequential dataset
-            # x = np.array(iterable[keylist[i]]['features'])
-            # y = np.array(iterable[keylist[i]]['labels'])
             mask = y >= 0.5
             y[mask] = 1
-            z = np.ones((y.shape[0],))
-            z[mask] = 5.0
-            y = self.onehot_labels(y)
+
+            index = np.arange(x.shape[0])
+
+            index_generator = self.window(index, n=sequence_length)
+            tostore_spectra = np.zeros((0, sequence_length, 1024))
+            tostore_labels = []
+            for index_list in index_generator:
+                tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
+                tostore_labels += [y[list(index_list)[-1]]]
+            tostore_labels = np.array(tostore_labels)
+
+            x = tostore_spectra
+            y = self.onehot_labels(tostore_labels)
             self.current_batch_length = x.shape[0]
 
-            yield x, y, z
+            yield x, y
 
             # for j in range(self.current_batch_length):
             #     stuff = y[j,:]
@@ -92,21 +102,39 @@ class cnnMNIST(object):
         # NOTE: for using cnnfeatures sequential dataset
         # f = h5py.File('sequential_dataset_validation.h5', 'r')
         try:
-            f = h5py.File('sequential_dataset_balanced.h5', 'r')
+            f = h5py.File('sequential_dataset_balanced_newmethod.h5', 'r')
         except:
-            f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+            f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
 
+        sequence_length = 15
+
         for i in range(len(samplelist)):
             self.current_sample_name = samplelist[i]
             data = np.array(g[samplelist[i]])
-            self.current_batch_length = data.shape[0]
-            yield data, samplelist[i]
+            index = np.arange(data.shape[0])
+
+            index_generator = self.window(index, n=sequence_length)
+            tostore_spectra = np.zeros((0, sequence_length, 1024))
+            for index_list in index_generator:
+                tostore_spectra = np.concatenate((tostore_spectra, data[index_list, :].reshape((1, sequence_length, 1024))))
+            yield tostore_spectra, samplelist[i]
             # for j in range(self.current_batch_length):
             #     current_x = np.squeeze(data[j, :, :])
             #     yield current_x
+
+    def window(self, seq, n=2):
+        "Returns a sliding window (of width n) over data from the iterable"
+        "   s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...                   "
+        it = iter(seq)
+        result = tuple(islice(it, n))
+        if len(result) == n:
+            yield result
+        for elem in it:
+            result = result[1:] + (elem,)
+            yield result
 
     def build_graph(self):
         # NOTE: CNN
@@ -197,7 +225,7 @@ class cnnMNIST(object):
                 meh = 0
                 x_generator_test = self.batch(self.x_test,
                                               usethesekeys=list(self.x_test.keys()), shortset=True)
-                for j, k, z in x_generator_test:
+                for j, k in x_generator_test:
                     # NOTE: quick and dirty preprocessing once again
                     # feedme = j / j.sum(axis=-1, keepdims=True)
                     feedme = j
@@ -216,7 +244,7 @@ class cnnMNIST(object):
             # NOTE: QUick and dirty preprocessing. normalize to counts
             # x = x / x.sum(axis=-1, keepdims=True)
             x_generator = self.batch(self.x_train, shuffle=True)
-            x, y, z = next(x_generator)
+            x, y = next(x_generator)
             # print(self.current_key, x.shape)
             # for j in range(self.current_batch_length):
                 # x, y, z = next(x_generator)
@@ -278,7 +306,7 @@ class cnnMNIST(object):
         correct_predictions = np.zeros((0, 2))
         counter = 0
         a = time.time()
-        for x, y, z in x_batcher:
+        for x, y in x_batcher:
             counter += 1
             # x_features = x / x.sum(axis=-1, keepdims=True)
             if counter % 1000 == 0:
@@ -304,7 +332,7 @@ def main():
     validate_please = True
     characterize = False
     cnn.lr = 1e-4
-    cnn.epochs = 10000
+    cnn.epochs = 1
     cnn.runname = 'cnndetalt3_wdiffs_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
     runname = cnn.runname
     a = time.time()
@@ -331,8 +359,8 @@ def main():
         # Validation time
         # I have to rewrite this. Pickle is exceeding the swap space.
         # I could probably write the deck directly from here now that I think about it.
-        g = h5py.File('vanilla_dataset.h5', 'r')
-        h = g['validation']
+        # g = h5py.File('vanilla_dataset.h5', 'r')
+        # h = g['validation']
         # spectra_list = list(h.keys())
         a = time.time()
         validation_data = cnn.validation_batcher()
@@ -342,6 +370,7 @@ def main():
             if counter % 100 == 0 and counter != 0:
                 print('{} validation samples done in {} s'.format(counter, time.time() - a))
             x = sample
+            print(x.shape)
             predictions = cnn.sess.run(
                 cnn.prediction,
                 feed_dict = {cnn.x: x})
@@ -357,7 +386,7 @@ def main():
                 t = time_index[mask]
                 t = [int(i) for i in t]
                 index_guess = np.argmax(counts[t])
-                current_spectra = np.array(h[samplename]['spectra'])
+                current_spectra = np.squeeze(x[index_guess, -1, :])
                 current_time = t[index_guess] + 15
                 answers[samplename] = {'time': current_time,
                                        'spectra': current_spectra[current_time - 1, :]}
