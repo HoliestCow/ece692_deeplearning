@@ -41,7 +41,7 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
         try:
-            f = h5py.File('./sequential_dataset_balanced.h5', 'r')
+            f = h5py.File('./sequential_dataset_balanced_newmethod.h5', 'r')
         except:
             # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
             f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
