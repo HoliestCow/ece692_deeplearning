@@ -20,6 +20,7 @@ from itertools import islice
 
 class cnnMNIST(object):
     def __init__(self):
+        self.use_gpu = False
         self.lr = 1e-4
         self.epochs = 10000
         self.runname = 'meh'
@@ -211,7 +212,13 @@ class cnnMNIST(object):
         return
 
     def train(self):
-        self.sess = tf.Session()
+        if self.use_gpu:
+            # use half of  the gpu memory
+            # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
+            self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+        else:
+            self.sess = tf.Session()
         init = tf.global_variables_initializer()
         self.sess.run(init)
         self.eval()  # creating evaluation
@@ -330,7 +337,8 @@ def load_obj(name ):
 def main():
     cnn = cnnMNIST()
     validate_please = True
-    characterize = True
+    characterize = False
+    cnn.use_gpu = False
     cnn.lr = 1e-4
     cnn.epochs = 1000
     cnn.runname = 'cnndetalt3_wdiffs_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
