@@ -21,7 +21,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-4
         self.epochs = 10000
-        self.runname = 'grudetcnnalt3_{}'.format(self.epochs)
+        self.runname = 'meh'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -99,7 +99,7 @@ class cnnMNIST(object):
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
 
-        for i in range(len(samplelist[:10])):
+        for i in range(len(samplelist)):
             self.current_sample_name = samplelist[i]
             data = np.array(g[samplelist[i]])
             self.current_batch_length = data.shape[0]
@@ -114,6 +114,7 @@ class cnnMNIST(object):
         # self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
         self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
+        # self.keep_prob = tf.placeholder(tf.float32, shape=[])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
         feature_map1 = 32
@@ -125,10 +126,10 @@ class cnnMNIST(object):
         # x_image = self.hack_1dreshape(self.x)
         # print(x_image.shape)
         # define conv-layer variables
-        W_conv1 = self.weight_variable([1, 9, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
+        W_conv1 = self.weight_variable([3, 9, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
         b_conv1 = self.bias_variable([feature_map1])
         x_expanded = tf.expand_dims(self.x, 3)
-        W_conv2 = self.weight_variable([1, 9, feature_map1, feature_map2])
+        W_conv2 = self.weight_variable([3, 9, feature_map1, feature_map2])
         b_conv2 = self.bias_variable([feature_map2])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
@@ -141,15 +142,16 @@ class cnnMNIST(object):
 
         # h_fc1 = tf.contrib.layers.flatten(h_pool2)
         h_fc1 = tf.reshape(h_pool2, [-1, 15, 256 * feature_map2])
+        # dropped_h_fc1 = tf.nn.dropout(h_fc1, self.keep_prob)
 
         cnn_output = h_fc1
+        # cnn_output = dropped_h_fc1
 
-        # dropout = tf.placeholder(tf.float32)
         cells = []
         for _ in range(num_layers):
           cell = tf.contrib.rnn.GRUCell(num_units)  # Or LSTMCell(num_units)
-        #   cell = tf.contrib.rnn.DropoutWrapper(
-        #       cell, output_keep_prob=1.0 - dropout)
+          # cell = tf.contrib.rnn.DropoutWrapper(
+          #     cell, output_keep_prob=1.0 - self.keep_prob)
           cells.append(cell)
         cell = tf.contrib.rnn.MultiRNNCell(cells)
 
@@ -168,8 +170,8 @@ class cnnMNIST(object):
         self.y_conv = tf.contrib.layers.fully_connected(last, out_size, activation_fn=None)
 
         # classes_weights = tf.constant([0.1, 0.6])
-        classes_weights = tf.constant([0.1, 1.0])  # works ok after 300 epochs
-        # classes_weights = tf.constant([0.1, 1.5])  # I haven't tried this one yet.
+        # classes_weights = tf.constant([0.1, 1.0])  # works ok after 300 epochs
+        classes_weights = tf.constant([0.1, 1.5])  # I haven't tried this one yet.
         cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits=self.y_conv, targets=self.y_, pos_weight=classes_weights)
         self.loss = tf.reduce_sum(cross_entropy)
 
@@ -299,6 +301,11 @@ def load_obj(name ):
 
 def main():
     cnn = cnnMNIST()
+    validate_please = True
+    characterize = False
+    cnn.lr = 1e-4
+    cnn.epochs = 10000
+    cnn.runname = 'cnndetalt3_wdiffs_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
     runname = cnn.runname
     a = time.time()
     print('Retrieving data')
@@ -312,53 +319,51 @@ def main():
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    # predictions, y, score = cnn.get_label_predictions()
+    if characterize:
+        predictions, y, score = cnn.get_label_predictions()
+        predictions_decode = predictions
+        labels_decode = cnn.onenothot_labels(y)
+        np.save('{}_predictions.npy'.format(runname), predictions_decode)
+        np.save('{}_ground_truth.npy'.format(runname), labels_decode)
+        print('Confusion matrix data saved')
 
-    # predictions_decode = predictions
-    # labels_decode = cnn.onenothot_labels(y)
-    #
-    # np.save('{}_predictions.npy'.format(runname), predictions_decode)
-    # np.save('{}_ground_truth.npy'.format(runname), labels_decode)
+    if validate_please:
+        # Validation time
+        # I have to rewrite this. Pickle is exceeding the swap space.
+        # I could probably write the deck directly from here now that I think about it.
+        g = h5py.File('vanilla_dataset.h5', 'r')
+        h = g['validation']
+        # spectra_list = list(h.keys())
+        a = time.time()
+        validation_data = cnn.validation_batcher()
+        counter = 0
+        answers = OrderedDict()
+        for sample, samplename in validation_data:
+            if counter % 100 == 0 and counter != 0:
+                print('{} validation samples done in {} s'.format(counter, time.time() - a))
+            x = sample
+            predictions = cnn.sess.run(
+                cnn.prediction,
+                feed_dict = {cnn.x: x})
+            time_index = np.arange(predictions.shape[0])
+            mask = predictions >= 0.5
 
-    print('Confusion matrix data saved')
-    # Validation time
-    # I have to rewrite this. Pickle is exceeding the swap space.
-    # I could probably write the deck directly from here now that I think about it.
-    g = h5py.File('vanilla_dataset.h5', 'r')
-    h = g['validation']
-    # spectra_list = list(h.keys())
-
-    a = time.time()
-    validation_data = cnn.validation_batcher()
-    
-    counter = 0
-    answers = OrderedDict()
-    for sample, samplename in validation_data:
-        counter += 1
-        if counter % 10 == 0 and counter != 0:
-            print('{} validation samples done in {} s'.format(counter, time.time() - a))
-        x = sample
-        predictions = cnn.sess.run(
-            cnn.prediction,
-            feed_dict = {cnn.x: x})
-        time_index = np.arange(predictions.shape[0])
-        mask = predictions >= 0.5
-
-        if np.sum(mask) != 0:
-            counts = np.sum(x, axis=1)
-            t = time_index[mask]
-            t = [int(i) for i in t]
-            index_guess = np.argmax(counts[t])
-
-            # current_spectra = x[t[index_guess], :]
-            current_time = t[index_guess] + 15
-            answers[samplename] = {'time': current_time,
-                                'spectra': np.array(h[runname]['spectra'])[current_time, :]}
-        else:
             answers[samplename] = {'time': 0,
-                                'spectra': 0}
-    save_obj(answers, '{}_hits'.format(runname))
-    print('Validation written in {} s'.format(time.time() - a))
+                                   'spectra': 0}
+
+            if np.sum(mask) != 0:
+                counts = np.squeeze(x[:, -1, :])
+                counts = np.sum(counts, axis=1)
+                t = time_index[mask]
+                t = [int(i) for i in t]
+                index_guess = np.argmax(counts[t])
+                current_spectra = np.array(h[samplename]['spectra'])
+                current_time = t[index_guess] + 15
+                answers[samplename] = {'time': current_time,
+                                       'spectra': current_spectra[current_time - 1, :]}
+            counter += 1
+        save_obj(answers, '{}_hits'.format(runname))
+        print('Validation written in {} s'.format(time.time() - a))
 
     return
 

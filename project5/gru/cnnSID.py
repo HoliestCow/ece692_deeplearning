@@ -22,7 +22,7 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 500
+        self.epochs = 1000
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -251,6 +251,7 @@ def load_obj(name):
         return pickle.load(f)
 
 def main():
+    interest = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')
@@ -273,7 +274,8 @@ def main():
     np.save('sid_ground_truth.npy', labels_decode)
     
     # counter = 0
-    hits = load_obj('normalgru_hits')
+    # hits = load_obj('normalgru_hits')
+    hits = load_obj('{}_hits'.format(interest))
     answers = open('approach3_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
 
@@ -282,9 +284,9 @@ def main():
         key = sample
         data = hits[key]
         if data['time'] == 0:
+            print('here')
             answers.write('{},{},{},\n'.format(key, 0, 0))
             continue
-        print('here')
         x = np.array(data['spectra'])
         x = x.reshape((1, len(x)))
         predictions = cnn.sess.run(
