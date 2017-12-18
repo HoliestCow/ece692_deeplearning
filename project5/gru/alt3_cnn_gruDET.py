@@ -330,9 +330,9 @@ def load_obj(name ):
 def main():
     cnn = cnnMNIST()
     validate_please = True
-    characterize = False
+    characterize = True
     cnn.lr = 1e-4
-    cnn.epochs = 1
+    cnn.epochs = 1000
     cnn.runname = 'cnndetalt3_wdiffs_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
     runname = cnn.runname
     a = time.time()
@@ -389,7 +389,7 @@ def main():
                 current_spectra = np.squeeze(x[index_guess, -1, :])
                 current_time = t[index_guess] + 15
                 answers[samplename] = {'time': current_time,
-                                       'spectra': current_spectra[current_time - 1, :]}
+                                       'spectra': current_spectra}
             counter += 1
         save_obj(answers, '{}_hits'.format(runname))
         print('Validation written in {} s'.format(time.time() - a))
