@@ -59,8 +59,8 @@ def main():
     # only need to do this once.
     # ncores = 4
     # nsamples = 25000
-    nsamples = 10000
-    # nsamples = 100
+    # nsamples = 10000
+    nsamples = 100
     # nsamples = 1
     # nsamples = 1000
     # nsamples = 100
@@ -118,39 +118,92 @@ def main():
     test = f.create_group('test')
     validate = f.create_group('validate')
 
-    source_spectra_train = np.zeros((len(sourcefilelist_train), 5, 1024))
+    l_window = [2, 4, 6, 8]
+    r_window = [3, 5, 7, 9]
+
+    # source_spectra_train = np.zeros((len(sourcefilelist_train), 5, 1024))
+    source_spectra_train = []
     source_label_train = np.zeros((len(sourcefilelist_train),))
+    source_chooselr_train = np.zeros((len(sourcefilelist_train),), dtype=int)
+    isgood = np.zeros((len(sourcefilelist_train),), dtype=bool)
     for i in range(len(sourcefilelist_train)):
         random_file = sourcefilelist_train[i]
         if i % 100 == 0:
             print(i)
         x = np.load('./integrations/' + random_file + '.npy')
         source_index = int(labels[random_file]['time'])
-        indices = np.arange(source_index - 2, source_index + 3)
-        bg_to_subtract = np.tile(x[source_index - 3, 1:], (5, 1))
+
+        choose_lr_window = np.random.randint(len(l_window))
+
+        leftpos = l_window[choose_lr_window]
+        rightpos = r_window[choose_lr_window]
+        totalpos = leftpos + rightpos
+
+        indices = np.arange(source_index - leftpos, source_index + rightpos)
+        bg_to_subtract = np.tile(x[source_index - leftpos - 1, 1:], (totalpos, 1))
+        try:
+            x[indices, 1:]
+            isgood[i] = True
+        except:
+            isgood[i] = False
+            # source_spectra_train += []
+            source_label_train[i] = 0
+            source_chooselr_train[i] = 0
+            continue
         temp_spectra = np.subtract(x[indices, 1:], bg_to_subtract)
         temp_spectra[temp_spectra < 0] = 0
-        source_spectra_train[i, :, :] = temp_spectra
+        source_spectra_train += [temp_spectra]
         source_label_train[i] = int(string2id[labels[random_file]['source']])
+        source_chooselr_train[i] = choose_lr_window
         # fig = plt.figure()
         # plt.plot(source_spectra_train[i, 3, :])
         # fig.savefig(sourcefilelist_train[i] + '.png')
         # plt.close()
+    # source_spectra_train = source_spectra_train[isgood]
+    source_label_train = source_label_train[isgood]
+    source_chooselr_train = source_chooselr_train[isgood]
 
-    source_spectra_test = np.zeros((len(sourcefilelist_test), 5, 1024))
+    source_spectra_test = []
     source_label_test = np.zeros((len(sourcefilelist_test),))
+    source_chooselr_test = np.zeros((len(sourcefilelist_test),), dtype=int)
+    isgood = np.zeros((len(sourcefilelist_test),), dtype=bool)
     for i in range(len(sourcefilelist_test)):
         random_file = sourcefilelist_test[i]
         if i % 100 == 0:
             print(i)
         x = np.load('./integrations/' + random_file + '.npy')
         source_index = int(labels[random_file]['time'])
-        indices = np.arange(source_index - 2, source_index + 3)
-        bg_to_subtract = np.tile(x[source_index - 3, 1:], (5, 1))
+
+        choose_lr_window = np.random.randint(len(l_window))
+
+        leftpos = l_window[choose_lr_window]
+        rightpos = r_window[choose_lr_window]
+        totalpos = leftpos + rightpos
+
+        indices = np.arange(source_index - leftpos, source_index + rightpos)
+        bg_to_subtract = np.tile(x[source_index - leftpos - 1, 1:], (totalpos, 1))
+        try:
+            x[indices, 1:]
+            isgood[i] = True
+        except:
+            isgood[i] = False
+            source_label_test[i] = 0
+            source_chooselr_test[i] = 0
+            continue
         temp_spectra = np.subtract(x[indices, 1:], bg_to_subtract)
         temp_spectra[temp_spectra < 0] = 0
-        source_spectra_test[i, :, :] = temp_spectra
+        source_spectra_test += [temp_spectra]
         source_label_test[i] = int(string2id[labels[random_file]['source']])
+        source_chooselr_test[i] = choose_lr_window
+
+    source_label_test = source_label_test[isgood]
+    source_chooselr_test = source_chooselr_test[isgood]
+
+    l_window = [2, 4, 6, 8]
+    r_window = [3, 5, 7, 9]
+    start_injection = [26, 24, 22, 20]
+    middle_injection = 28
+    end_injection = [31, 33, 35, 37]
 
     a = time.time()
     for i in range(nsamples):
@@ -163,15 +216,18 @@ def main():
         # grab a random 30 second segment of the background
         background_index = np.random.randint(background_spectra.shape[0] - 44)
         current_background = background_spectra[background_index:background_index + 44, :]
-        sourcetype_index = np.random.randint(source_spectra_train.shape[0])
+        sourcetype_index = np.random.randint(len(source_spectra_train))
+        leftstart = start_injection[source_chooselr_train[sourcetype_index]]
+        rightend = end_injection[source_chooselr_train[sourcetype_index]]
         label_list = np.zeros((current_background.shape[0],))
-        start_injection = 26
-        end_injection = 31
-        injection_indices = np.arange(start_injection, end_injection)
-        label_list[injection_indices] = source_label_train[sourcetype_index] * np.ones((len(injection_indices),))
+        # start_injection = 26
+        # end_injection = 31
+        injection_indices = np.arange(leftstart, rightend)
+        # label_list[injection_indices] = source_label_train[sourcetype_index] * np.ones((len(injection_indices),))
+        label_list[middle_injection] = source_label_train[sourcetype_index]
         measured_spectra = current_background
         # NOTE: Not exactly an injection. The source has a different background.
-        measured_spectra[injection_indices, :] = measured_spectra[injection_indices, :] + source_spectra_train[sourcetype_index, :, :]
+        measured_spectra[injection_indices, :] = measured_spectra[injection_indices, :] + source_spectra_train[sourcetype_index] # , :, :]
 
         # TRUNCATING THE DATASET FOR CLASS BALANCE AND SPACE CONSIDERATIONS
         # cut the spectra shut that I get a 15, 15, 1024. label_list = 000001111100000
@@ -193,7 +249,18 @@ def main():
         # grp.create_dataset('target_spectra', data=tostore_bgspectra, compression='gzip')
         grp.create_dataset('labels', data=tostore_labels, compression='gzip')
 
-    for i in range(int(nsamples / 5)):
+        # NOTE: THIS BLOCK IS FOR CHECKING.
+        # for j in range(tostore_spectra.shape[0]):
+        #     fig = plt.figure()
+        #     plt.plot(tostore_spectra[j, :])
+        #     plt.title('current_{}_target_{}'.format(j, middle_injection))
+        #     plt.axis([0, 1024, 0, 60])
+        #     fig.savefig('{:03d}_{:03d}.png'.format(i, j))
+        #     plt.close()
+        # if i > 10:
+        #     print(fuck)
+
+    for i in range(int(2000)):
         random_file = backgroundfilelist_test[np.random.randint(len(backgroundfilelist_test))]
         if i % 100 == 0:
             print('{} testing samples done in {} s '.format(i, time.time() - a))
@@ -203,15 +270,16 @@ def main():
         # inject a source at some random
         background_index = np.random.randint(background_spectra.shape[0] - 44)
         current_background = background_spectra[background_index:background_index + 44, :]
-        sourcetype_index = np.random.randint(source_spectra_test.shape[0])
+        sourcetype_index = np.random.randint(len(source_spectra_test))
+        leftstart = start_injection[source_chooselr_test[sourcetype_index]]
+        rightend = end_injection[source_chooselr_test[sourcetype_index]]
         label_list = np.zeros((current_background.shape[0],))
-        start_injection = 26
-        end_injection = 31
-        injection_indices = np.arange(start_injection, end_injection)
-        label_list[injection_indices] = source_label_test[sourcetype_index] * np.ones((len(injection_indices),))
+        injection_indices = np.arange(leftstart, rightend)
+        # label_list[injection_indices] = source_label_test[sourcetype_index] * np.ones((len(injection_indices),))
+        label_list[middle_injection] = source_label_test[sourcetype_index]
         measured_spectra = current_background
         # NOTE: Not exactly an injection. The source has a different background.
-        measured_spectra[injection_indices, :] = measured_spectra[injection_indices, :] + source_spectra_test[sourcetype_index, :, :]
+        measured_spectra[injection_indices, :] = measured_spectra[injection_indices, :] + source_spectra_test[sourcetype_index] # , :, :]
 
         # Truncating the set for space and class balance
         # index = np.arange(measured_spectra.shape[0])
@@ -231,6 +299,17 @@ def main():
         grp.create_dataset('measured_spectra', data=tostore_spectra, compression='gzip')
         # grp.create_dataset('target_spectra', data=tostore_bgspectra, compression='gzip')
         grp.create_dataset('labels', data=tostore_labels, compression='gzip')
+
+        # NOTE: THIS BLOCK IS FOR CHECKING.
+        # for j in range(tostore_spectra.shape[0]):
+        #     fig = plt.figure()
+        #     plt.plot(tostore_spectra[j, :])
+        #     plt.title('current_{}_target_{}'.format(j, middle_injection))
+        #     plt.axis([0, 1024, 0, 60])
+        #     fig.savefig('{:03d}_{:03d}.png'.format(i, j))
+        #     plt.close()
+        # if i > 10:
+        #     print(fuck)
 
     for i in range(len(validatelist)):
         tostore_spectra = np.zeros((0, sequence_length, 1024))
