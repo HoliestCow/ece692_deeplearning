@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 from collections import OrderedDict
 import pickle
 from itertools import islice
+
+# NOTE: For python2
 # import cPickle as pickle
 
 # from tensorflow.examples.tutorials.mnist import input_data
@@ -215,8 +217,8 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
+            # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()

@@ -134,17 +134,19 @@ class cnnMNIST(object):
         return
 
     def train(self):
-        self.sess = tf.Session()
+        # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
         self.eval() # creating evaluation
         for i in range(self.epochs):
             # batch = mnist.train.next_batch(50)
-            x_generator = self.batch(self.x_train, n=32)
-            y_generator = self.batch(self.y_train, n=32)
+            x_generator = self.batch(self.x_train, n=128)
+            y_generator = self.batch(self.y_train, n=128)
             # print(batch[0].shape)
             # print(batch[1].shape)
-            if i % 10 == 0 and i != 0:
+            if i % 100 == 0 and i != 0:
                 train_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:1000, :],
                     self.y_: self.y_test[:1000, :],
                                                                    self.keep_prob: 1.0})
@@ -284,7 +286,6 @@ def main():
         key = sample
         data = hits[key]
         if data['time'] == 0:
-            print('here')
             answers.write('{},{},{},\n'.format(key, 0, 0))
             continue
         x = np.array(data['spectra'])
