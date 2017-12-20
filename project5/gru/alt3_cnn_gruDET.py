@@ -22,9 +22,10 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = False
         self.lr = 1e-4
-        self.epochs = 10000
+        self.epochs = 1000
         self.runname = 'meh'
         self.build_graph()
+        self.dataset_filename = './sequential_dataset_relabel.h5'
 
     def onehot_labels(self, labels):
         out = np.zeros((labels.shape[0], 2))
@@ -42,7 +43,7 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
         try:
-            f = h5py.File('./sequential_dataset_balanced_newmethod.h5', 'r')
+            f = h5py.File(self.dataset_filename, 'r')
         except:
             # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
             f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
@@ -103,7 +104,7 @@ class cnnMNIST(object):
         # NOTE: for using cnnfeatures sequential dataset
         # f = h5py.File('sequential_dataset_validation.h5', 'r')
         try:
-            f = h5py.File('sequential_dataset_balanced_newmethod.h5', 'r')
+            f = h5py.File(self.dataset_filename, 'r')
         except:
             f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
         g = f['validate']
@@ -336,9 +337,9 @@ def load_obj(name ):
 
 def main():
     cnn = cnnMNIST()
-    validate_please = True
-    characterize = False
-    cnn.use_gpu = False
+    validate_please = False
+    characterize = True
+    cnn.use_gpu = True
     cnn.lr = 1e-4
     cnn.epochs = 1000
     cnn.runname = 'cnndetalt3_wdiffs_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
