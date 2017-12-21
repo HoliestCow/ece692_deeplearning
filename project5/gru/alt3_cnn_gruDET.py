@@ -219,15 +219,14 @@ class cnnMNIST(object):
         # self.loss = tf.reduce_sum(tf.losses.softmax_cross_entropy(self.y_, self.y_conv))
 
         self.y_conv = tf.contrib.layers.fully_connected(last, out_size, activation_fn=None)
-
-        # classes_weights = tf.constant([0.1, 0.6])
-        # classes_weights = tf.constant([0.1, 1.0])  # works ok after 300 epochs
-        classes_weights = tf.constant([0.1, 1.5])  # I haven't tried this one yet.
+        
+        classes_weights = tf.constant([1.0, 1.0])
+        # classes_weights = tf.constant([0.1, 1.5])  # I haven't tried this one yet.
         cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits=self.y_conv, targets=self.y_, pos_weight=classes_weights)
         self.loss = tf.reduce_sum(cross_entropy)
 
-        # self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
-        self.train_step = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
+        self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+        # self.train_step = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
     def shuffle(self):
         np.random.shuffle(self.data_keylist)
@@ -236,8 +235,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
