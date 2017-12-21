@@ -123,6 +123,7 @@ class cnnMNIST(object):
         # samplelist = samplelist[:10]
 
         sequence_length = 15
+        max_batch_size = 64
 
         for i in range(len(samplelist)):
             self.current_sample_name = samplelist[i]
@@ -133,10 +134,19 @@ class cnnMNIST(object):
             tostore_spectra = np.zeros((0, sequence_length, 1024))
             for index_list in index_generator:
                 tostore_spectra = np.concatenate((tostore_spectra, data[index_list, :].reshape((1, sequence_length, 1024))))
-            yield tostore_spectra, samplelist[i]
-            # for j in range(self.current_batch_length):
-            #     current_x = np.squeeze(data[j, :, :])
-            #     yield current_x
+            # yield tostore_spectra, samplelist[i]
+
+            self.howmanytimes = int(np.floor(tostore_spectra.shape[0] / max_batch_size))
+
+            for j in range(self.howmanytimes):
+                start = j * max_batch_size
+                end = (j + 1) * max_batch_size
+                if end > tostore_spectra.shape[0]:
+                    end = tostore_spectra.shape[0]
+                indicies = np.arange(start, end)
+                x = tostore_spectra[indicies, :, :]
+                y = self.onehot_labels(tostore_labels[indicies])
+                yield x, y
 
     def window(self, seq, n=2):
         "Returns a sliding window (of width n) over data from the iterable"
@@ -354,11 +364,11 @@ def load_obj(name ):
 
 def main():
     cnn = cnnMNIST()
-    validate_please = False
+    validate_please = True
     characterize = True
     cnn.use_gpu = True
     cnn.lr = 1e-4
-    cnn.epochs = 1000
+    cnn.epochs = 100
     cnn.runname = 'cnndetalt3_wdiffs_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
     runname = cnn.runname
     a = time.time()
