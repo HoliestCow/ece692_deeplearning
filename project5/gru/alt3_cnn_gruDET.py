@@ -70,6 +70,42 @@ class cnnMNIST(object):
             if shortset:
                 keylist = usethesekeys[:100]
 
+        sequence_length = 15
+
+        # l = len(iterable)
+        for i in range(len(keylist)):
+            self.current_key = keylist[i]
+            x = np.array(iterable[keylist[i]]['measured_spectra'])
+            y = np.array(iterable[keylist[i]]['labels'])
+            mask = y >= 0.5
+            y[mask] = 1
+
+            index = np.arange(x.shape[0])
+
+            index_generator = self.window(index, n=sequence_length)
+            tostore_spectra = np.zeros((0, sequence_length, 1024))
+            tostore_labels = []
+            for index_list in index_generator:
+                tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
+                tostore_labels += [y[list(index_list)[-1]]]
+            tostore_labels = np.array(tostore_labels)
+
+            x = tostore_spectra
+            y = self.onehot_labels(tostore_labels)
+            self.current_batch_length = x.shape[0]
+
+            yield x, y
+
+    def memory_batch(self, iterable, n=1, shuffle=True, small_test=True, usethesekeys = None, shortset=False):
+        if shuffle:
+            self.shuffle()
+        if usethesekeys is None:
+            keylist = self.data_keylist
+        else:
+            keylist = usethesekeys
+            if shortset:
+                keylist = usethesekeys[:100]
+
         max_batch_size = 128
 
         sequence_length = 15
@@ -110,7 +146,7 @@ class cnnMNIST(object):
             #     stuff = stuff.reshape((1, 2))
             #     yield x[j, :], stuff, z[j]
 
-    def validation_batcher(self):
+    def memory_validation_batcher(self):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # NOTE: for using cnnfeatures sequential dataset
         # f = h5py.File('sequential_dataset_validation.h5', 'r')
@@ -220,7 +256,7 @@ class cnnMNIST(object):
         # self.loss = tf.reduce_sum(tf.losses.softmax_cross_entropy(self.y_, self.y_conv))
 
         self.y_conv = tf.contrib.layers.fully_connected(last, out_size, activation_fn=None)
-        
+
         classes_weights = tf.constant([1.0, 1.0])
         # classes_weights = tf.constant([0.1, 1.5])  # I haven't tried this one yet.
         cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits=self.y_conv, targets=self.y_, pos_weight=classes_weights)
