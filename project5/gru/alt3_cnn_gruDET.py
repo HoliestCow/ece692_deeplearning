@@ -70,7 +70,7 @@ class cnnMNIST(object):
             if shortset:
                 keylist = usethesekeys[:100]
 
-        max_batch_size = 64
+        max_batch_size = 128
 
         sequence_length = 15
 
@@ -92,17 +92,17 @@ class cnnMNIST(object):
                 tostore_labels += [y[list(index_list)[-1]]]
             tostore_labels = np.array(tostore_labels)
 
-            self.howmanytimes = int(np.floor(tostore_spectra.shape[0] / max_batch_size))
+            self.howmanytimes = int(np.ceil(tostore_spectra.shape[0] / max_batch_size))
             # self.remainder = tostore_spectra.shape[0] % max_batch_size
-
-            for j in range(self.howmanytimes):
+            for j in range(self.howmanytimes + 1):
                 start = j * max_batch_size
-                end = (j + 1) * max_batch_size
+                end = ((j + 1) * max_batch_size)
                 if end > tostore_spectra.shape[0]:
                     end = tostore_spectra.shape[0]
-                indicies = np.arange(start, end)
-                x = tostore_spectra[indicies, :, :]
-                y = self.onehot_labels(tostore_labels[indicies])
+                x = tostore_spectra[start:end, :, :]
+                if x.shape[0] == 0:
+                    continue
+                y = self.onehot_labels(tostore_labels[start:end])
                 yield x, y
 
             # for j in range(self.current_batch_length):
@@ -123,7 +123,7 @@ class cnnMNIST(object):
         # samplelist = samplelist[:10]
 
         sequence_length = 15
-        max_batch_size = 64
+        max_batch_size = 128
 
         for i in range(len(samplelist)):
             self.current_sample_name = samplelist[i]
@@ -136,16 +136,17 @@ class cnnMNIST(object):
                 tostore_spectra = np.concatenate((tostore_spectra, data[index_list, :].reshape((1, sequence_length, 1024))))
             # yield tostore_spectra, samplelist[i]
 
-            self.howmanytimes = int(np.floor(tostore_spectra.shape[0] / max_batch_size))
+            self.howmanytimes = int(np.ceil(tostore_spectra.shape[0] / max_batch_size))
 
-            for j in range(self.howmanytimes):
+            for j in range(self.howmanytimes + 1):
                 start = j * max_batch_size
                 end = (j + 1) * max_batch_size
                 if end > tostore_spectra.shape[0]:
                     end = tostore_spectra.shape[0]
-                indicies = np.arange(start, end)
-                x = tostore_spectra[indicies, :, :]
-                y = self.onehot_labels(tostore_labels[indicies])
+                x = tostore_spectra[start:end, :, :]
+                if x.shape[0] == 0:
+                    continue
+                y = self.onehot_labels(tostore_labels[start:end])
                 yield x, y
 
     def window(self, seq, n=2):
@@ -223,7 +224,7 @@ class cnnMNIST(object):
         classes_weights = tf.constant([1.0, 1.0])
         # classes_weights = tf.constant([0.1, 1.5])  # I haven't tried this one yet.
         cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits=self.y_conv, targets=self.y_, pos_weight=classes_weights)
-        self.loss = tf.reduce_sum(cross_entropy)
+        self.loss = tf.reduce_mean(cross_entropy)
 
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
         # self.train_step = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
@@ -276,9 +277,7 @@ class cnnMNIST(object):
             # x = x / x.sum(axis=-1, keepdims=True)
             x_generator = self.batch(self.x_train, shuffle=True)
             # x, y = next(x_generator)
-            temp_counter = 0
             for x, y in x_generator:
-                temp_counter += 1
             # for j in range(self.howmanytimes):
             #     if j != 0:
             #         x, y = next(x_generator)
@@ -288,8 +287,6 @@ class cnnMNIST(object):
                 self.sess.run([self.train_step], feed_dict={
                                self.x: x,
                                self.y_: y})
-            print(self.howmanytimes, temp_counter)
-            stop
                            #   self.weights: z})
             # self.shuffle()
 
@@ -372,7 +369,7 @@ def main():
     characterize = True
     cnn.use_gpu = True
     cnn.lr = 1e-4
-    cnn.epochs = 100
+    cnn.epochs = 1
     cnn.runname = 'cnndetalt3_wdiffs_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
     runname = cnn.runname
     a = time.time()
@@ -410,7 +407,7 @@ def main():
             if counter % 100 == 0 and counter != 0:
                 print('{} validation samples done in {} s'.format(counter, time.time() - a))
             x = sample
-            # print(x.shape)
+            print(x.shape)
             predictions = cnn.sess.run(
                 cnn.prediction,
                 feed_dict = {cnn.x: x})
