@@ -48,7 +48,7 @@ class cnnMNIST(object):
             f = h5py.File(self.dataset_filename, 'r')
         except:
             # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
-            f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
+            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
 
         X = f['train']
         X_test = f['test']
@@ -70,6 +70,8 @@ class cnnMNIST(object):
             if shortset:
                 keylist = usethesekeys[:100]
 
+        max_batch_size = 64
+
         sequence_length = 15
 
         # l = len(iterable)
@@ -90,11 +92,18 @@ class cnnMNIST(object):
                 tostore_labels += [y[list(index_list)[-1]]]
             tostore_labels = np.array(tostore_labels)
 
-            x = tostore_spectra
-            y = self.onehot_labels(tostore_labels)
-            self.current_batch_length = x.shape[0]
+            self.howmanytimes = int(np.floor(tostore_spectra.shape[0] / max_batch_size))
+            # self.remainder = tostore_spectra.shape[0] % max_batch_size
 
-            yield x, y
+            for j in range(self.howmanytimes):
+                start = j * max_batch_size
+                end = (j + 1) * max_batch_size
+                if end > tostore_spectra.shape[0]:
+                    end = tostore_spectra.shape[0]
+                indicies = np.arange(start, end)
+                x = tostore_spectra[indicies, :, :]
+                y = self.onehot_labels(tostore_labels[indicies])
+                yield x, y
 
             # for j in range(self.current_batch_length):
             #     stuff = y[j,:]
@@ -108,7 +117,7 @@ class cnnMNIST(object):
         try:
             f = h5py.File(self.dataset_filename, 'r')
         except:
-            f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
+            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
@@ -235,7 +244,10 @@ class cnnMNIST(object):
                 meh = 0
                 x_generator_test = self.batch(self.x_test,
                                               usethesekeys=list(self.x_test.keys()), shortset=True)
-                for j, k in x_generator_test:
+                first, second = next(x_generator_test)
+                for outerloop in range(self.howmanytimes):
+                    if outerloop != 0:
+                        first, second = next(x_generator_test)
                     # NOTE: quick and dirty preprocessing once again
                     # feedme = j / j.sum(axis=-1, keepdims=True)
                     feedme = j
@@ -255,12 +267,15 @@ class cnnMNIST(object):
             # x = x / x.sum(axis=-1, keepdims=True)
             x_generator = self.batch(self.x_train, shuffle=True)
             x, y = next(x_generator)
-            # print(self.current_key, x.shape)
-            # for j in range(self.current_batch_length):
-                # x, y, z = next(x_generator)
-            self.sess.run([self.train_step], feed_dict={
-                           self.x: x,
-                           self.y_: y})
+            for j in range(self.howmanytimes):
+                if j != 0:
+                    x, y = next(x_generator)
+                # print(self.current_key, x.shape)
+                # for j in range(self.current_batch_length):
+                    # x, y, z = next(x_generator)
+                self.sess.run([self.train_step], feed_dict={
+                               self.x: x,
+                               self.y_: y})
                            #   self.weights: z})
             # self.shuffle()
 
