@@ -254,10 +254,11 @@ class cnnMNIST(object):
                 meh = 0
                 x_generator_test = self.batch(self.x_test,
                                               usethesekeys=list(self.x_test.keys()), shortset=True)
-                first, second = next(x_generator_test)
-                for outerloop in range(self.howmanytimes):
-                    if outerloop != 0:
-                        first, second = next(x_generator_test)
+                # first, second = next(x_generator_test)
+                # for outerloop in range(self.howmanytimes):
+                for first, second in x_generator_test:
+                #     if outerloop != 0:
+                        # first, second = next(x_generator_test)
                     # NOTE: quick and dirty preprocessing once again
                     # feedme = j / j.sum(axis=-1, keepdims=True)
                     feedme = j
@@ -276,16 +277,21 @@ class cnnMNIST(object):
             # NOTE: QUick and dirty preprocessing. normalize to counts
             # x = x / x.sum(axis=-1, keepdims=True)
             x_generator = self.batch(self.x_train, shuffle=True)
-            x, y = next(x_generator)
-            for j in range(self.howmanytimes):
-                if j != 0:
-                    x, y = next(x_generator)
+            # x, y = next(x_generator)
+            temp_counter = 0
+            for x, y in x_generator:
+                temp_counter += 1
+            # for j in range(self.howmanytimes):
+            #     if j != 0:
+            #         x, y = next(x_generator)
                 # print(self.current_key, x.shape)
                 # for j in range(self.current_batch_length):
                     # x, y, z = next(x_generator)
                 self.sess.run([self.train_step], feed_dict={
                                self.x: x,
                                self.y_: y})
+            print(self.howmanytimes, temp_counter)
+            stop
                            #   self.weights: z})
             # self.shuffle()
 
