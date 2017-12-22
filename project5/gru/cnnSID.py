@@ -254,6 +254,7 @@ def load_obj(name):
 
 def main():
     interest = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
+    interest = 'cnndetalt3_relabel_lr0.0001_ep500'
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')
