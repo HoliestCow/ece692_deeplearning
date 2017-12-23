@@ -154,14 +154,12 @@ class cnnMNIST(object):
             f = h5py.File(self.dataset_filename, 'r')
         except:
             f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
-<<<<<<< HEAD
-=======
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:100]
 
         sequence_length = 15
-        max_batch_size = 256
+        max_batch_size = 64
 
         for i in range(len(samplelist)):
             self.current_sample_name = samplelist[i]
@@ -194,13 +192,12 @@ class cnnMNIST(object):
             f = h5py.File(self.dataset_filename, 'r')
         except:
             f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
->>>>>>> production runs. Still have one or two bugs
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
 
         sequence_length = 15
-        max_batch_size = 128
+        max_batch_size = 64
 
         for i in range(len(samplelist)):
             self.current_sample_name = samplelist[i]
@@ -317,12 +314,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-<<<<<<< HEAD
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
-=======
-            # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.45)
->>>>>>> production runs. Still have one or two bugs
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -337,7 +329,7 @@ class cnnMNIST(object):
                 sum_loss = 0
                 hits = 0
                 meh = 0
-                x_generator_test = self.batch(self.x_test,
+                x_generator_test = self.memory_batch(self.x_test,
                                               usethesekeys=list(self.x_test.keys()), shortset=True)
                 # first, second = next(x_generator_test)
                 # for outerloop in range(self.howmanytimes):
@@ -346,7 +338,8 @@ class cnnMNIST(object):
                         # first, second = next(x_generator_test)
                     # NOTE: quick and dirty preprocessing once again
                     # feedme = j / j.sum(axis=-1, keepdims=True)
-                    feedme = j
+                    feedme = first
+                    k = second
                     accuracy, test_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction], feed_dict={self.x: feedme,
                                self.y_: k, self.keep_prob:1.0})
                             #    self.weights: z})
@@ -361,20 +354,7 @@ class cnnMNIST(object):
                 print('step {}:\navg test acc {} | avg train acc {}\navg test loss {} | avg train loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_acc / meh, train_acc, sum_loss / counter, train_loss, hits, b-a))
             # NOTE: QUick and dirty preprocessing. normalize to counts
             # x = x / x.sum(axis=-1, keepdims=True)
-            x_generator = self.batch(self.x_train, shuffle=True)
-<<<<<<< HEAD
-            # x, y = next(x_generator)
-            for x, y in x_generator:
-            # for j in range(self.howmanytimes):
-            #     if j != 0:
-            #         x, y = next(x_generator)
-                # print(self.current_key, x.shape)
-                # for j in range(self.current_batch_length):
-                    # x, y, z = next(x_generator)
-                self.sess.run([self.train_step], feed_dict={
-                               self.x: x,
-                               self.y_: y})
-=======
+            x_generator = self.memory_batch(self.x_train, shuffle=True)
             x, y = next(x_generator)
             # print(self.current_key, x.shape)
             # for j in range(self.current_batch_length):
@@ -383,7 +363,6 @@ class cnnMNIST(object):
                            self.x: x,
                            self.y_: y,
                            self.keep_prob: 0.5})
->>>>>>> production runs. Still have one or two bugs
                            #   self.weights: z})
             # self.shuffle()
 
@@ -478,11 +457,7 @@ def group_consecutives(vals, step=1):
 def main():
     cnn = cnnMNIST()
     validate_please = True
-<<<<<<< HEAD
     characterize = True
-=======
-    characterize = False
->>>>>>> production runs. Still have one or two bugs
     cnn.use_gpu = True
     cnn.lr = 1e-5
     cnn.epochs = 10000
@@ -516,7 +491,7 @@ def main():
         # h = g['validation']
         # spectra_list = list(h.keys())
         a = time.time()
-        validation_data = cnn.validation_batcher()
+        validation_data = cnn.memory_validation_batcher()
         counter = 0
         answers = OrderedDict()
         toggle = 0
@@ -527,30 +502,10 @@ def main():
             if counter % 100 == 0 and counter != 0:
                 print('{} validation samples done in {} s'.format(counter, time.time() - a))
             x = sample
-<<<<<<< HEAD
-            print(x.shape)
-            predictions = cnn.sess.run(
-                cnn.prediction,
-                feed_dict = {cnn.x: x})
-            time_index = np.arange(predictions.shape[0])
-            mask = predictions >= 0.5
-
-            answers[samplename] = {'time': 0,
-                                   'spectra': 0}
-
-            if np.sum(mask) != 0:
-                counts = np.squeeze(x[:, -1, :])
-                counts = np.sum(counts, axis=1)
-                t = time_index[mask]
-                t = [int(i) for i in t]
-                index_guess = np.argmax(counts[t])
-                current_spectra = np.squeeze(x[index_guess, -1, :])
-                current_time = t[index_guess] + 15
-                answers[samplename] = {'time': current_time,
-                                       'spectra': current_spectra}
-=======
             temp_spectra = np.squeeze(x[:, -1, :])
-            print(x.shape, temp_x.shape, temp_spectra.shape)
+            # HACK: if temp_spectra batch size is one
+            if len(temp_spectra.shape) == 1:
+                temp_spectra = temp_spectra.reshape((1, 1024))
             temp_x = np.concatenate((temp_x, temp_spectra), axis=0)
             if toggle == 0:
                 predictions = cnn.sess.run(
@@ -590,7 +545,6 @@ def main():
                 predictions = []
                 temp_x = np.zeros((0, 1024))
                 toggle = 0
->>>>>>> production runs. Still have one or two bugs
             counter += 1
         save_obj(answers, '{}_hits'.format(runname))
         print('Validation written in {} s'.format(time.time() - a))
