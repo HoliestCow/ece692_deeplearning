@@ -20,7 +20,8 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 1000
+        self.epochs = 10000
+        self.epochs = 1
         self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
         self.dataset_filename = 'sequential_dataset_relabel.h5'
         self.build_graph()
@@ -51,25 +52,20 @@ class cnnMNIST(object):
 
         training_dataset = []
         training_labels = []
-        toggle = 0
         for item in training:
-            if toggle == 0:
-                training_dataset = np.array(training[item]['measured_spectra'])
-                training_labels = np.array(training[item]['labels'])
-                toggle = 1
-            else:
-                training_dataset = np.concatenate((training_dataset, np.array(training[item]['measured_spectra'])), axis=0)
-                training_labels = np.concatenate((training_labels, np.array(training[item]['labels'])))
-        print(training_dataset.shape, training_labels.shape)
-        toggle = 0
+            training_dataset += [np.array(training[item]['measured_spectra'])]
+            training_labels += [np.array(training[item]['labels'])]
+        training_dataset = np.concatenate(training_dataset, axis=0)
+        training_labels = np.array(training_labels)
+        training_labels = np.concatenate(training_labels, axis=0)
+
+        testing_dataset = []
+        testing_labels = []
         for item in testing:
-            if toggle == 0:
-                testing_dataset = np.array(testing[item]['measured_spectra'])
-                testing_labels = np.array(testing[item]['labels'])
-                toggle = 1
-            else:
-                testing_dataset = np.concatenate((testing_dataset, np.array(testing[item]['measured_spectra'])))
-                testing_labels = np.concatenate((testing_labels, np.array(testing[item]['labels'])))
+                testing_dataset += [np.array(testing[item]['measured_spectra'])]
+                testing_labels += [np.array(testing[item]['labels'])]
+        testing_dataset = np.concatenate(testing_dataset, axis=0)
+        testing_labels = np.concatenate(testing_labels, axis=0)
 
         self.x_train = training_dataset
         self.y_train = self.onehot_labels(training_labels)
@@ -120,13 +116,14 @@ class cnnMNIST(object):
     
 
     def validation_batcher(self):
-        f = h5py.File('./naive_dataset.h5', 'r')
-        g = f['validation']
+        # f = h5py.File('./naive_dataset.h5', 'r')
+        f = h5py.File('../data/sequential_dataset_relabel.h5', 'r')
+        g = f['validate']
         samplelist = list(g.keys())
 
         for i in range(len(samplelist)):
-            data = g[samplelist[i]]
-            yield data
+            data = np.array(g[samplelist[i]])
+            yield data, samplelist[i]
 
 
     def build_graph(self):
@@ -203,7 +200,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -314,8 +311,8 @@ def main():
     answers = open('approach1_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     # counter = 0
-    for sample in validation_data:
-        x = np.array(sample['spectra'])
+    for sample, runname in validation_data:
+        x = sample
         x = x[30:, :]
         predictions = cnn.sess.run(
             cnn.prediction,
@@ -324,7 +321,8 @@ def main():
         time_index = np.arange(predictions.shape[0])
         mask = predictions >= 0.5
 
-        runname = sample.name.split('/')[-1]
+        # runname = sample.name.split('/')[-1]
+        # runname = sample.name
         if np.sum(mask) != 0:
             counts = np.sum(x, axis=1)
             # fig = plt.figure()

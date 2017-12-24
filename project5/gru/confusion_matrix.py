@@ -36,23 +36,8 @@ def plot_confusion_matrix(cm, classes, normalize=False,
 
 def main():
     
-    # prefix = 'grudet_ep1000_lr0.001'
-    # prefix = 'grudetnormalsum100k'
-    # prefix = 'grudet_ep50000_lr0.001'
-    # prefix = 'grudetcnnalt2_10000'
-    # prefix = 'grudetcnnalt2_100000'
-    # prefix = 'grudetcnnalt2_1000'
-    # prefix = 'grusidcnnalt2_100000'
-    # prefix = 'grudetcnnalt3_20'
-    # prefix = 'grudetcnnalt3_800'
-    # prefix = 'grudetcnnalt3_1000'
-    # prefix = 'grudetcnnalt3_10000'
-    # prefix = 'grudetcnnalt3_wdiffs_10000'
-    # prefix = 'cnndetalt3_wdiffs_lr0.0001_ep10000'
-    # prefix = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
-    # prefix = 'cnndetalt3_wdiffs_relabel_lr1e-05_ep10000'
-    # prefix = 'cnndetalt3_relabel_lr1e-05_ep10000'
-    prefix = 'cnndetalt3_relabel_lr1e-05_ep50000'
+    prefix = 'cnndetalt3_relabel_lr1e-05_ep10000'
+    prefix = 'cnndetalt3_relabel_lr1e-05_ep1000'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))
