@@ -21,6 +21,7 @@ class cnnMNIST(object):
         self.lr = 1e-3
         self.epochs = 1000
         self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
+        self.dataset_filename = 'sequential_dataset_relabel.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -36,6 +37,51 @@ class cnnMNIST(object):
         return out
 
     def get_data(self):
+        # data_norm = True
+        # data_augmentation = False
+        try:
+            f = h5py.File(self.dataset_filename, 'r')
+        except:
+            # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
+
+        training = f['train']
+        testing = f['test']
+
+        training_dataset = []
+        training_labels = []
+        toggle = 0
+        for item in training:
+            if toggle == 0:
+                training_dataset = np.array(training[item]['measured_spectra'])
+                training_labels = np.array(training[item]['labels'])
+                toggle = 1
+            else:
+                training_dataset = np.concatenate((training_dataset, np.array(training[item]['measured_spectra'])), axis=0)
+                training_labels = np.concatenate((training_labels, np.array(training[item]['labels'])))
+        toggle = 0
+        for item in testing:
+            if toggle == 0:
+                testing_dataset = np.array(testing[item]['measured_spectra'])
+                testing_labels = np.array(testing[item]['labels'])
+                toggle = 1
+            else:
+                testing_dataset = np.concatenate((testing_dataset, np.array(testing[item])))
+                testing_labels = np.concatenate((testing_labels, np.array(testing[item]['labels'])))
+
+        self.x_train = training_dataset
+        self.y_train = training_labels
+        self.x_test = testing_dataset
+        self.y_test = testing_labels
+
+        # self.x_train = X
+        # self.x_test = X_test
+        # # NOTE: always use the keylist to get data
+        # self.data_keylist = list(X.keys())
+
+        return
+
+    def naive_get_data(self):
         # data_norm = True
         # data_augmentation = False
 
