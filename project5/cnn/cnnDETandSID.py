@@ -59,6 +59,7 @@ class cnnMNIST(object):
             else:
                 training_dataset = np.concatenate((training_dataset, np.array(training[item]['measured_spectra'])), axis=0)
                 training_labels = np.concatenate((training_labels, np.array(training[item]['labels'])))
+        print(training_dataset.shape, training_labels.shape)
         toggle = 0
         for item in testing:
             if toggle == 0:
@@ -66,7 +67,7 @@ class cnnMNIST(object):
                 testing_labels = np.array(testing[item]['labels'])
                 toggle = 1
             else:
-                testing_dataset = np.concatenate((testing_dataset, np.array(testing[item])))
+                testing_dataset = np.concatenate((testing_dataset, np.array(testing[item]['measured_spectra'])))
                 testing_labels = np.concatenate((testing_labels, np.array(testing[item]['labels'])))
 
         self.x_train = training_dataset
