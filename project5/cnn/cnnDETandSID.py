@@ -18,6 +18,7 @@ import os.path
 
 class cnnMNIST(object):
     def __init__(self):
+        self.use_gpu = True
         self.lr = 1e-3
         self.epochs = 1000
         self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
@@ -71,9 +72,9 @@ class cnnMNIST(object):
                 testing_labels = np.concatenate((testing_labels, np.array(testing[item]['labels'])))
 
         self.x_train = training_dataset
-        self.y_train = training_labels
+        self.y_train = self.onehot_labels(training_labels)
         self.x_test = testing_dataset
-        self.y_test = testing_labels
+        self.y_test = self.onehot_labels(testing_labels)
 
         # self.x_train = X
         # self.x_test = X_test
@@ -116,6 +117,7 @@ class cnnMNIST(object):
             # for j in range(data.shape[0]):
             #     data[j, :] = np.divide(data[j, :], normalization[j])
             yield data
+    
 
     def validation_batcher(self):
         f = h5py.File('./naive_dataset.h5', 'r')
@@ -184,7 +186,8 @@ class cnnMNIST(object):
         y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
 
         # Now I have to weight to logits
-        class_weights = tf.constant([0.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        # class_weights = tf.constant([0.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        class_weights = tf.constant([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
         self.y_conv = tf.multiply(y_conv, class_weights)
         cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(cross_entropy)
@@ -198,10 +201,17 @@ class cnnMNIST(object):
         return
 
     def train(self):
-        self.sess = tf.Session()
+        if self.use_gpu:
+            # use half of  the gpu memory
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+            self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+        else:
+            self.sess = tf.Session()
+        # self.sess = tf.Session()
         init = tf.global_variables_initializer()
         self.sess.run(init)
         self.eval() # creating evaluation
+        a = time.time()
         for i in range(self.epochs):
             # batch = mnist.train.next_batch(50)
             x_generator = self.batch(self.x_train, n=128)
@@ -215,7 +225,7 @@ class cnnMNIST(object):
                 train_acc = self.sess.run(self.accuracy, feed_dict={self.x: current_x,
                                                                    self.y_: current_y,
                                                                    self.keep_prob: 1.0})
-                print('step %d, training accuracy %g, testing accuracy %g' % (i, train_acc, test_acc))
+                print('step %d, training accuracy %g, testing accuracy %g, elapsed time %f' % (i, train_acc, test_acc, time.time()-a))
             current_x = next(x_generator)
             current_y = next(y_generator)
             self.sess.run([self.train_step], feed_dict={self.x: current_x,
@@ -275,41 +285,6 @@ class cnnMNIST(object):
             temp_predictions = temp_predictions.reshape((temp_predictions.shape[0], 1))
             predictions = np.vstack((predictions, temp_predictions))
         return predictions
-
-
-# def plot_confusion_matrix(cm, classes,
-#                           normalize=False,
-#                           title='Confusion matrix',
-#                           cmap=plt.cm.Blues):
-#     """
-#     This function prints and plots the confusion matrix.
-#     Normalization can be applied by setting `normalize=True`.
-#     """
-#     if normalize:
-#         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-#         print("Normalized confusion matrix")
-#     else:
-#         print('Confusion matrix, without normalization')
-#
-#     print(cm)
-#
-#     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-#     plt.title(title)
-#     plt.colorbar()
-#     tick_marks = np.arange(len(classes))
-#     plt.xticks(tick_marks, classes, rotation=45)
-#     plt.yticks(tick_marks, classes)
-#
-#     fmt = '.2f' if normalize else 'd'
-#     thresh = cm.max() / 2.
-#     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-#         plt.text(j, i, format(cm[i, j], fmt),
-#                  horizontalalignment="center",
-#                  color="white" if cm[i, j] > thresh else "black")
-#
-#     plt.tight_layout()
-#     plt.ylabel('True label')
-#     plt.xlabel('Predicted label')
 
 
 def main():
