@@ -20,39 +20,38 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 10000
-        self.epochs = 1
-        self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel.h5'
-        self.build_graph()
+        self.epochs = 1000
+    self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
+    self.dataset_filename = 'sequential_dataset_relabel.h5'
+    self.build_graph()
 
-    def onehot_labels(self, labels):
-        out = np.zeros((labels.shape[0], 7))
-        for i in range(labels.shape[0]):
-            out[i, :] = np.eye(7)[labels[i]]
-        return out
+def onehot_labels(self, labels):
+    out = np.zeros((labels.shape[0], 7))
+    for i in range(labels.shape[0]):
+        out[i, :] = np.eye(7)[labels[i]]
+    return out
 
-    def onenothot_labels(self, labels):
-        out = np.zeros((labels.shape[0],))
-        for i in range(labels.shape[0]):
-            out[i] = np.argmax(labels[i, :])
-        return out
+def onenothot_labels(self, labels):
+    out = np.zeros((labels.shape[0],))
+    for i in range(labels.shape[0]):
+        out[i] = np.argmax(labels[i, :])
+    return out
 
-    def get_data(self):
-        # data_norm = True
-        # data_augmentation = False
-        try:
-            f = h5py.File(self.dataset_filename, 'r')
-        except:
-            # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
-            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
+def get_data(self):
+    # data_norm = True
+    # data_augmentation = False
+    try:
+        f = h5py.File(self.dataset_filename, 'r')
+    except:
+        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+        f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
 
-        training = f['train']
-        testing = f['test']
+    training = f['train']
+    testing = f['test']
 
-        training_dataset = []
-        training_labels = []
-        for item in training:
+    training_dataset = []
+    training_labels = []
+    for item in training:
             training_dataset += [np.array(training[item]['measured_spectra'])]
             training_labels += [np.array(training[item]['labels'])]
         training_dataset = np.concatenate(training_dataset, axis=0)
@@ -116,8 +115,10 @@ class cnnMNIST(object):
     
 
     def validation_batcher(self):
-        # f = h5py.File('./naive_dataset.h5', 'r')
-        f = h5py.File('../data/sequential_dataset_relabel.h5', 'r')
+        try:
+            f = h5py.File(self.dataset_filename, 'r')
+        except:
+            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
         g = f['validate']
         samplelist = list(g.keys())
 
@@ -181,6 +182,7 @@ class cnnMNIST(object):
         b_fc2 = self.bias_variable([7])
 
         y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+        self.y_conv = y_conv
 
         # Now I have to weight to logits
         # class_weights = tf.constant([0.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
@@ -215,7 +217,7 @@ class cnnMNIST(object):
             y_generator = self.batch(self.y_train, n=128)
             # print(batch[0].shape)
             # print(batch[1].shape)
-            if i % 10 == 0 and i != 0:
+            if i % 100 == 0 and i != 0:
                 test_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:1000, :],
                     self.y_: self.y_test[:1000, :],
                                                                    self.keep_prob: 1.0})
