@@ -50,8 +50,9 @@ def main():
     # prefix = 'grudetcnnalt3_wdiffs_10000'
     # prefix = 'cnndetalt3_wdiffs_lr0.0001_ep10000'
     # prefix = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
-    prefix = 'cnndetalt3_wdiffs_relabel_lr1e-05_ep10000'
+    # prefix = 'cnndetalt3_wdiffs_relabel_lr1e-05_ep10000'
     # prefix = 'cnndetalt3_relabel_lr1e-05_ep10000'
+    prefix = 'cnndetalt3_relabel_lr1e-05_ep50000'
 
     predictions_decode = np.load('{}_predictions.npy'.format(prefix))
     labels_decode = np.load('{}_ground_truth.npy'.format(prefix))

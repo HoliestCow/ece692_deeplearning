@@ -314,7 +314,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.45)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -323,7 +323,7 @@ class cnnMNIST(object):
         self.eval()  # creating evaluation
         a = time.time()
         for i in range(self.epochs):
-            if i % 100 == 0 and i != 0:
+            if i % 1000 == 0 and i != 0:
                 counter = 0
                 sum_acc = 0
                 sum_loss = 0
@@ -460,7 +460,7 @@ def main():
     characterize = True
     cnn.use_gpu = True
     cnn.lr = 1e-5
-    cnn.epochs = 10000
+    cnn.epochs = 50000
     cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
     runname = cnn.runname
     a = time.time()
@@ -499,7 +499,7 @@ def main():
         # temp_x = np.zeros((0, 15, 1024))
         temp_x = np.zeros((0, 1024))
         for sample in validation_data:
-            if counter % 100 == 0 and counter != 0:
+            if counter % 1000 == 0 and counter != 0:
                 print('{} validation samples done in {} s'.format(counter, time.time() - a))
             x = sample
             temp_spectra = np.squeeze(x[:, -1, :])

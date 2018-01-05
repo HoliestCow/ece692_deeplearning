@@ -135,7 +135,7 @@ class cnnMNIST(object):
 
     def train(self):
         # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
@@ -253,8 +253,9 @@ def load_obj(name):
         return pickle.load(f)
 
 def main():
-    interest = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
-    interest = 'cnndetalt3_relabel_lr0.0001_ep500'
+    # interest = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
+    # interest = 'cnndetalt3_relabel_lr0.0001_ep500'
+    interest = 'cnndetalt3_relabel_lr1e-05_ep50000'
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')
