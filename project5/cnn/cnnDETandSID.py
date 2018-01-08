@@ -20,38 +20,38 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 1000
-    self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
-    self.dataset_filename = 'sequential_dataset_relabel.h5'
-    self.build_graph()
+        self.epochs = 10000
+        self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
+        self.dataset_filename = 'sequential_dataset_relabel.h5'
+        self.build_graph()
 
-def onehot_labels(self, labels):
-    out = np.zeros((labels.shape[0], 7))
-    for i in range(labels.shape[0]):
-        out[i, :] = np.eye(7)[labels[i]]
-    return out
+    def onehot_labels(self, labels):
+        out = np.zeros((labels.shape[0], 7))
+        for i in range(labels.shape[0]):
+            out[i, :] = np.eye(7)[labels[i]]
+        return out
 
-def onenothot_labels(self, labels):
-    out = np.zeros((labels.shape[0],))
-    for i in range(labels.shape[0]):
-        out[i] = np.argmax(labels[i, :])
-    return out
+    def onenothot_labels(self, labels):
+        out = np.zeros((labels.shape[0],))
+        for i in range(labels.shape[0]):
+            out[i] = np.argmax(labels[i, :])
+        return out
 
-def get_data(self):
-    # data_norm = True
-    # data_augmentation = False
-    try:
-        f = h5py.File(self.dataset_filename, 'r')
-    except:
-        # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
-        f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
+    def get_data(self):
+        # data_norm = True
+        # data_augmentation = False
+        try:
+            f = h5py.File(self.dataset_filename, 'r')
+        except:
+            # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
+            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
 
-    training = f['train']
-    testing = f['test']
+        training = f['train']
+        testing = f['test']
 
-    training_dataset = []
-    training_labels = []
-    for item in training:
+        training_dataset = []
+        training_labels = []
+        for item in training:
             training_dataset += [np.array(training[item]['measured_spectra'])]
             training_labels += [np.array(training[item]['labels'])]
         training_dataset = np.concatenate(training_dataset, axis=0)
@@ -61,21 +61,15 @@ def get_data(self):
         testing_dataset = []
         testing_labels = []
         for item in testing:
-                testing_dataset += [np.array(testing[item]['measured_spectra'])]
-                testing_labels += [np.array(testing[item]['labels'])]
+            testing_dataset += [np.array(testing[item]['measured_spectra'])]
+            testing_labels += [np.array(testing[item]['labels'])]
         testing_dataset = np.concatenate(testing_dataset, axis=0)
         testing_labels = np.concatenate(testing_labels, axis=0)
-
+ 
         self.x_train = training_dataset
         self.y_train = self.onehot_labels(training_labels)
         self.x_test = testing_dataset
         self.y_test = self.onehot_labels(testing_labels)
-
-        # self.x_train = X
-        # self.x_test = X_test
-        # # NOTE: always use the keylist to get data
-        # self.data_keylist = list(X.keys())
-
         return
 
     def naive_get_data(self):
@@ -312,7 +306,7 @@ def main():
 
     answers = open('approach1_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
-    # counter = 0
+    counter = 0
     for sample, runname in validation_data:
         x = sample
         x = x[30:, :]
@@ -339,6 +333,10 @@ def main():
         else:
             answers.write('{},{},{},\n'.format(
                 runname, 0, 0))
+
+        if counter % 1000 == 0:
+            print('{} validation samples complete'.format(counter))
+        counter += 1
     answers.close()
     return
 
