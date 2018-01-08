@@ -103,12 +103,12 @@ def store_sequence(targetfile, filehandle, labels):
         source_index = np.random.randint(x.shape[0])
         source_type = 'Background'
 
-    left = source_index - 29
-    right = source_index + 30
+    # left = source_index - 29
+    # right = source_index + 30
     # left = source_index - 119
     # right = source_index + 120
-    # left = 0
-    # right = x.shape[0]
+    left = 0
+    right = x.shape[0]
     if left < 0:
         left = 0
     if right >= x.shape[0]:
@@ -161,6 +161,16 @@ def store_sequence(targetfile, filehandle, labels):
     grp = filehandle.create_group(targetfile)
     grp.create_dataset('measured_spectra', data=tostore_spectra, compression='gzip')
     grp.create_dataset('labels', data=tostore_labels, compression='gzip')
+
+    # Plot the hits:
+    # for i in range(len(tostore_labels)):
+    #     if tostore_labels[i] != 0:
+    #         fig = plt.figure()
+    #         plt.plot(tostore_spectra[i, :])
+    #         plt.title('source{}_time{}'.format(source_type, source_index))
+    #         plt.axis([0, 1024, 0, 50])
+    #         fig.savefig('./plots/{}_{}'.format(targetfile, i))
+    #         plt.close()
 
     return
 
@@ -238,7 +248,7 @@ def main():
     # Parallel(n_jobs=ncores)(delayed(make_spectral_plots)(item, 'test_plots', labels) for item in sourcefilelist_test)
 
     #QUESTION: Keep or take out the background lists???
-    f = h5py.File('sequential_dataset_relabel_smaller.h5', 'w')
+    f = h5py.File('sequential_dataset_relabel.h5', 'w')
     train = f.create_group('train')
     test = f.create_group('test')
     validate = f.create_group('validate')
