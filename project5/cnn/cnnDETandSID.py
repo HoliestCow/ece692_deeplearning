@@ -20,7 +20,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 10000
+        self.epochs = 100000
         self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
         self.dataset_filename = 'sequential_dataset_relabel.h5'
         self.build_graph()
@@ -126,7 +126,7 @@ class cnnMNIST(object):
         feature_map1 = 32
         feature_map2 = 64
 
-        final_hidden_nodes = 8192
+        final_hidden_nodes = 512
 
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
@@ -134,7 +134,7 @@ class cnnMNIST(object):
 
         x_image = self.hack_1dreshape(self.x)
         # define conv-layer variables
-        W_conv1 = self.weight_variable([1, 3, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
+        W_conv1 = self.weight_variable([1, 9, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
         b_conv1 = self.bias_variable([feature_map1])
         W_conv2 = self.weight_variable([1, 3, feature_map1, feature_map2])
         b_conv2 = self.bias_variable([feature_map2])
@@ -180,8 +180,8 @@ class cnnMNIST(object):
 
         # Now I have to weight to logits
         # class_weights = tf.constant([0.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-        class_weights = tf.constant([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-        self.y_conv = tf.multiply(y_conv, class_weights)
+        # class_weights = tf.constant([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        # self.y_conv = tf.multiply(y_conv, class_weights)
         cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(cross_entropy)
 

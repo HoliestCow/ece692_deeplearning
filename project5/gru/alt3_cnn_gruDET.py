@@ -243,10 +243,10 @@ class cnnMNIST(object):
         self.keep_prob = tf.placeholder(tf.float32, shape=[])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
-        feature_map1 = 32
-        feature_map2 = 64
+        feature_map1 = 16
+        feature_map2 = 32
 
-        num_units = 64
+        num_units = 32
         num_layers = 2
 
         # x_image = self.hack_1dreshape(self.x)
@@ -314,7 +314,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.45)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()

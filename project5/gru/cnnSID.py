@@ -22,7 +22,7 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 1000
+        self.epochs = 10000
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -41,13 +41,13 @@ class cnnMNIST(object):
         # data_norm = True
         # data_augmentation = False
 
-        f = h5py.File('naive_dataset_justsources.h5', 'r')
-        g = f['training']
-        X = np.array(g['spectra'])
+        f = h5py.File('../data/sequential_dataset_relabel_justsources.h5', 'r')
+        g = f['train']
+        X = np.array(g['measured_spectra'])
         Y = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
 
-        g = f['testing']
-        X_test = np.array(g['spectra'])
+        g = f['test']
+        X_test = np.array(g['measured_spectra'])
         Y_test = self.onehot_labels(np.array(g['labels'], dtype=np.int32))
 
         # img_prep = ImagePreprocessing()
@@ -80,8 +80,8 @@ class cnnMNIST(object):
             yield iterable[ndx:min(ndx + n, l), :]
     
     def validation_batcher(self):
-        f = h5py.File('./naive_dataset.h5', 'r')
-        g = f['validation']
+        f = h5py.File('../data/sequential_dataset_relabel_justsources.h5', 'r')
+        g = f['validate']
         samplelist = list(g.keys())
 
         for i in range(len(samplelist)):
@@ -134,8 +134,8 @@ class cnnMNIST(object):
         return
 
     def train(self):
-        # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+        # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
@@ -255,7 +255,7 @@ def load_obj(name):
 def main():
     # interest = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
     # interest = 'cnndetalt3_relabel_lr0.0001_ep500'
-    interest = 'cnndetalt3_relabel_lr1e-05_ep50000'
+    # interest = 'cnndetalt3_relabel_lr1e-05_ep50000'
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')
@@ -276,7 +276,7 @@ def main():
 
     np.save('sid_predictions.npy', predictions_decode)
     np.save('sid_ground_truth.npy', labels_decode)
-    
+    stop
     # counter = 0
     # hits = load_obj('normalgru_hits')
     hits = load_obj('{}_hits'.format(interest))
