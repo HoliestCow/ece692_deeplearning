@@ -24,10 +24,10 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = False
         self.lr = 1e-4
-        self.epochs = 1000
+        self.epochs = 1
         self.runname = 'meh'
         self.build_graph()
-        self.dataset_filename = './sequential_dataset_relabel.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_60seconds.h5'
 
     def onehot_labels(self, labels):
         out = np.zeros((labels.shape[0], 2))
@@ -83,11 +83,14 @@ class cnnMNIST(object):
             index = np.arange(x.shape[0])
 
             index_generator = self.window(index, n=sequence_length)
-            tostore_spectra = np.zeros((0, sequence_length, 1024))
+            # tostore_spectra = np.zeros((0, sequence_length, 1024))
+            tostore_spectra = []
             tostore_labels = []
             for index_list in index_generator:
-                tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
+                # tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
+                tostore_spectra += [x[index_list, :].reshape((1, sequence_length, 1024))]
                 tostore_labels += [y[list(index_list)[-1]]]
+            tostore_spectra = np.concatenate(tostore_spectra, axis=0)
             tostore_labels = np.array(tostore_labels)
 
             x = tostore_spectra
@@ -121,11 +124,14 @@ class cnnMNIST(object):
             index = np.arange(x.shape[0])
 
             index_generator = self.window(index, n=sequence_length)
-            tostore_spectra = np.zeros((0, sequence_length, 1024))
+            # tostore_spectra = np.zeros((0, sequence_length, 1024))
+            tostore_spectra = []
             tostore_labels = []
             for index_list in index_generator:
-                tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
+                # tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
+                tostore_spectra += [x[index_list, :].reshape((1, sequence_length, 1024))]
                 tostore_labels += [y[list(index_list)[-1]]]
+            tostore_spectra = np.concatenate(tostore_spectra, axis=0)
             tostore_labels = np.array(tostore_labels)
 
             self.howmanytimes = int(np.ceil(tostore_spectra.shape[0] / max_batch_size))
@@ -153,7 +159,7 @@ class cnnMNIST(object):
         try:
             f = h5py.File(self.dataset_filename, 'r')
         except:
-            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
+            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_validationonly.h5'), 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:100]
@@ -189,9 +195,9 @@ class cnnMNIST(object):
         # NOTE: for using cnnfeatures sequential dataset
         # f = h5py.File('sequential_dataset_validation.h5', 'r')
         try:
-            f = h5py.File(self.dataset_filename, 'r')
+            f = h5py.File('../data/sequential_dataset_relabel_validationonly.h5', 'r')
         except:
-            f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced_newmethod.h5', 'r')
+            pass
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
@@ -245,6 +251,7 @@ class cnnMNIST(object):
 
         feature_map1 = 16
         feature_map2 = 32
+        feature_map3 = 1
 
         num_units = 32
         num_layers = 2
@@ -257,6 +264,8 @@ class cnnMNIST(object):
         x_expanded = tf.expand_dims(self.x, 3)
         W_conv2 = self.weight_variable([3, 9, feature_map1, feature_map2])
         b_conv2 = self.bias_variable([feature_map2])
+        W_conv3 = self.weight_variable([1, 3, feature_map2, feature_map3])
+        b_conv3 = self.bias_variable([feature_map3])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_expanded, W_conv1) + b_conv1)
@@ -266,8 +275,12 @@ class cnnMNIST(object):
         # h_pool2 = self.max_pool_2x2(h_conv2)
         h_pool2 = self.max_pool_spectra(h_conv2)
 
-        # h_fc1 = tf.contrib.layers.flatten(h_pool2)
-        h_fc1 = tf.reshape(h_pool2, [-1, 15, 256 * feature_map2])
+        h_conv3 = tf.nn.relu(self.conv2d(h_pool2, W_conv3) + b_conv3)
+        h_pool3 = self.max_pool_spectra(h_conv3)
+
+        # ignore this: h_fc1 = tf.contrib.layers.flatten(h_pool2)
+        # h_fc1 = tf.reshape(h_pool2, [-1, 15, 256 * feature_map2])
+        h_fc1 = tf.reshape(h_pool3, [-1, 15, 128 * feature_map3])
         dropped_h_fc1 = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # cnn_output = h_fc1
@@ -456,11 +469,11 @@ def group_consecutives(vals, step=1):
 
 def main():
     cnn = cnnMNIST()
-    validate_please = True
+    validate_please = False
     characterize = True
     cnn.use_gpu = True
-    cnn.lr = 1e-5
-    cnn.epochs = 50000
+    cnn.lr = 1e-4
+    cnn.epochs = 1001
     cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
     runname = cnn.runname
     a = time.time()
@@ -479,8 +492,8 @@ def main():
         predictions, y, score = cnn.get_label_predictions()
         predictions_decode = predictions
         labels_decode = cnn.onenothot_labels(y)
-        np.save('{}_predictions.npy'.format(runname), predictions_decode)
-        np.save('{}_ground_truth.npy'.format(runname), labels_decode)
+        np.save('{}_{}_predictions.npy'.format(runname, cnn.dataset_filename[:-4]), predictions_decode)
+        np.save('{}_{}_ground_truth.npy'.format(runname, cnn.dataset_filename[:-4]), labels_decode)
         print('Confusion matrix data saved')
 
     if validate_please:
@@ -546,7 +559,7 @@ def main():
                 temp_x = np.zeros((0, 1024))
                 toggle = 0
             counter += 1
-        save_obj(answers, '{}_hits'.format(runname))
+        save_obj(answers, '{}_{}_hits'.format(runname, cnn.dataset_filename[:-4]))
         print('Validation written in {} s'.format(time.time() - a))
 
     return

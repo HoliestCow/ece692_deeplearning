@@ -21,7 +21,7 @@ import pickle
 
 class cnnMNIST(object):
     def __init__(self):
-        self.lr = 1e-3
+        self.lr = 1e-4
         self.epochs = 10000
         self.build_graph()
 
@@ -90,6 +90,9 @@ class cnnMNIST(object):
 
 
     def build_graph(self):
+        
+        final_nodes = 4096
+
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 6])
 
@@ -107,8 +110,8 @@ class cnnMNIST(object):
         h_pool2 = self.max_pool_2x2(h_conv2)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * 64, 1024])
-        b_fc1 = self.bias_variable([1024])
+        W_fc1 = self.weight_variable([256 * 64, final_nodes])
+        b_fc1 = self.bias_variable([final_nodes])
 
         h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 64])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
@@ -118,7 +121,7 @@ class cnnMNIST(object):
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
-        W_fc2 = self.weight_variable([1024, 6])
+        W_fc2 = self.weight_variable([final_nodes, 6])
         b_fc2 = self.bias_variable([6])
 
         self.y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
@@ -256,6 +259,7 @@ def main():
     # interest = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
     # interest = 'cnndetalt3_relabel_lr0.0001_ep500'
     # interest = 'cnndetalt3_relabel_lr1e-05_ep50000'
+    interest = 'cnndetalt3_relabel_lr1e-05_ep10000'
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')
