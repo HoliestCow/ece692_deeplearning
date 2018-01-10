@@ -103,12 +103,20 @@ def store_sequence(targetfile, filehandle, labels):
         source_index = np.random.randint(x.shape[0])
         source_type = 'Background'
 
+    # left = source_index - 14
+    # right = source_index + 15
     # left = source_index - 29
     # right = source_index + 30
+    left = source_index - 44
+    right = source_index + 45
+    # left = source_index - 59
+    # right = source_index + 60
+    # left = source_index - 89
+    # right = source_index + 90
     # left = source_index - 119
     # right = source_index + 120
-    left = 0
-    right = x.shape[0]
+    # left = 0
+    # right = x.shape[0]
     if left < 0:
         left = 0
     if right >= x.shape[0]:
@@ -175,24 +183,6 @@ def store_sequence(targetfile, filehandle, labels):
     return
 
 
-    # print(source_type)
-    # print(np.sum(x[source_index-2, :]),np.sum(x[source_index-1, :]),np.sum(x[source_index, :]),np.sum(x[source_index+1, :]),np.sum(x[source_index+2, :]))
-    # print(np.mean(np.sum(current_slice, axis=1)), np.std(np.sum(current_slice, axis=1)))
-
-    # fig = plt.figure()
-    # for j in range(current_slice.shape[0]):
-    #     if hits[j]:
-    #         # plt.plot(x[j, :], color='r')
-    #         plt.plot(j, current_slice_counts[j], 'r.')
-    #     else:
-    #         # plt.plot(x[j, :], color='b')
-    #         plt.plot(j, current_slice_counts[j], 'b.')
-    #     # plt.axis([0, 1024, 0, 50])
-    # plt.title('type{}_current{}_target{}'.format(source_type, j, center))
-    # fig.savefig('./{}/{:06d}_{:04d}.png'.format(outdir, int(targetfile), j))
-    # plt.close()
-
-
 def main():
     # only need to do this once.
     ncores = 4
@@ -248,14 +238,14 @@ def main():
     # Parallel(n_jobs=ncores)(delayed(make_spectral_plots)(item, 'test_plots', labels) for item in sourcefilelist_test)
 
     #QUESTION: Keep or take out the background lists???
-    f = h5py.File('sequential_dataset_relabel.h5', 'w')
+    f = h5py.File('sequential_dataset_relabel_90seconds.h5', 'w')
     train = f.create_group('train')
     test = f.create_group('test')
-    validate = f.create_group('validate')
+    # validate = f.create_group('validate')
     a = time.time()
     for i in range(len(sourcefilelist_train)):
         if i % 100 == 0:
-            print('{} training samples done in {} s '.format(i, time.time() - a))
+            print('{} training samples done in {} s'.format(i, time.time() - a))
         current_file = sourcefilelist_train[i]
         store_sequence(current_file, train, labels)
     # for i in range(len(backgroundfilelist_train)):
@@ -265,7 +255,7 @@ def main():
     #     store_sequence(current_file, train, labels)
     for i in range(len(sourcefilelist_test)):
         if i % 100 == 0:
-            print('{} testing samples done in {} s '.format(i, time.time() - a))
+            print('{} testing samples done in {} s'.format(i, time.time() - a))
         current_file = sourcefilelist_test[i]
         store_sequence(current_file, test, labels)
     # for i in range(len(backgroundfilelist_test)):
@@ -273,23 +263,23 @@ def main():
     #         print('{} training samples done in {} s '.format(i, time.time() - a))
     #     current_file = backgroundfilelist_test[i]
     #     store_sequence(current_file, train, labels)
+    f.close()
 
+    # NOTE: JUST TO CREATE THE VALIDATION. ONLY NEED TO DO THIS ONCE
 
-
-
-    # Parallel(n_jobs=ncores)(delayed(store_sequence)(item, train, labels) for item in sourcefilelist_train)
-    # Parallel(n_jobs=ncores)(delayed(store_sequence)(item, test, labels) for item in sourcefilelist_test)
-
-    for i in range(len(validatelist)):
-        random_file = validatelist[i]
-        if i % 100 == 0:
-            print('{} validation samples done in {} s '.format(i, time.time() - a))
-        x = np.array(np.load(random_file))
-        x = x[:, 1:]
-        head, tail = os.path.split(random_file)
-        runname = tail[:-4]
-        tostore_spectra = x
-        validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
+    # g = h5py.File('sequential_dataset_relabel_validationonly.h5', 'w')
+    # validate = g.create_group('validate')
+    # for i in range(len(validatelist)):
+    #     random_file = validatelist[i]
+    #     if i % 100 == 0:
+    #         print('{} validation samples done in {} s'.format(i, time.time() - a))
+    #     x = np.array(np.load(random_file))
+    #     x = x[:, 1:]
+    #     head, tail = os.path.split(random_file)
+    #     runname = tail[:-4]
+    #     tostore_spectra = x
+    #     validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
+    # g.close()
     return
 
 main()
