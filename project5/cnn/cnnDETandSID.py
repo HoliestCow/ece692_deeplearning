@@ -22,7 +22,7 @@ class cnnMNIST(object):
         self.lr = 1e-3
         self.epochs = 10000
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel_30seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
