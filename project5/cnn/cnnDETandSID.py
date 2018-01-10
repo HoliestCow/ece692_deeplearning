@@ -20,9 +20,9 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 100000
-        self.runname = 'cnndetandsidweight_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel.h5'
+        self.epochs = 10000
+        self.runname = 'cnndetandsid_{}'.format(self.epochs)
+        self.dataset_filename = 'sequential_dataset_relabel_30seconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -112,7 +112,7 @@ class cnnMNIST(object):
         try:
             f = h5py.File(self.dataset_filename, 'r')
         except:
-            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
+            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_validationonly.h5'), 'r')
         g = f['validate']
         samplelist = list(g.keys())
 
@@ -191,6 +191,9 @@ class cnnMNIST(object):
         np.random.shuffle(self.x_train)
         np.random.set_state(rng_state)
         np.random.shuffle(self.y_train)
+        # permutation = np.random.permutation(self.x_train.shape[0])
+        # self.x_train = self.x_train[permutation, :]
+        # self.y_train = self.y_train[permutation, :]
         return
 
     def train(self):
@@ -301,10 +304,10 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    np.save('{}_predictions.npy'.format(cnn.runname), predictions_decode)
-    np.save('{}_ground_truth.npy'.format(cnn.runname), labels_decode)
+    np.save('{}_{}_predictions.npy'.format(cnn.runname, cnn.dataset_filename[:-4]), predictions_decode)
+    np.save('{}_{}_ground_truth.npy'.format(cnn.runname, cnn.dataset_filename[:-4]), labels_decode)
 
-    answers = open('approach1_answers.csv', 'w')
+    answers = open('approach1_answers_{}_{}.csv'.format(cnn.runname, cnn.dataset_filename[:-4]), 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     counter = 0
     for sample, runname in validation_data:
