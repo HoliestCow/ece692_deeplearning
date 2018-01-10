@@ -27,7 +27,7 @@ class cnnMNIST(object):
         self.epochs = 1
         self.runname = 'meh'
         self.build_graph()
-        self.dataset_filename = 'sequential_dataset_relabel_60seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
 
     def onehot_labels(self, labels):
         out = np.zeros((labels.shape[0], 2))
@@ -173,10 +173,13 @@ class cnnMNIST(object):
             index = np.arange(data.shape[0])
 
             index_generator = self.window(index, n=sequence_length)
-            tostore_spectra = np.zeros((0, sequence_length, 1024))
+            # tostore_spectra = np.zeros((0, sequence_length, 1024))
+            tostore_spectra = []
             for index_list in index_generator:
-                tostore_spectra = np.concatenate((tostore_spectra, data[index_list, :].reshape((1, sequence_length, 1024))))
+                # tostore_spectra = np.concatenate((tostore_spectra, data[index_list, :].reshape((1, sequence_length, 1024))))
+                tostore_spectra += [data[index_list, :].reshape((1, sequence_length, 1024))]
             # yield tostore_spectra, samplelist[i]
+            tostore_spectra = np.concatenate(tostore_spectra, axis=0)
 
             self.howmanytimes = int(np.ceil(tostore_spectra.shape[0] / max_batch_size))
 
@@ -469,12 +472,13 @@ def group_consecutives(vals, step=1):
 
 def main():
     cnn = cnnMNIST()
-    validate_please = False
+    validate_please = True
     characterize = True
     cnn.use_gpu = True
     cnn.lr = 1e-4
-    cnn.epochs = 1001
-    cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}'.format(cnn.lr, cnn.epochs)
+    cnn.epochs = 10000
+    cnn.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
+    cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}_data{}'.format(cnn.lr, cnn.epochs, cnn.dataset_filename)
     runname = cnn.runname
     a = time.time()
     print('Retrieving data')
@@ -492,8 +496,8 @@ def main():
         predictions, y, score = cnn.get_label_predictions()
         predictions_decode = predictions
         labels_decode = cnn.onenothot_labels(y)
-        np.save('{}_{}_predictions.npy'.format(runname, cnn.dataset_filename[:-4]), predictions_decode)
-        np.save('{}_{}_ground_truth.npy'.format(runname, cnn.dataset_filename[:-4]), labels_decode)
+        np.save('{}_predictions.npy'.format(runname), predictions_decode)
+        np.save('{}_ground_truth.npy'.format(runname), labels_decode)
         print('Confusion matrix data saved')
 
     if validate_please:
@@ -510,7 +514,8 @@ def main():
         toggle = 0
         # it could be this actually. Consider making it just a 2d.
         # temp_x = np.zeros((0, 15, 1024))
-        temp_x = np.zeros((0, 1024))
+        # temp_x = np.zeros((0, 1024))
+        temp_x = []
         for sample in validation_data:
             if counter % 1000 == 0 and counter != 0:
                 print('{} validation samples done in {} s'.format(counter, time.time() - a))
@@ -519,7 +524,8 @@ def main():
             # HACK: if temp_spectra batch size is one
             if len(temp_spectra.shape) == 1:
                 temp_spectra = temp_spectra.reshape((1, 1024))
-            temp_x = np.concatenate((temp_x, temp_spectra), axis=0)
+            # temp_x = np.concatenate((temp_x, temp_spectra), axis=0)
+            temp_x += [temp_spectra]
             if toggle == 0:
                 predictions = cnn.sess.run(
                     cnn.prediction,
@@ -533,6 +539,7 @@ def main():
             toggle += 1
 
             if toggle == cnn.howmanytimes:
+                temp_x = np.concatenate(temp_x, axis=0)
                 predictions = np.array(predictions)
                 predictions.flatten()
 
@@ -556,7 +563,7 @@ def main():
                     answers[cnn.current_sample_name] = {'time': current_time,
                                            'spectra': current_spectra}
                 predictions = []
-                temp_x = np.zeros((0, 1024))
+                temp_x = []
                 toggle = 0
             counter += 1
         save_obj(answers, '{}_{}_hits'.format(runname, cnn.dataset_filename[:-4]))
