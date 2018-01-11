@@ -13,6 +13,8 @@ from copy import deepcopy
 import os
 import os.path
 
+import cPickle as pickle
+
 # from tensorflow.examples.tutorials.mnist import input_data
 # mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
@@ -20,9 +22,9 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 5000
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel_180seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_120seconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -312,8 +314,8 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    np.save('{}_{}_predictions.npy'.format(cnn.runname, cnn.dataset_filename[:-4]), predictions_decode)
-    np.save('{}_{}_ground_truth.npy'.format(cnn.runname, cnn.dataset_filename[:-4]), labels_decode)
+    # np.save('{}_{}_predictions.npy'.format(cnn.runname, cnn.dataset_filename[:-4]), predictions_decode)
+    # np.save('{}_{}_ground_truth.npy'.format(cnn.runname, cnn.dataset_filename[:-4]), labels_decode)
 
     hits = load_obj('{}_hits'.format(interest))
     answers = open('approach3_answers.csv', 'w')
@@ -332,7 +334,7 @@ def main():
             feed_dict = {cnn.x: x,
                          cnn.keep_prob: 1.0})
         t = np.array(data['time'])
-        if t < 0.01:
+        if t < 0.01 or predictions[0] <= 0.5:
             answers.write('{}, 0, 0'.format(key))
         else:
             answers.write('{},{},{},\n'.format(
