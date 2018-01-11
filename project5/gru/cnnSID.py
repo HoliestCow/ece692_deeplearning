@@ -22,7 +22,7 @@ import pickle
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-4
-        self.epochs = 10000
+        self.epochs = 5000
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -202,14 +202,15 @@ class cnnMNIST(object):
     def get_label_predictions(self):
         x_batcher = self.batch(self.x_test, n=1000, shuffle=False)
         # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
-        predictions = np.zeros((0, 1))
+        predictions = []
         for data in x_batcher:
             temp_predictions = self.sess.run(
                 self.prediction,
                 feed_dict={self.x: data,
                            self.keep_prob: 1.0})
             temp_predictions = temp_predictions.reshape((temp_predictions.shape[0], 1))
-            predictions = np.vstack((predictions, temp_predictions))
+            predictions += [temp_predictions]
+        predictions = np.concatenate(predictions, axis = 0)
         return predictions
 
 
@@ -260,7 +261,7 @@ def main():
     # interest = 'cnndetalt3_relabel_lr0.0001_ep500'
     # interest = 'cnndetalt3_relabel_lr1e-05_ep50000'
     # interest = 'cnndetalt3_relabel_lr1e-05_ep10000'
-    interest = 'cnndetalt3_relabel_lr0.0001_ep10000_datasequential_dataset_relabel_allseconds.h5_sequential_dataset_relabel_allsecond'
+    interest = 'cnndetalt3_relabel_lr0.0001_ep10000_datasequential_dataset_relabel_allseconds.h5_sequential_dataset_relabel_allsecond_python27conversion'
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')
@@ -279,11 +280,9 @@ def main():
     predictions_decode = predictions
     labels_decode = cnn.onenothot_labels(cnn.y_test)
 
-    np.save('sid_predictions.npy', predictions_decode)
-    np.save('sid_ground_truth.npy', labels_decode)
-    stop
-    # counter = 0
-    # hits = load_obj('normalgru_hits')
+    # NOTE: The saving is broken, but I don't know why. Assertion error.
+    # np.save('sid_predictions.npy', predictions_decode)
+    # np.save('sid_ground_truth.npy', labels_decode)
     hits = load_obj('{}_hits'.format(interest))
     answers = open('approach3_answers.csv', 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
