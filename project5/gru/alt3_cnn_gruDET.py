@@ -371,14 +371,11 @@ class cnnMNIST(object):
             # NOTE: QUick and dirty preprocessing. normalize to counts
             # x = x / x.sum(axis=-1, keepdims=True)
             x_generator = self.memory_batch(self.x_train, shuffle=True)
-            x, y = next(x_generator)
-            # print(self.current_key, x.shape)
-            # for j in range(self.current_batch_length):
-                # x, y, z = next(x_generator)
-            self.sess.run([self.train_step], feed_dict={
-                           self.x: x,
-                           self.y_: y,
-                           self.keep_prob: 0.5})
+            for x, y in x_generator:
+                self.sess.run([self.train_step], feed_dict={
+                                  self.x: x,
+                                  self.y_: y,
+                                  self.keep_prob: 0.5})
                            #   self.weights: z})
             # self.shuffle()
 
@@ -476,7 +473,7 @@ def main():
     characterize = True
     cnn.use_gpu = True
     cnn.lr = 1e-5
-    cnn.epochs = 100000
+    cnn.epochs = 1000
     cnn.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
     cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}_data{}'.format(cnn.lr, cnn.epochs, cnn.dataset_filename)
     runname = cnn.runname
@@ -558,6 +555,7 @@ def main():
                     t = time_index[indicies]
                     t = [int(i) for i in t]
                     index_guess = np.argmax(counts[t])
+                    print(predictions[index_guess])
                     current_spectra = np.squeeze(temp_x[index_guess, :])
                     current_time = t[index_guess] + 15
                     answers[cnn.current_sample_name] = {'time': current_time,

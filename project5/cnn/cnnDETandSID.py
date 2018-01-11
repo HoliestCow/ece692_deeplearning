@@ -20,9 +20,9 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 10000
+        self.epochs = 1000
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -212,9 +212,10 @@ class cnnMNIST(object):
             # batch = mnist.train.next_batch(50)
             x_generator = self.batch(self.x_train, n=128)
             y_generator = self.batch(self.y_train, n=128)
+            b1 = time.time()
             # print(batch[0].shape)
             # print(batch[1].shape)
-            if i % 100 == 0 and i != 0:
+            if i % 10 == 0 and i != 0:
                 test_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:1000, :],
                     self.y_: self.y_test[:1000, :],
                                                                    self.keep_prob: 1.0})
@@ -222,12 +223,11 @@ class cnnMNIST(object):
                                                                    self.y_: current_y,
                                                                    self.keep_prob: 1.0})
                 print('step %d, training accuracy %g, testing accuracy %g, elapsed time %f' % (i, train_acc, test_acc, time.time()-a))
-            current_x = next(x_generator)
-            current_y = next(y_generator)
-            self.sess.run([self.train_step], feed_dict={self.x: current_x,
-                                                        self.y_: current_y,
-                                                        self.keep_prob: 0.10})
-            # self.shuffle()
+            for current_x in x_generator:
+               current_y = next(y_generator)
+               self.sess.run([self.train_step], feed_dict={self.x: current_x,
+                                                           self.y_: current_y,
+                                                           self.keep_prob: 0.33})
 
     def eval(self):
         # self.time_index = np.arange(self.y_conv.get_shape()[0])
