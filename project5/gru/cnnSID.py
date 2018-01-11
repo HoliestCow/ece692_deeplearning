@@ -259,7 +259,8 @@ def main():
     # interest = 'cnndetalt3_wdiffs_lr0.0001_ep1000'
     # interest = 'cnndetalt3_relabel_lr0.0001_ep500'
     # interest = 'cnndetalt3_relabel_lr1e-05_ep50000'
-    interest = 'cnndetalt3_relabel_lr1e-05_ep10000'
+    # interest = 'cnndetalt3_relabel_lr1e-05_ep10000'
+    interest = 'cnndetalt3_relabel_lr0.0001_ep10000_datasequential_dataset_relabel_allseconds.h5_sequential_dataset_relabel_allsecond'
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')

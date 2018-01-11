@@ -330,7 +330,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -475,8 +475,8 @@ def main():
     validate_please = True
     characterize = True
     cnn.use_gpu = True
-    cnn.lr = 1e-4
-    cnn.epochs = 10000
+    cnn.lr = 1e-5
+    cnn.epochs = 100000
     cnn.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
     cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}_data{}'.format(cnn.lr, cnn.epochs, cnn.dataset_filename)
     runname = cnn.runname
