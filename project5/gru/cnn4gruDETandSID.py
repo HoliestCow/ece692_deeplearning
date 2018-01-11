@@ -22,9 +22,9 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 5000
+        self.epochs = 1000
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel_120seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_60seconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -334,8 +334,8 @@ def main():
             feed_dict = {cnn.x: x,
                          cnn.keep_prob: 1.0})
         t = np.array(data['time'])
-        if t < 0.01 or predictions[0] <= 0.5:
-            answers.write('{}, 0, 0'.format(key))
+        if predictions[0] <= 0.5:
+            answers.write('{}, 0, 0,\n'.format(key))
         else:
             answers.write('{},{},{},\n'.format(
                 key, predictions[0], t))
