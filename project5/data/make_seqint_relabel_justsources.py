@@ -300,16 +300,16 @@ def main():
     # Parallel(n_jobs=ncores)(delayed(store_sequence)(item, train, labels) for item in sourcefilelist_train)
     # Parallel(n_jobs=ncores)(delayed(store_sequence)(item, test, labels) for item in sourcefilelist_test)
 
-    for i in range(len(validatelist)):
-        random_file = validatelist[i]
-        if i % 100 == 0:
-            print('{} validation samples done in {} s '.format(i, time.time() - a))
-        x = np.array(np.load(random_file))
-        x = x[:, 1:]
-        head, tail = os.path.split(random_file)
-        runname = tail[:-4]
-        tostore_spectra = x
-        validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
+    # for i in range(len(validatelist)):
+    #     random_file = validatelist[i]
+    #     if i % 100 == 0:
+    #         print('{} validation samples done in {} s '.format(i, time.time() - a))
+    #     x = np.array(np.load(random_file))
+    #     x = x[:, 1:]
+    #     head, tail = os.path.split(random_file)
+    #     runname = tail[:-4]
+    #     tostore_spectra = x
+    #     validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
     return
 
 main()
