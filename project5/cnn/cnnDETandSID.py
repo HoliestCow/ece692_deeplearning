@@ -20,7 +20,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 1000
+        self.epochs = 200
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
         self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
         self.build_graph()
@@ -199,7 +199,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -212,7 +212,6 @@ class cnnMNIST(object):
             # batch = mnist.train.next_batch(50)
             x_generator = self.batch(self.x_train, n=128)
             y_generator = self.batch(self.y_train, n=128)
-            b1 = time.time()
             # print(batch[0].shape)
             # print(batch[1].shape)
             if i % 10 == 0 and i != 0:
@@ -270,7 +269,7 @@ class cnnMNIST(object):
                                 strides=[1, 2, 2, 1], padding='SAME')
 
     def get_label_predictions(self):
-        x_batcher = self.batch(self.x_test, n=1000, shuffle=False)
+        x_batcher = self.batch(self.x_test, n=256, shuffle=False)
         # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
         predictions = np.zeros((0, 1))
         for data in x_batcher:
