@@ -22,7 +22,7 @@ class cnnMNIST(object):
         self.lr = 1e-3
         self.epochs = 100
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel_180seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -199,7 +199,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -214,7 +214,7 @@ class cnnMNIST(object):
             y_generator = self.batch(self.y_train, n=128)
             # print(batch[0].shape)
             # print(batch[1].shape)
-            if i % 10 == 0 and i != 0:
+            if i % 100 == 0 and i != 0:
                 test_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:1000, :],
                     self.y_: self.y_test[:1000, :],
                                                                    self.keep_prob: 1.0})
