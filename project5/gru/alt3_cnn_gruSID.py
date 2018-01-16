@@ -24,7 +24,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = False
         self.lr = 1e-4
-        self.epochs = 1
+        self.epochs = 11
         self.runname = 'meh'
         self.build_graph()
         self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
@@ -109,7 +109,7 @@ class cnnMNIST(object):
             if shortset:
                 keylist = usethesekeys[:100]
 
-        max_batch_size = 128
+        max_batch_size = 4
 
         sequence_length = 15
 
@@ -340,7 +340,7 @@ class cnnMNIST(object):
         self.eval()  # creating evaluation
         a = time.time()
         for i in range(self.epochs):
-            if i % 1000 == 0 and i != 0:
+            if i % 10 == 0 and i != 0:
                 counter = 0
                 sum_acc = 0
                 sum_loss = 0
