@@ -20,9 +20,9 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 400
+        self.epochs = 100
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -109,9 +109,10 @@ class cnnMNIST(object):
     def validation_batcher(self, testing=False):
         if testing:
             f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
+            g = f['test']
         else:
             f = h5py.File('../data/{}'.format('sequential_dataset_relabel_validationonly.h5'), 'r')
-        g = f['validate']
+            g = f['validate']
         samplelist = list(g.keys())
 
         for i in range(len(samplelist)):
@@ -122,8 +123,9 @@ class cnnMNIST(object):
     def build_graph(self):
         feature_map1 = 32
         feature_map2 = 64
-
-        final_hidden_nodes = 512
+        
+        fc1 = 512
+        fc2 = 256
 
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
@@ -143,8 +145,8 @@ class cnnMNIST(object):
         h_pool2 = self.max_pool_2x2(h_conv2)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * feature_map2, final_hidden_nodes])
-        b_fc1 = self.bias_variable([final_hidden_nodes])
+        W_fc1 = self.weight_variable([256 * feature_map2, fc1])
+        b_fc1 = self.bias_variable([fc1])
 
         h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * feature_map2])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
@@ -153,10 +155,17 @@ class cnnMNIST(object):
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
-        W_fc2 = self.weight_variable([final_hidden_nodes, 7])
+        W_fc2 = self.weight_variable([fc1, 7])
         b_fc2 = self.bias_variable([7])
 
         y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+        # h_fc2 = tf.nn.relu(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
+        # h_fc2_drop = tf.nn.dropout(h_fc2, self.keep_prob)
+
+        # W_fc3 = self.weight_variable([fc2, 7])
+        # b_fc3 = self.bias_variable([7])
+        
+        # y_conv = tf.matmul(h_fc2_drop, W_fc3) + b_fc3
         self.y_conv = y_conv
 
         # Now I have to weight to logits
@@ -268,7 +277,8 @@ class cnnMNIST(object):
 
 def label_datasets():
 
-    targetfile = '/home/holiestcow/Documents/zephyr/datasets/muse/trainingData/answers.csv'
+    # targetfile = '/home/holiestcow/Documents/zephyr/datasets/muse/trainingData/answers.csv'
+    targetfile = '../data/answers.csv'
     head, tail = os.path.split(targetfile)
 
     # filename = []
@@ -299,6 +309,9 @@ def label_datasets():
     return source_labels
 
 def main():
+
+    isTest = True
+
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')
@@ -307,10 +320,7 @@ def main():
     print('Built the data in {} s'.format(b-a))
 
     validation_data = cnn.validation_batcher()
-    isTest = True
-    testing_data = cnn.validation_batcher(testing=True)
-    label_dict = label_datasets()
-
+    
     a = time.time()
     cnn.train()
     b = time.time()
@@ -329,6 +339,8 @@ def main():
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     counter = 0
     if isTest:
+        testing_data = cnn.validation_batcher(testing=True)
+        label_dict = label_datasets()
         for sample, runname in testing_data:
             x = sample
             x = x[30:, :]
