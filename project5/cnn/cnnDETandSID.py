@@ -363,37 +363,37 @@ def main():
         answers.close()
         return
 
-    for sample, runname in validation_data:
-        x = sample
-        x = x[30:, :]
-        predictions = cnn.sess.run(
-            cnn.prediction,
-            feed_dict = {cnn.x: x,
-                         cnn.keep_prob: 1.0})
-        time_index = np.arange(predictions.shape[0])
-        mask = predictions >= 0.5
-
-        # runname = sample.name.split('/')[-1]
-        # runname = sample.name
-        if np.sum(mask) != 0:
-            counts = np.sum(x, axis=1)
-            # fig = plt.figure()
-            t = time_index[mask]
-            t = [int(i) for i in t]
-            index_guess = np.argmax(counts[t])
-
-            current_predictions = predictions[mask]
-
-            answers.write('{},{},{},\n'.format(
-                runname, current_predictions[index_guess], t[index_guess] + 30))
-        else:
-            answers.write('{},{},{},\n'.format(
-                runname, 0, 0))
-
-        if counter % 1000 == 0:
-            print('{} validation samples complete'.format(counter))
-        counter += 1
-    answers.close()
+    # for sample, runname in validation_data:
+    #     x = sample
+    #     x = x[30:, :]
+    #     predictions = cnn.sess.run(
+    #         cnn.prediction,
+    #         feed_dict = {cnn.x: x,
+    #                      cnn.keep_prob: 1.0})
+    #     time_index = np.arange(predictions.shape[0])
+    #     mask = predictions >= 0.5
+    #
+    #     # runname = sample.name.split('/')[-1]
+    #     # runname = sample.name
+    #     if np.sum(mask) != 0:
+    #         counts = np.sum(x, axis=1)
+    #         # fig = plt.figure()
+    #         t = time_index[mask]
+    #         t = [int(i) for i in t]
+    #         index_guess = np.argmax(counts[t])
+    #
+    #         current_predictions = predictions[mask]
+    #
+    #         answers.write('{},{},{},\n'.format(
+    #             runname, current_predictions[index_guess], t[index_guess] + 30))
+    #     else:
+    #         answers.write('{},{},{},\n'.format(
+    #             runname, 0, 0))
+    #
+    #     if counter % 1000 == 0:
+    #         print('{} validation samples complete'.format(counter))
+    #     counter += 1
+    # answers.close()
     return
 
 main()
