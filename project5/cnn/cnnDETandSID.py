@@ -5,7 +5,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import h5py
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import itertools
 from copy import deepcopy
@@ -65,7 +65,7 @@ class cnnMNIST(object):
             testing_labels += [np.array(testing[item]['labels'])]
         testing_dataset = np.concatenate(testing_dataset, axis=0)
         testing_labels = np.concatenate(testing_labels, axis=0)
- 
+
         self.x_train = training_dataset
         self.y_train = self.onehot_labels(training_labels)
         self.x_test = testing_dataset
@@ -104,12 +104,12 @@ class cnnMNIST(object):
             # for j in range(data.shape[0]):
             #     data[j, :] = np.divide(data[j, :], normalization[j])
             yield data
-    
 
-    def validation_batcher(self):
-        try:
-            f = h5py.File(self.dataset_filename, 'r')
-        except:
+
+    def validation_batcher(self, testing=False):
+        if testing:
+            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
+        else:
             f = h5py.File('../data/{}'.format('sequential_dataset_relabel_validationonly.h5'), 'r')
         g = f['validate']
         samplelist = list(g.keys())
@@ -148,7 +148,7 @@ class cnnMNIST(object):
 
         h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * feature_map2])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
-        
+
 # dropout regularization
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
@@ -266,6 +266,37 @@ class cnnMNIST(object):
             predictions = np.vstack((predictions, temp_predictions))
         return predictions
 
+def label_datasets():
+
+    targetfile = '/home/holiestcow/Documents/zephyr/datasets/muse/trainingData/answers.csv'
+    head, tail = os.path.split(targetfile)
+
+    # filename = []
+    source_labels = {}
+
+    id2string = {0: 'Background',
+                 1: 'HEU',
+                 2: 'WGPu',
+                 3: 'I131',
+                 4: 'Co60',
+                 5: 'Tc99',
+                 6: 'HEUandTc99'}
+
+
+    f = open(targetfile, 'r')
+    a = f.readlines()
+    for i in range(len(a)):
+        line = a[i].strip()
+        if line[0] == 'R':
+            continue
+        parsed = line.split(',')
+        filename = parsed[0]
+        source = parsed[1]
+        source_time = parsed[2]
+        source_labels[filename] = {'source': id2string[int(source)],
+                                   'time': float(source_time)}
+    f.close()
+    return source_labels
 
 def main():
     cnn = cnnMNIST()
@@ -276,6 +307,9 @@ def main():
     print('Built the data in {} s'.format(b-a))
 
     validation_data = cnn.validation_batcher()
+    isTest = True
+    testing_data = cnn.validation_batcher(testing=True)
+    label_dict = label_datasets()
 
     a = time.time()
     cnn.train()
@@ -294,6 +328,41 @@ def main():
     answers = open('approach1_answers_{}_{}.csv'.format(cnn.runname, cnn.dataset_filename[:-4]), 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     counter = 0
+    if isTest:
+        for sample, runname in testing_data:
+            x = sample
+            x = x[30:, :]
+            predictions = cnn.sess.run(
+                cnn.prediction,
+                feed_dict = {cnn.x: x,
+                             cnn.keep_prob: 1.0})
+            time_index = np.arange(predictions.shape[0])
+            mask = predictions >= 0.5
+
+            # runname = sample.name.split('/')[-1]
+            # runname = sample.name
+            if np.sum(mask) != 0:
+                counts = np.sum(x, axis=1)
+                # fig = plt.figure()
+                t = time_index[mask]
+                t = [int(i) for i in t]
+                index_guess = np.argmax(counts[t])
+
+                current_predictions = predictions[mask]
+
+            if counter < 30 and np.sum(mask) != 0:
+                fig = plt.figure()
+                plt.plot(counts, 'b.')
+                plt.plot(counts[mask], 'r.')
+                plt.plot(counts[index_guess], 'g*')
+                plt.plot(counts[int(label_dict[runname]['time']) - 30], 'm*')
+                fig.savefig('hitcounts_{}.png'.format(counter))
+            else:
+                break
+            counter += 1
+        answers.close()
+        return
+
     for sample, runname in validation_data:
         x = sample
         x = x[30:, :]
