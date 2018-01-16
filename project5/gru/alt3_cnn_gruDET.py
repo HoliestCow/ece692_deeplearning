@@ -249,14 +249,15 @@ class cnnMNIST(object):
         # self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
         self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 2])
-        self.keep_prob = tf.placeholder(tf.float32, shape=[])
+        self.keep_prob1 = tf.placeholder(tf.float32, shape=[])
+        self.keep_prob2 = tf.placeholder(tf.float32, shape=[])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
         feature_map1 = 16
         feature_map2 = 32
         feature_map3 = 1
 
-        num_units = 32
+        num_units = 256
         num_layers = 2
 
         # x_image = self.hack_1dreshape(self.x)
@@ -284,7 +285,7 @@ class cnnMNIST(object):
         # ignore this: h_fc1 = tf.contrib.layers.flatten(h_pool2)
         # h_fc1 = tf.reshape(h_pool2, [-1, 15, 256 * feature_map2])
         h_fc1 = tf.reshape(h_pool3, [-1, 15, 128 * feature_map3])
-        dropped_h_fc1 = tf.nn.dropout(h_fc1, self.keep_prob)
+        dropped_h_fc1 = tf.nn.dropout(h_fc1, self.keep_prob1)
 
         # cnn_output = h_fc1
         cnn_output = dropped_h_fc1
@@ -293,7 +294,7 @@ class cnnMNIST(object):
         for _ in range(num_layers):
           cell = tf.contrib.rnn.GRUCell(num_units)  # Or LSTMCell(num_units)
           cell = tf.contrib.rnn.DropoutWrapper(
-              cell, output_keep_prob=self.keep_prob)
+              cell, output_keep_prob=self.keep_prob2)
           cells.append(cell)
         cell = tf.contrib.rnn.MultiRNNCell(cells)
 
@@ -330,7 +331,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -357,7 +358,7 @@ class cnnMNIST(object):
                     feedme = first
                     k = second
                     accuracy, test_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction], feed_dict={self.x: feedme,
-                               self.y_: k, self.keep_prob:1.0})
+                               self.y_: k, self.keep_prob1: 1.0, self.keep_prob2: 1.0})
                             #    self.weights: z})
                     sum_loss += np.sum(test_loss)
                     hits += np.sum(prediction)
@@ -375,7 +376,8 @@ class cnnMNIST(object):
                 self.sess.run([self.train_step], feed_dict={
                                   self.x: x,
                                   self.y_: y,
-                                  self.keep_prob: 0.5})
+                                  self.keep_prob1: 0.1,
+                                  self.keep_prob2: 0.5})
                            #   self.weights: z})
             # self.shuffle()
 
@@ -527,12 +529,14 @@ def main():
                 predictions = cnn.sess.run(
                     cnn.prediction,
                     feed_dict = {cnn.x: x,
-                                 cnn.keep_prob: 1.0})
+                                 cnn.keep_prob1: 1.0,
+                                 cnn.keep_prob2: 1.0})
             else:
                 predictions = np.concatenate((predictions, cnn.sess.run(
                     cnn.prediction,
                     feed_dict = {cnn.x: x,
-                                 cnn.keep_prob: 1.0})))
+                                 cnn.keep_prob1: 1.0,
+                                 cnn.keep_prob2: 1.0})))
             toggle += 1
 
             if toggle == cnn.howmanytimes:

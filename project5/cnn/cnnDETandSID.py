@@ -20,9 +20,9 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 400
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -95,9 +95,7 @@ class cnnMNIST(object):
 
         return
 
-    def batch(self, iterable, n=1, shuffle=True):
-        if shuffle:
-            self.shuffle()
+    def batch(self, iterable, n=1):
         # l = len(iterable)
         l = iterable.shape[0]
         for ndx in range(0, l, n):
@@ -122,7 +120,6 @@ class cnnMNIST(object):
 
 
     def build_graph(self):
-
         feature_map1 = 32
         feature_map2 = 64
 
@@ -145,30 +142,14 @@ class cnnMNIST(object):
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
         h_pool2 = self.max_pool_2x2(h_conv2)
 
-        # W_conv3 = self.weight_variable([1, 3, feature_map2, feature_map3])
-        # b_conv3 = self.bias_variable([feature_map3])
-        # W_conv4 = self.weight_variable([1, 3, feature_map3, feature_map4])
-        # b_conv4 = self.bias_variable([feature_map4])
-
-        # h_conv3 = tf.nn.relu(self.conv2d(h_pool2, W_conv3) + b_conv3)
-        # h_pool3 = self.max_pool_2x2(h_conv3)
-        # h_conv4 = tf.nn.relu(self.conv2d(h_pool3, W_conv4) + b_conv4)
-        # h_pool4 = self.max_pool_2x2(h_conv4)
-
         # densely/fully connected layer
         W_fc1 = self.weight_variable([256 * feature_map2, final_hidden_nodes])
         b_fc1 = self.bias_variable([final_hidden_nodes])
 
         h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * feature_map2])
         h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
-
-        # W_fc1 = self.weight_variable([64 * feature_map4, final_hidden_nodes])
-        # b_fc1 = self.bias_variable([final_hidden_nodes])
-
-        # h_pool4_flat = tf.reshape(h_pool4, [-1, 64 * feature_map4])
-        # h_fc1 = tf.nn.relu(tf.matmul(h_pool4_flat, W_fc1) + b_fc1)
-
-        # dropout regularization
+        
+# dropout regularization
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
@@ -183,6 +164,9 @@ class cnnMNIST(object):
         # class_weights = tf.constant([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
         # self.y_conv = tf.multiply(y_conv, class_weights)
         cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        # reg = tf.nn.l2_loss(W_conv1) + tf.nn.l2_loss(W_conv2) + tf.nn.l2_loss(W_fc1)
+        # beta = 0.01
+        # cross_entropy = tf.reduce_mean(cross_entropy + reg * beta)
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(cross_entropy)
 
     def shuffle(self):
@@ -214,10 +198,10 @@ class cnnMNIST(object):
             y_generator = self.batch(self.y_train, n=128)
             # print(batch[0].shape)
             # print(batch[1].shape)
-            if i % 100 == 0 and i != 0:
-                test_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:1000, :],
-                    self.y_: self.y_test[:1000, :],
-                                                                   self.keep_prob: 1.0})
+            if i % 10 == 0 and i != 0:
+                test_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:200, :],
+                    self.y_: self.y_test[:200, :],
+                    self.keep_prob: 1.0})
                 train_acc = self.sess.run(self.accuracy, feed_dict={self.x: current_x,
                                                                    self.y_: current_y,
                                                                    self.keep_prob: 1.0})
@@ -226,7 +210,9 @@ class cnnMNIST(object):
                current_y = next(y_generator)
                self.sess.run([self.train_step], feed_dict={self.x: current_x,
                                                            self.y_: current_y,
-                                                           self.keep_prob: 0.33})
+                                                           self.keep_prob: 0.05})
+
+            self.shuffle()
 
     def eval(self):
         # self.time_index = np.arange(self.y_conv.get_shape()[0])
@@ -237,8 +223,8 @@ class cnnMNIST(object):
 
     def test_eval(self):
         self.eval()
-        x_generator = self.batch(self.x_test, n=100, shuffle=False)
-        y_generator = self.batch(self.y_test, n=100, shuffle=False)
+        x_generator = self.batch(self.x_test, n=100)
+        y_generator = self.batch(self.y_test, n=100)
         test_acc = []
         counter = 0
         for data in x_generator:
@@ -269,8 +255,7 @@ class cnnMNIST(object):
                                 strides=[1, 2, 2, 1], padding='SAME')
 
     def get_label_predictions(self):
-        x_batcher = self.batch(self.x_test, n=256, shuffle=False)
-        # y_batcher = self.batch(self.y_test, n=1000, shuffle=False)
+        x_batcher = self.batch(self.x_test, n=256)
         predictions = np.zeros((0, 1))
         for data in x_batcher:
             temp_predictions = self.sess.run(
