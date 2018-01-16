@@ -115,8 +115,10 @@ def store_sequence(targetfile, filehandle, labels):
     # right = source_index + 90
     # left = source_index - 119
     # right = source_index + 120
-    left = 0
-    right = x.shape[0]
+    left = source_index - 149
+    right = source_index + 150
+    # left = 0
+    # right = x.shape[0]
     if left < 0:
         left = 0
     if right >= x.shape[0]:
@@ -238,7 +240,7 @@ def main():
     # Parallel(n_jobs=ncores)(delayed(make_spectral_plots)(item, 'test_plots', labels) for item in sourcefilelist_test)
 
     #QUESTION: Keep or take out the background lists???
-    f = h5py.File('sequential_dataset_relabel_allseconds.h5', 'w')
+    f = h5py.File('sequential_dataset_relabel_300seconds.h5', 'w')
     train = f.create_group('train')
     test = f.create_group('test')
     # validate = f.create_group('validate')
