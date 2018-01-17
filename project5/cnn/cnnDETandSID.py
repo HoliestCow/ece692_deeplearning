@@ -313,6 +313,41 @@ def label_datasets():
     f.close()
     return source_labels
 
+def group_consecutives(vals, step=1):
+    """Return list of consecutive lists of numbers from vals (number list)."""
+    run = []
+    result = [run]
+    expect = None
+    for v in vals:
+        if (v == expect) or (expect is None):
+            run.append(v)
+        else:
+            run = [v]
+            result.append(run)
+        expect = v + step
+    return result
+
+def longest(l):
+    if len(l):
+        return None, None
+
+    # if(not isinstance(l, list)): return(0)
+    # return(max([len(l),] + [len(subl) for subl in l if isinstance(subl, list)] +
+    #     [longest(subl) for subl in l]))
+    max_index = -1
+    max_length = 0
+
+    counter = 0
+    for item in l:
+        current_index = counter
+        current_length = len(item)
+        if current_length > max_length:
+            max_index = current_index
+            max_length = current_length
+        counter += 1
+
+    return max_index, max_length
+
 def main():
 
     isTest = True
@@ -343,73 +378,85 @@ def main():
     answers = open('approach1_answers_{}_{}.csv'.format(cnn.runname, cnn.dataset_filename[:-4]), 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     counter = 0
-    if isTest:
-        testing_data = cnn.validation_batcher(testing=True)
-        label_dict = label_datasets()
-        for sample, runname in testing_data:
-            x = sample
-            x = x[30:, :]
-            predictions = cnn.sess.run(
-                cnn.prediction,
-                feed_dict = {cnn.x: x,
-                             cnn.keep_prob: 1.0})
-            time_index = np.arange(predictions.shape[0])
-            mask = predictions >= 0.5
-
-            # runname = sample.name.split('/')[-1]
-            # runname = sample.name
-            if np.sum(mask) != 0:
-                counts = np.sum(x, axis=1)
-                # fig = plt.figure()
-                t = time_index[mask]
-                t = [int(i) for i in t]
-                index_guess = np.argmax(counts[t])
-
-                current_predictions = predictions[mask]
-
-                fig = plt.figure()
-                t = np.arange(0, counts.shape[0])
-                plt.plot(t, counts, 'b.')
-                plt.plot(t[mask], counts[mask], 'r.')
-                plt.plot(t[index_guess], counts[index_guess], 'g*')
-                plt.plot(t[int(label_dict[runname]['time'] - 30)], counts[int(label_dict[runname]['time'] - 30)], 'm*')
-                fig.savefig('hitcounts_{}.png'.format(counter))
-            if counter > 30:
-                break
-            counter += 1
-        answers.close()
-
-    # for sample, runname in validation_data:
-    #     x = sample
-    #     x = x[30:, :]
-    #     predictions = cnn.sess.run(
-    #         cnn.prediction,
-    #         feed_dict = {cnn.x: x,
-    #                      cnn.keep_prob: 1.0})
-    #     time_index = np.arange(predictions.shape[0])
-    #     mask = predictions >= 0.5
+    # if isTest:
+    #     for sample, runname in testing_data:
+    #         x = sample
+    #         x = x[30:, :]
+    #         predictions = cnn.sess.run(
+    #             cnn.prediction,
+    #             feed_dict = {cnn.x: x,
+    #                          cnn.keep_prob: 1.0})
+    #         time_index = np.arange(predictions.shape[0])
+    #         mask = predictions >= 0.5
     #
-    #     # runname = sample.name.split('/')[-1]
-    #     # runname = sample.name
-    #     if np.sum(mask) != 0:
-    #         counts = np.sum(x, axis=1)
-    #         # fig = plt.figure()
-    #         t = time_index[mask]
-    #         t = [int(i) for i in t]
-    #         index_guess = np.argmax(counts[t])
+    #         # runname = sample.name.split('/')[-1]
+    #         # runname = sample.name
+    #         if np.sum(mask) != 0:
+    #             counts = np.sum(x, axis=1)
+    #             # fig = plt.figure()
+    #             t = time_index[mask]
+    #             t = [int(i) for i in t]
+    #             index_guess = np.argmax(counts[t])
     #
-    #         current_predictions = predictions[mask]
+    #             current_predictions = predictions[mask]
     #
-    #         answers.write('{},{},{},\n'.format(
-    #             runname, current_predictions[index_guess], t[index_guess] + 30))
-    #     else:
-    #         answers.write('{},{},{},\n'.format(
-    #             runname, 0, 0))
-    #
-    #     if counter % 1000 == 0:
-    #         print('{} validation samples complete'.format(counter))
-    #     counter += 1
-    # answers.close()
+    #         if counter < 30 and np.sum(mask) != 0:
+    #             fig = plt.figure()
+    #             plt.plot(counts, 'b.')
+    #             plt.plot(counts[mask], 'r.')
+    #             plt.plot(counts[index_guess], 'g*')
+    #             plt.plot(counts[int(label_dict[runname]['time']) - 30], 'm*')
+    #             fig.savefig('hitcounts_{}.png'.format(counter))
+    #         else:
+    #             break
+    #         counter += 1
+    #     answers.close()
+    #     return
+
+    for sample, runname in validation_data:
+        x = sample
+        x = x[30:, :]
+        predictions = cnn.sess.run(
+            cnn.prediction,
+            feed_dict = {cnn.x: x,
+                         cnn.keep_prob: 1.0})
+        time_index = np.arange(predictions.shape[0])
+        # mask = predictions >= 0.5
+        machine = np.argwhere(predictions >= 0.5)
+        hits = np.zeros((x.shape[0], ), dtype=bool)
+        # hits = mask
+        machine = machine.reshape((machine.shape[0], ))
+        grouping = group_consecutives(machine)
+
+        group_index, group_length = longest(grouping)
+        if group_index is not None:
+            hits[grouping[group_index]] = True
+        # for group in grouping:
+        #     if source_index in group:
+        #         hits[group] = True
+        #NOTE: I left off right here. I haven't figured out if there is no hits.ckligh
+
+        # runname = sample.name.split('/')[-1]
+        # runname = sample.name
+        if np.sum(hits) != 0:
+            counts = np.sum(x, axis=1)
+            # fig = plt.figure()
+            t = time_index[hits]
+            t = [int(i) for i in t]
+            index_guess = np.argmax(counts[t])
+
+            current_predictions = predictions[hits]
+
+            answers.write('{},{},{},\n'.format(
+                runname, current_predictions[index_guess], t[index_guess] + 30))
+        else:
+            answers.write('{},{},{},\n'.format(
+                runname, 0, 0))
+
+        if counter % 1000 == 0:
+            print('{} validation samples complete'.format(counter))
+        counter += 1
+    answers.close()
     return
 
 main()
