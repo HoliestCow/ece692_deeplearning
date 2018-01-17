@@ -5,6 +5,8 @@ import tensorflow as tf
 import numpy as np
 import time
 import h5py
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import itertools
@@ -20,7 +22,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 50
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
         self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
         self.build_graph()
@@ -116,7 +118,10 @@ class cnnMNIST(object):
         samplelist = list(g.keys())
 
         for i in range(len(samplelist)):
-            data = np.array(g[samplelist[i]])
+            if testing:
+                data = np.array(g[samplelist[i]]['measured_spectra'])
+            else:
+                data = np.array(g[samplelist[i]])
             yield data, samplelist[i]
 
 
@@ -362,18 +367,17 @@ def main():
 
                 current_predictions = predictions[mask]
 
-            if counter < 30 and np.sum(mask) != 0:
                 fig = plt.figure()
-                plt.plot(counts, 'b.')
-                plt.plot(counts[mask], 'r.')
-                plt.plot(counts[index_guess], 'g*')
-                plt.plot(counts[int(label_dict[runname]['time']) - 30], 'm*')
+                t = np.arange(0, counts.shape[0])
+                plt.plot(t, counts, 'b.')
+                plt.plot(t[mask], counts[mask], 'r.')
+                plt.plot(t[index_guess], counts[index_guess], 'g*')
+                plt.plot(t[int(label_dict[runname]['time'] - 30)], counts[int(label_dict[runname]['time'] - 30)], 'm*')
                 fig.savefig('hitcounts_{}.png'.format(counter))
-            else:
+            if counter > 30:
                 break
             counter += 1
         answers.close()
-        return
 
     # for sample, runname in validation_data:
     #     x = sample
