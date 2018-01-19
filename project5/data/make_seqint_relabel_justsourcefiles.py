@@ -115,10 +115,10 @@ def store_sequence(targetfile, filehandle, labels):
     # right = source_index + 90
     # left = source_index - 119
     # right = source_index + 120
-    left = source_index - 149
-    right = source_index + 150
-    # left = 0
-    # right = x.shape[0]
+    # left = source_index - 149
+    # right = source_index + 150
+    left = 0
+    right = x.shape[0]
     if left < 0:
         left = 0
     if right >= x.shape[0]:
@@ -209,6 +209,8 @@ def main():
 
     # filelist = glob.glob('/home/holiestcow/Documents/zephyr/datasets/muse/trainingData/1*.csv')
     # Parallel(n_jobs=ncores)(delayed(parse_datafiles)(item, binnumber) for item in filelist)
+    # filelist = glob.glob('/home/holiestcow/Documents/zephyr/datasets/muse/trainingData/runID-*.csv')
+    # Parallel(n_jobs=ncores)(delayed(parse_datafiles)(item, binnumber) for item in filelist)
     labels = label_datasets()
 
     allfilelist = []
@@ -230,17 +232,17 @@ def main():
     sourcefilelist_train = sourcefilelist[:s_training_threshold]
     sourcefilelist_test = sourcefilelist[s_training_threshold:]
 
-    validatelist = glob.glob('./test_integrations/2*.npy')
+    validatelist = glob.glob('./test_integrations/runID-*.npy')
     validatelist.sort()
 
     # print(labels)
 
     #NOTE: PARALLEL STUFF
-    # Parallel(n_jobs=ncores)(delayed(make_spectral_plots)(item, 'train_plots', labels) for item in sourcefilelist_train[:100])
+    # Parallel(n_jobs=ncores)(delayed(make_spectral_plots)(item, 'train_plots', labels) for item in sourcefilelist_train)
     # Parallel(n_jobs=ncores)(delayed(make_spectral_plots)(item, 'test_plots', labels) for item in sourcefilelist_test)
 
     #QUESTION: Keep or take out the background lists???
-    f = h5py.File('sequential_dataset_relabel_300seconds.h5', 'w')
+    f = h5py.File('sequential_dataset_relabel_allseconds.h5', 'w')
     train = f.create_group('train')
     test = f.create_group('test')
     # validate = f.create_group('validate')
@@ -269,19 +271,19 @@ def main():
 
     # NOTE: JUST TO CREATE THE VALIDATION. ONLY NEED TO DO THIS ONCE
 
-    # g = h5py.File('sequential_dataset_relabel_validationonly.h5', 'w')
-    # validate = g.create_group('validate')
-    # for i in range(len(validatelist)):
-    #     random_file = validatelist[i]
-    #     if i % 100 == 0:
-    #         print('{} validation samples done in {} s'.format(i, time.time() - a))
-    #     x = np.array(np.load(random_file))
-    #     x = x[:, 1:]
-    #     head, tail = os.path.split(random_file)
-    #     runname = tail[:-4]
-    #     tostore_spectra = x
-    #     validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
-    # g.close()
+    g = h5py.File('sequential_dataset_relabel_validationonly.h5', 'w')
+    validate = g.create_group('validate')
+    for i in range(len(validatelist)):
+        random_file = validatelist[i]
+        if i % 100 == 0:
+            print('{} validation samples done in {} s'.format(i, time.time() - a))
+        x = np.array(np.load(random_file))
+        x = x[:, 1:]
+        head, tail = os.path.split(random_file)
+        runname = tail[6:-4]
+        tostore_spectra = x
+        validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
+    g.close()
     return
 
 main()

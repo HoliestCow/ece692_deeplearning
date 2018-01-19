@@ -127,7 +127,7 @@ def label_datasets():
     return source_labels
 
 
-def parse_datafiles(targetfile, binno):
+def parse_datafiles(targetfile, binno, outdir):
     # energy = np.linspace(0, 3000, 1024)
 
     # filelist = ['/home/holiestcow/Documents/zephyr/datasets/muse/trainingData/109798.csv']
@@ -181,7 +181,7 @@ def parse_datafiles(targetfile, binno):
     # f = open(os.path.join('./integrations', tail), 'w')
     # np.savetxt(f, tosave, delimiter=',')
     # f.close()
-    np.save(os.path.join('./integrations', tail[:-4] + '.npy'), tosave)
+    np.save(os.path.join(outdir, tail[:-4] + '.npy'), tosave)
 
     # features = nscrad_rebin(spectra, 64)
     # features_bg = features[:30, :]
@@ -211,40 +211,11 @@ def main():
     ncores = 4
     binnumber = 1024
     filelist = glob.glob('/home/holiestcow/Documents/zephyr/datasets/muse/trainingData/1*.csv')
-    Parallel(n_jobs=ncores)(delayed(parse_datafiles)(item, binnumber) for item in filelist)
+    Parallel(n_jobs=ncores)(delayed(parse_datafiles)(item, binnumber, 'train_integrations') for item in filelist)
+    filelist = glob.glob('/home/holiestcow/Documents/zephyr/datasets/muse/listData/runID*.csv')
+    Parallel(n_jobs=ncores)(delayed(parse_datafiles)(item, binnumber, 'test_integrations') for item in filelist)
     # labels = label_datasets()
     # print(labels)
-
-    # NOTE: Slice for background segments
-    # for key in labels:
-    #     if counter % 100 == 0:
-    #         print(counter)
-    #     x = np.load('./integrations/' + key + '.npy')
-    #     # time = x[:, 0]
-    #     spectra = x[:, 1:]
-    #     if labels[key]['source'] == 'Background':
-    #         bg_spectra = np.vstack((bg_spectra, spectra))
-    #         counter += 1
-    #     # else:
-    #     #     bg_spectra = np.vstack((bg_spectra, spectra[:30, :]))
-    #
-    #     if counter % 1000 == 0 and counter != 0:
-    #         np.save('./integrations/bg_spectra_only_{}.npy'.format(filecounter), bg_spectra)
-    #         filecounter += 1
-    #         bg_spectra = np.zeros((0, 1024))
-    #         print('files made: {}'.format(filecounter))
-    #         counter = 0
-    #
-    # np.save('./integrations/bg_spectra_only_{}.npy'.format(filecounter), bg_spectra)
-    #
-    # a = time.time()
-    # bg_spectra = np.zeros((0, 1024))
-    # filelist = glob.glob('./integrations/bg_spectra_only_*.npy')
-    # for item in filelist:
-    #     bg_spectra = np.vstack((bg_spectra, np.load(item)))
-    # print(bg_spectra.shape)
-    # b = time.time()
-    # print('Total time elapsed: {} seconds'.format(b-a))
 
     return
 
