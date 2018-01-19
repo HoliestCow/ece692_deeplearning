@@ -22,7 +22,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 500
+        self.epochs = 250
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
         self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
         self.build_graph()
@@ -128,8 +128,10 @@ class cnnMNIST(object):
     def build_graph(self):
         feature_map1 = 32
         feature_map2 = 64
-
         fc1 = 512
+        # feature_map1 = 16
+        # feature_map2 = 32
+        # fc1 = 256
 
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
@@ -196,7 +198,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.15)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -223,7 +225,7 @@ class cnnMNIST(object):
                current_y = next(y_generator)
                self.sess.run([self.train_step], feed_dict={self.x: current_x,
                                                            self.y_: current_y,
-                                                           self.keep_prob: 0.075})
+                                                           self.keep_prob: 0.01})
 
             self.shuffle()
 
