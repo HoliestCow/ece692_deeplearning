@@ -469,13 +469,34 @@ def group_consecutives(vals, step=1):
         expect = v + step
     return result
 
+def longest(l):
+    if len(l):
+        return None, None
+
+    # if(not isinstance(l, list)): return(0)
+    # return(max([len(l),] + [len(subl) for subl in l if isinstance(subl, list)] +
+    #     [longest(subl) for subl in l]))
+    max_index = -1
+    max_length = 0
+
+    counter = 0
+    for item in l:
+        current_index = counter
+        current_length = len(item)
+        if current_length > max_length:
+            max_index = current_index
+            max_length = current_length
+        counter += 1
+
+    return max_index, max_length
+
 def main():
     cnn = cnnMNIST()
     validate_please = True
-    characterize = True
+    # characterize = True
     cnn.use_gpu = True
     cnn.lr = 1e-5
-    cnn.epochs = 1000
+    cnn.epochs = 100
     cnn.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
     cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}_data{}'.format(cnn.lr, cnn.epochs, cnn.dataset_filename)
     runname = cnn.runname
@@ -491,13 +512,63 @@ def main():
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    if characterize:
-        predictions, y, score = cnn.get_label_predictions()
-        predictions_decode = predictions
-        labels_decode = cnn.onenothot_labels(y)
-        np.save('{}_predictions.npy'.format(runname), predictions_decode)
-        np.save('{}_ground_truth.npy'.format(runname), labels_decode)
-        print('Confusion matrix data saved')
+    validation_data = cnn.memory_validation_batcher
+
+    # if characterize:
+    #     predictions, y, score = cnn.get_label_predictions()
+    #     predictions_decode = predictions
+    #     labels_decode = cnn.onenothot_labels(y)
+    #     np.save('{}_predictions.npy'.format(runname), predictions_decode)
+    #     np.save('{}_ground_truth.npy'.format(runname), labels_decode)
+    #     print('Confusion matrix data saved')
+
+    if validate_please:
+        answers = open('approach3_answers_{}_{}.csv'.format(cnn.runname, cnn.dataset_filename[:-4]), 'w')
+        answers.write('RunID,SourceID,SourceTime,Comment\n')
+        counter = 0
+        for sample, runname in validation_data:
+            x = sample
+            predictions = cnn.sess.run(
+                cnn.prediction,
+                feed_dict = {cnn.x: x,
+                             cnn.keep_prob: 1.0})
+            time_index = np.arange(predictions.shape[0])
+            # mask = predictions >= 0.5
+            machine = np.argwhere(predictions >= 0.5)
+            hits = np.zeros((x.shape[0], ), dtype=bool)
+            # hits = mask
+            machine = machine.reshape((machine.shape[0], ))
+            grouping = group_consecutives(machine)
+            group_index, group_length = longest(grouping)
+
+            if group_index is not None:
+                hits[grouping[group_index]] = True
+            # for group in grouping:
+            #     if source_index in group:
+            #         hits[group] = True
+            #NOTE: I left off right here. I haven't figured out if there is no hits.ckligh
+
+            # runname = sample.name.split('/')[-1]
+            # runname = sample.name
+            if np.sum(hits) != 0:
+                counts = np.sum(x, axis=1)
+                # fig = plt.figure()
+                t = time_index[hits]
+                t = [int(i) for i in t]
+                index_guess = np.argmax(counts[t])
+
+                current_predictions = predictions[hits]
+
+                answers.write('{},{},{},\n'.format(
+                    runname, current_predictions[index_guess], t[index_guess] + 30))
+            else:
+                answers.write('{},{},{},\n'.format(
+                    runname, 0, 0))
+
+            if counter % 1000 == 0:
+                print('{} validation samples complete'.format(counter))
+            counter += 1
+        answers.close()
 
     return
 
