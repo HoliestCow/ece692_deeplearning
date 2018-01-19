@@ -22,9 +22,9 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 50
+        self.epochs = 500
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
-        self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -130,7 +130,6 @@ class cnnMNIST(object):
         feature_map2 = 64
         
         fc1 = 512
-        fc2 = 256
 
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
@@ -160,18 +159,18 @@ class cnnMNIST(object):
         h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
+
         W_fc2 = self.weight_variable([fc1, 7])
         b_fc2 = self.bias_variable([7])
 
-        y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
-        # h_fc2 = tf.nn.relu(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
+        h_fc2 = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
         # h_fc2_drop = tf.nn.dropout(h_fc2, self.keep_prob)
 
         # W_fc3 = self.weight_variable([fc2, 7])
         # b_fc3 = self.bias_variable([7])
         
         # y_conv = tf.matmul(h_fc2_drop, W_fc3) + b_fc3
-        self.y_conv = y_conv
+        self.y_conv = h_fc2
 
         # Now I have to weight to logits
         # class_weights = tf.constant([0.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
@@ -197,7 +196,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -224,7 +223,7 @@ class cnnMNIST(object):
                current_y = next(y_generator)
                self.sess.run([self.train_step], feed_dict={self.x: current_x,
                                                            self.y_: current_y,
-                                                           self.keep_prob: 0.05})
+                                                           self.keep_prob: 0.075})
 
             self.shuffle()
 
@@ -328,7 +327,7 @@ def group_consecutives(vals, step=1):
     return result
 
 def longest(l):
-    if len(l):
+    if len(l) == 0:
         return None, None
 
     # if(not isinstance(l, list)): return(0)
