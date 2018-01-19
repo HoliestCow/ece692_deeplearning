@@ -128,7 +128,7 @@ class cnnMNIST(object):
     def build_graph(self):
         feature_map1 = 32
         feature_map2 = 64
-        
+
         fc1 = 512
 
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
@@ -168,7 +168,7 @@ class cnnMNIST(object):
 
         # W_fc3 = self.weight_variable([fc2, 7])
         # b_fc3 = self.bias_variable([7])
-        
+
         # y_conv = tf.matmul(h_fc2_drop, W_fc3) + b_fc3
         self.y_conv = h_fc2
 
@@ -359,7 +359,7 @@ def main():
     print('Built the data in {} s'.format(b-a))
 
     validation_data = cnn.validation_batcher()
-    
+
     a = time.time()
     cnn.train()
     b = time.time()
@@ -414,7 +414,7 @@ def main():
 
     for sample, runname in validation_data:
         x = sample
-        x = x[30:, :]
+        # x = x[30:, :]
         predictions = cnn.sess.run(
             cnn.prediction,
             feed_dict = {cnn.x: x,
@@ -447,7 +447,7 @@ def main():
             current_predictions = predictions[hits]
 
             answers.write('{},{},{},\n'.format(
-                runname, current_predictions[index_guess], t[index_guess] + 30))
+                runname, current_predictions[index_guess], t[index_guess]))
         else:
             answers.write('{},{},{},\n'.format(
                 runname, 0, 0))
@@ -456,6 +456,53 @@ def main():
             print('{} validation samples complete'.format(counter))
         counter += 1
     answers.close()
+
+    if analyze_answers:
+        a = open('approach1_answers_{}_{}.csv'.format(cnn.runname, cnn.dataset_filename[:-4]), 'r')
+        b = a.readlines()
+        b = b[1:]
+        predicted = {}
+        for line in b:
+            raw_line = line.strip()
+            parsed = raw_line.split(',')
+            name = int(parsed[0])
+            predicted[name] = {'source': int(parsed[1]),
+                               'time': float(parsed[2])}
+        truth = label_datasets()
+
+        delta = {}
+        TP = 0
+        FP = 0
+        P = 0
+        TN = 0
+        FN = 0
+        N = 0
+
+        locale = 0
+        locale_threshold = 5  # within 5 seconds on either side.
+        counter = 0
+        for item in truth:
+            locale = np.sqrt(np.power((predicted[item]['time'] - predicted[item]['time']), 2))
+            if predicted[item]['source'] == 0 and truth[item]['source'] == 1:
+                FN += 1
+                N += 1
+            elif predicted[item]['source'] == 0 and truth[item]['source'] == 0:
+                TN += 1
+                N += 1
+            elif predicted[item]['source'] != 0 and truth[item]['source'] != 0 and locale < locale_threshold:
+                TP += 1
+                P += 1
+            else:
+                FP += 1
+                P += 1
+            counter += 1
+
+        print('TPR: {}\nFPR: {}\nTNR: {}\nFNR: {}\n'.format(
+            float(TP) / float(P),
+            float(FP) / float(P),
+            float(TN) / float(N),
+            float(FN) / float(N)))
+
     return
 
 main()

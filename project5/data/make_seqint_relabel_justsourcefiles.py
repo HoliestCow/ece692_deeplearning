@@ -271,19 +271,35 @@ def main():
 
     # NOTE: JUST TO CREATE THE VALIDATION. ONLY NEED TO DO THIS ONCE
 
-    g = h5py.File('sequential_dataset_relabel_validationonly.h5', 'w')
-    validate = g.create_group('validate')
-    for i in range(len(validatelist)):
-        random_file = validatelist[i]
+    # g = h5py.File('sequential_dataset_relabel_validationonly.h5', 'w')
+    # validate = g.create_group('validate')
+    # for i in range(len(validatelist)):
+    #     random_file = validatelist[i]
+    #     if i % 100 == 0:
+    #         print('{} validation samples done in {} s'.format(i, time.time() - a))
+    #     x = np.array(np.load(random_file))
+    #     x = x[:, 1:]
+    #     head, tail = os.path.split(random_file)
+    #     runname = tail[6:-4]
+    #     tostore_spectra = x
+    #     validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
+    # g.close()
+
+    h = h5py.File('sequential_dataset_relabel_testset_validationonly.h5', 'w')
+    validate_h = h.create_group('validate')
+    for i in range(len(sourcefilelist_test)):
+        random_file = sourcefilelist_test[i]
         if i % 100 == 0:
             print('{} validation samples done in {} s'.format(i, time.time() - a))
-        x = np.array(np.load(random_file))
+        x = np.array(np.load('./train_integrations/' + random_file + '.npy'))
         x = x[:, 1:]
-        head, tail = os.path.split(random_file)
-        runname = tail[6:-4]
+        # head, tail = os.path.split(random_file)
+        runname = random_file
+        # runname = tail[:-4]
         tostore_spectra = x
-        validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
-    g.close()
+        # print(runname)
+        validate_h.create_dataset(runname, data=tostore_spectra, compression='gzip')
+    h.close()
     return
 
 main()
