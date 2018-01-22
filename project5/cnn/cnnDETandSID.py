@@ -22,7 +22,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 250
+        self.epochs = 100
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
         self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
         self.build_graph()
@@ -113,7 +113,7 @@ class cnnMNIST(object):
             f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
             g = f['test']
         else:
-            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_validationonly.h5'), 'r')
+            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_testset_validationonly.h5'), 'r')
             g = f['validate']
         samplelist = list(g.keys())
 
@@ -198,7 +198,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.15)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -329,6 +329,7 @@ def group_consecutives(vals, step=1):
     return result
 
 def longest(l):
+    print('length: ', len(l))
     if len(l) == 0:
         return None, None
 
@@ -352,6 +353,7 @@ def longest(l):
 def main():
 
     isTest = True
+    analyze_answers = True
 
     cnn = cnnMNIST()
     a = time.time()
@@ -413,7 +415,6 @@ def main():
     #         counter += 1
     #     answers.close()
     #     return
-
     for sample, runname in validation_data:
         x = sample
         # x = x[30:, :]
@@ -430,6 +431,7 @@ def main():
         grouping = group_consecutives(machine)
 
         group_index, group_length = longest(grouping)
+        print(group_index, group_length)
         if group_index is not None:
             hits[grouping[group_index]] = True
         # for group in grouping:
@@ -460,6 +462,14 @@ def main():
     answers.close()
 
     if analyze_answers:
+        id2string = {0: 'Background',
+                 1: 'HEU',
+                 2: 'WGPu',
+                 3: 'I131',
+                 4: 'Co60',
+                 5: 'Tc99',
+                 6: 'HEUandTc99'}
+
         a = open('approach1_answers_{}_{}.csv'.format(cnn.runname, cnn.dataset_filename[:-4]), 'r')
         b = a.readlines()
         b = b[1:]
@@ -467,8 +477,9 @@ def main():
         for line in b:
             raw_line = line.strip()
             parsed = raw_line.split(',')
-            name = int(parsed[0])
-            predicted[name] = {'source': int(parsed[1]),
+            print(parsed)
+            name = parsed[0]
+            predicted[name] = {'source': id2string[int(parsed[1])],
                                'time': float(parsed[2])}
         truth = label_datasets()
 
@@ -481,10 +492,10 @@ def main():
         N = 0
 
         locale = 0
-        locale_threshold = 5  # within 5 seconds on either side.
+        locale_threshold = 10  # within 5 seconds on either side.
         counter = 0
-        for item in truth:
-            locale = np.sqrt(np.power((predicted[item]['time'] - predicted[item]['time']), 2))
+        for item in predicted:
+            locale = np.sqrt(np.power((predicted[item]['time'] - truth[item]['time']), 2))
             if predicted[item]['source'] == 0 and truth[item]['source'] == 1:
                 FN += 1
                 N += 1
