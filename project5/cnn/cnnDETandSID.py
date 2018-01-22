@@ -30,6 +30,9 @@ class cnnMNIST(object):
     def onehot_labels(self, labels):
         out = np.zeros((labels.shape[0], 7))
         for i in range(labels.shape[0]):
+            # HACK: This is to test teh validation writer.
+            # chooser = np.random.randint(2)
+            # out[i, :] = np.eye(7)[chooser]
             out[i, :] = np.eye(7)[labels[i]]
         return out
 
@@ -198,7 +201,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.35)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -225,7 +228,7 @@ class cnnMNIST(object):
                current_y = next(y_generator)
                self.sess.run([self.train_step], feed_dict={self.x: current_x,
                                                            self.y_: current_y,
-                                                           self.keep_prob: 0.01})
+                                                           self.keep_prob: 0.1})
 
             self.shuffle()
 
@@ -329,7 +332,6 @@ def group_consecutives(vals, step=1):
     return result
 
 def longest(l):
-    print('length: ', len(l))
     if len(l) == 0:
         return None, None
 
@@ -431,7 +433,6 @@ def main():
         grouping = group_consecutives(machine)
 
         group_index, group_length = longest(grouping)
-        print(group_index, group_length)
         if group_index is not None:
             hits[grouping[group_index]] = True
         # for group in grouping:
@@ -477,7 +478,6 @@ def main():
         for line in b:
             raw_line = line.strip()
             parsed = raw_line.split(',')
-            print(parsed)
             name = parsed[0]
             predicted[name] = {'source': id2string[int(parsed[1])],
                                'time': float(parsed[2])}
@@ -496,25 +496,29 @@ def main():
         counter = 0
         for item in predicted:
             locale = np.sqrt(np.power((predicted[item]['time'] - truth[item]['time']), 2))
-            if predicted[item]['source'] == 0 and truth[item]['source'] == 1:
-                FN += 1
-                N += 1
-            elif predicted[item]['source'] == 0 and truth[item]['source'] == 0:
-                TN += 1
-                N += 1
-            elif predicted[item]['source'] != 0 and truth[item]['source'] != 0 and locale < locale_threshold:
+            if predicted[item]['source'] != 'Background' and truth[item]['source'] != 'Background' and locale < locale_threshold:
                 TP += 1
                 P += 1
-            else:
+            elif predicted[item]['source'] != 'Background' and truth[item]['source'] == 'Background':
                 FP += 1
                 P += 1
+            elif predicted[item]['source'] == 'Background' and truth[item]['source'] != 'Background':
+                FN += 1
+                N += 1
+            else:
+                TN += 1
+                N += 1
+
             counter += 1
 
-        print('TPR: {}\nFPR: {}\nTNR: {}\nFNR: {}\n'.format(
+        print('TPR: {}\nFPR: {}\nTNR: {}\nFNR: {}\nP: {}\nN: {}\nT: {}\n'.format(
             float(TP) / float(P),
             float(FP) / float(P),
             float(TN) / float(N),
-            float(FN) / float(N)))
+            float(FN) / float(N),
+            P,
+            N,
+            P + N))
 
     return
 
