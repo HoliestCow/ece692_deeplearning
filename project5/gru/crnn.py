@@ -380,7 +380,7 @@ class cnnMNIST(object):
                     feedme = first
                     k = second
                     accuracy, test_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction], feed_dict={self.x: feedme,
-                               self.y_: k, self.keep_prob1: 1.0, self.keep_prob2: 1.0})
+                               self.y_: k, self.keep_prob: 1.0})
                             #    self.weights: z})
                     sum_loss += np.sum(test_loss)
                     hits += np.sum(prediction)
@@ -398,8 +398,7 @@ class cnnMNIST(object):
                 self.sess.run([self.train_step], feed_dict={
                                   self.x: x,
                                   self.y_: y,
-                                  self.keep_prob1: 0.1,
-                                  self.keep_prob2: 0.5})
+                                  self.keep_prob: 0.1})
                            #   self.weights: z})
             # self.shuffle()
 
