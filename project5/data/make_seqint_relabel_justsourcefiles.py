@@ -117,8 +117,8 @@ def store_sequence(targetfile, filehandle, labels):
     # right = source_index + 120
     # left = source_index - 149
     # right = source_index + 150
-    left = 0
-    right = x.shape[0]
+    # left = 0
+    # right = x.shape[0]
     if left < 0:
         left = 0
     if right >= x.shape[0]:
