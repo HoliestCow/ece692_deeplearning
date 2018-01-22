@@ -126,7 +126,16 @@ class cnnMNIST(object):
 
 
     def build_graph(self):
-        feature_map = 8
+        feature_map1 = 10
+        feature_map2 = 20
+        feature_map3 = 20
+        feature_map4 = 30
+        feature_map5 = 30
+        feature_map6 = 40
+        feature_map7 = 40
+        feature_map8 = 50
+        feature_map9 = 50
+        feature_map10 = 60
 
         self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
@@ -134,26 +143,26 @@ class cnnMNIST(object):
 
         x_image = self.hack_1dreshape(self.x)
         # define conv-layer variables
-        W_conv1 = self.weight_variable([1, 3, 1, feature_map])    # first conv-layer has 32 kernels, size=5
-        b_conv1 = self.bias_variable([feature_map])
-        W_conv2 = self.weight_variable([1, 3, feature_map, feature_map])
-        b_conv2 = self.bias_variable([feature_map])
-        W_conv3 = self.weight_variable([1, 3, 1, feature_map])    # first conv-layer has 32 kernels, size=5
-        b_conv3 = self.bias_variable([feature_map])
-        W_conv4 = self.weight_variable([1, 3, feature_map, feature_map])
-        b_conv4 = self.bias_variable([feature_map])
-        W_conv5 = self.weight_variable([1, 3, feature_map, feature_map])
-        b_conv5 = self.bias_variable([feature_map])
-        W_conv6 = self.weight_variable([1, 3, feature_map, feature_map])
-        b_conv6 = self.bias_variable([feature_map])
-        W_conv7 = self.weight_variable([1, 3, feature_map, feature_map])
-        b_conv7 = self.bias_variable([feature_map])
-        W_conv8 = self.weight_variable([1, 3, feature_map, feature_map])
-        b_conv8 = self.bias_variable([feature_map])
-        W_conv9 = self.weight_variable([1, 3, feature_map, feature_map])
-        b_conv9 = self.bias_variable([feature_map])
-        W_conv10 = self.weight_variable([1, 3, feature_map, feature_map])
-        b_conv10= self.bias_variable([feature_map])
+        W_conv1 = self.weight_variable([1, 3, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
+        b_conv1 = self.bias_variable([feature_map1])
+        W_conv2 = self.weight_variable([1, 3, feature_map1, feature_map2])
+        b_conv2 = self.bias_variable([feature_map2])
+        W_conv3 = self.weight_variable([1, 3, feature_map2, feature_map3])    # first conv-layer has 32 kernels, size=5
+        b_conv3 = self.bias_variable([feature_map3])
+        W_conv4 = self.weight_variable([1, 3, feature_map3, feature_map4])
+        b_conv4 = self.bias_variable([feature_map4])
+        W_conv5 = self.weight_variable([1, 3, feature_map4, feature_map5])
+        b_conv5 = self.bias_variable([feature_map5])
+        W_conv6 = self.weight_variable([1, 3, feature_map5, feature_map6])
+        b_conv6 = self.bias_variable([feature_map6])
+        W_conv7 = self.weight_variable([1, 3, feature_map6, feature_map7])
+        b_conv7 = self.bias_variable([feature_map7])
+        W_conv8 = self.weight_variable([1, 3, feature_map7, feature_map8])
+        b_conv8 = self.bias_variable([feature_map8])
+        W_conv9 = self.weight_variable([1, 3, feature_map8, feature_map9])
+        b_conv9 = self.bias_variable([feature_map9])
+        W_conv10 = self.weight_variable([1, 3, feature_map9, feature_map10])
+        b_conv10= self.bias_variable([feature_map10])
 
 
 
@@ -187,6 +196,8 @@ class cnnMNIST(object):
         h_pool9_dropped = tf.nn.dropout(h_pool9, self.keep_prob)
         h_conv10 = tf.nn.relu(self.conv2d(h_pool9_dropped, W_conv10) + b_conv10)
         h_pool10 = self.max_pool_2x2(h_conv10)
+        h_pool10_flat = tf.reshape(h_pool10, [-1, feature_map10])
+
         # h_pool10_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
 
         # densely/fully connected layer
@@ -200,11 +211,10 @@ class cnnMNIST(object):
         # h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
-
-        W_fc2 = self.weight_variable([feature_map, 7])
+        W_fc2 = self.weight_variable([feature_map10, 7])
         b_fc2 = self.bias_variable([7])
 
-        h_fc2 = tf.matmul(h_pool10, W_fc2) + b_fc2
+        h_fc2 = tf.matmul(h_pool10_flat, W_fc2) + b_fc2
         # h_fc2_drop = tf.nn.dropout(h_fc2, self.keep_prob)
 
         # W_fc3 = self.weight_variable([fc2, 7])
@@ -237,7 +247,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -264,7 +274,7 @@ class cnnMNIST(object):
                current_y = next(y_generator)
                self.sess.run([self.train_step], feed_dict={self.x: current_x,
                                                            self.y_: current_y,
-                                                           self.keep_prob: 0.01})
+                                                           self.keep_prob: 0.1})
 
             self.shuffle()
 
@@ -464,6 +474,7 @@ def main():
         time_index = np.arange(predictions.shape[0])
         # mask = predictions >= 0.5
         machine = np.argwhere(predictions >= 0.5)
+        print(machine)
         hits = np.zeros((x.shape[0], ), dtype=bool)
         # hits = mask
         machine = machine.reshape((machine.shape[0], ))
@@ -499,6 +510,7 @@ def main():
             print('{} validation samples complete'.format(counter))
         counter += 1
     answers.close()
+    stop
 
     if analyze_answers:
         id2string = {0: 'Background',
