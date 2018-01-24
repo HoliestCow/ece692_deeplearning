@@ -252,61 +252,64 @@ class cnnMNIST(object):
         self.keep_prob = tf.placeholder(tf.float32, shape=[])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
-        feature_map = 30
+        feature_map1 = 30
+        feature_map2 = 60
+        feature_map3 = 60
+        feature_map4 = 60
         num_units = 30
         num_layers = 2
 
         # x_image = self.hack_1dreshape(self.x)
         # print(x_image.shape)
         # define conv-layer variables
-        W_conv1 = self.weight_variable([3, 3, 1, feature_map])    # first conv-layer has 32 kernels, size=5
-        b_conv1 = self.bias_variable([feature_map])
+        W_conv1 = self.weight_variable([3, 3, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
+        b_conv1 = self.bias_variable([feature_map1])
         x_expanded = tf.expand_dims(self.x, 3)
-        W_conv2 = self.weight_variable([3, 3, feature_map, feature_map])
-        b_conv2 = self.bias_variable([feature_map])
-        W_conv3 = self.weight_variable([3, 3, feature_map, feature_map])
-        b_conv3 = self.bias_variable([feature_map])
-        W_conv4 = self.weight_variable([3, 3, feature_map, feature_map])
-        b_conv4 = self.bias_variable([feature_map])
-        W_conv5 = self.weight_variable([3, 3, feature_map, feature_map])
-        b_conv5 = self.bias_variable([feature_map])
-        W_conv6 = self.weight_variable([3, 3, feature_map, feature_map])
-        b_conv6 = self.bias_variable([feature_map])
-        W_conv7 = self.weight_variable([3, 3, feature_map, feature_map])
-        b_conv7 = self.bias_variable([feature_map])
-        W_conv8 = self.weight_variable([3, 3, feature_map, feature_map])
-        b_conv8 = self.bias_variable([feature_map])
+        W_conv2 = self.weight_variable([3, 3, feature_map1, feature_map2])
+        b_conv2 = self.bias_variable([feature_map2])
+        W_conv3 = self.weight_variable([3, 3, feature_map2, feature_map3])
+        b_conv3 = self.bias_variable([feature_map3])
+        W_conv4 = self.weight_variable([3, 3, feature_map3, feature_map4])
+        b_conv4 = self.bias_variable([feature_map4])
+        # W_conv5 = self.weight_variable([3, 3, feature_map4, feature_map5])
+        # b_conv5 = self.bias_variable([feature_map5])
+        # W_conv6 = self.weight_variable([3, 3, feature_map5, feature_map6])
+        # b_conv6 = self.bias_variable([feature_map6])
+        # W_conv7 = self.weight_variable([3, 3, feature_map6, feature_map7])
+        # b_conv7 = self.bias_variable([feature_map7])
+        # W_conv8 = self.weight_variable([3, 3, feature_map7, feature_map8])
+        # b_conv8 = self.bias_variable([feature_map8])
 
         # x_image = tf.reshape(self.x, [-1, 78, 78, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_expanded, W_conv1) + b_conv1)
-        h_pool1 = self.max_pool_2x2(h_conv1)
+        h_pool1 = self.max_pool(h_conv1, [1, 1, 4, 1])
         h_pool1_dropped = tf.nn.dropout(h_pool1, self.keep_prob)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1_dropped, W_conv2) + b_conv2)
-        h_pool2 = self.max_pool_2x2(h_conv2)
+        h_pool2 = self.max_pool(h_conv2, [1, 1, 4, 1])
         h_pool2_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
         h_conv3 = tf.nn.relu(self.conv2d(h_pool2_dropped, W_conv3) + b_conv3)
-        h_pool3 = self.max_pool_2x2(h_conv3)
+        h_pool3 = self.max_pool(h_conv3, [1, 1, 4,  1])
         h_pool3_dropped = tf.nn.dropout(h_pool3, self.keep_prob)
         h_conv4 = tf.nn.relu(self.conv2d(h_pool3_dropped, W_conv4) + b_conv4)
-        h_pool4 = self.max_pool_2x2(h_conv4)
+        h_pool4 = self.max_pool(h_conv4, [1, 1, 4, 1])
         h_pool4_dropped = tf.nn.dropout(h_pool4, self.keep_prob)
-        h_conv5 = tf.nn.relu(self.conv2d(h_pool4_dropped, W_conv5) + b_conv5)
-        h_pool5 = self.max_pool_2x2(h_conv5)
-        h_pool5_dropped = tf.nn.dropout(h_pool5, self.keep_prob)
-        h_conv6 = tf.nn.relu(self.conv2d(h_pool5_dropped, W_conv6) + b_conv6)
-        h_pool6 = self.max_pool_2x2(h_conv6)
-        h_pool6_dropped = tf.nn.dropout(h_pool6, self.keep_prob)
-        h_conv7 = tf.nn.relu(self.conv2d(h_pool6_dropped, W_conv7) + b_conv7)
-        h_pool7 = self.max_pool_2x2(h_conv7)
-        h_pool7_dropped = tf.nn.dropout(h_pool7, self.keep_prob)
-        h_conv8 = tf.nn.relu(self.conv2d(h_pool7_dropped, W_conv8) + b_conv8)
-        h_pool8 = self.max_pool_2x2(h_conv8)
+        # h_conv5 = tf.nn.relu(self.conv2d(h_pool4_dropped, W_conv5) + b_conv5)
+        # h_pool5 = self.max_pool_2x2(h_conv5)
+        # h_pool5_dropped = tf.nn.dropout(h_pool5, self.keep_prob)
+        # h_conv6 = tf.nn.relu(self.conv2d(h_pool5_dropped, W_conv6) + b_conv6)
+        # h_pool6 = self.max_pool_2x2(h_conv6)
+        # h_pool6_dropped = tf.nn.dropout(h_pool6, self.keep_prob)
+        # h_conv7 = tf.nn.relu(self.conv2d(h_pool6_dropped, W_conv7) + b_conv7)
+        # h_pool7 = self.max_pool_2x2(h_conv7)
+        # h_pool7_dropped = tf.nn.dropout(h_pool7, self.keep_prob)
+        # h_conv8 = tf.nn.relu(self.conv2d(h_pool7_dropped, W_conv8) + b_conv8)
+        # h_pool8 = self.max_pool_2x2(h_conv8)
         # h_pool8_dropped = tf.nn.dropout(h_pool8, self.keep_prob)
         # h_conv9 = tf.nn.relu(self.conv2d(h_pool8_dropped, W_conv2) + b_conv2)
         # h_pool9 = self.max_pool_2x2(h_conv9)
         # h_pool9_dropped = tf.nn.dropout(h_pool9, self.keep_prob)
 
-        h_pool8_flat = tf.reshape(h_pool8, [-1, 4, feature_map])
+        h_pool8_flat = tf.reshape(h_pool4_dropped, [-1, 16, feature_map4 * 4])
         cnn_output = h_pool8_flat
 
         cells = []
@@ -350,7 +353,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -436,8 +439,8 @@ class cnnMNIST(object):
     def conv2d(self, x, W):
         return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-    def max_pool_2x2(self, x):
-        return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
+    def max_pool(self, x, ksize):
+        return tf.nn.max_pool(x, ksize=ksize,
                                 strides=[1, 2, 2, 1], padding='SAME')
 
     def max_pool_spectra(self, x):
