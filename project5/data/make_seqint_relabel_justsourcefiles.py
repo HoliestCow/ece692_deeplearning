@@ -82,7 +82,7 @@ def findMiddle(input_list):
         # return (input_list[int(middle)], input_list[int(middle-1)])
         return input_list[int(middle)]
 
-def store_sequence(targetfile, filehandle, labels):
+def store_sequence(targetfile, filehandle, labels, plot_dir=None):
 
 
     string2id = {'Background': 0,
@@ -117,8 +117,8 @@ def store_sequence(targetfile, filehandle, labels):
     # right = source_index + 120
     # left = source_index - 149
     # right = source_index + 150
-    # left = 0
-    # right = x.shape[0]
+    left = 0
+    right = x.shape[0]
     if left < 0:
         left = 0
     if right >= x.shape[0]:
@@ -126,16 +126,16 @@ def store_sequence(targetfile, filehandle, labels):
 
     current_slice = x
     current_slice_counts = np.sum(current_slice, axis=1)
-    # modified_slice_counts = reject_outliers(current_slice_counts, m=5)
+    modified_slice_counts = reject_outliers(current_slice_counts, m=5)
     # current_slice_count_mean = np.mean(modified_slice_counts)
     current_slice_count_median = np.median(current_slice_counts)
     # current_slice_count_min = np.min(current_slice_counts)
-    # current_slice_count_std = np.std(modified_slice_counts)
+    current_slice_count_std = np.std(modified_slice_counts)
     hits = np.zeros((current_slice.shape[0], ), dtype=bool)
 
     # threshold = current_slice_count_min + (0.25 * current_slice_count_min)
     # threshold  = current_slice_count_mean + (0.5 * current_slice_count_std)
-    threshold = current_slice_count_median
+    threshold = current_slice_count_median + (0.5 * current_slice_count_std)
     # print(threshold)
     # threshold = current_slice_count_mean + (1 * current_slice_count_std)
     hits[current_slice_counts > threshold] = True
@@ -172,15 +172,62 @@ def store_sequence(targetfile, filehandle, labels):
     grp.create_dataset('measured_spectra', data=tostore_spectra, compression='gzip')
     grp.create_dataset('labels', data=tostore_labels, compression='gzip')
 
+    ofinterest = [\
+        '100099',
+        '100103',
+        '100108',
+        '100117',
+        '100119',
+        '100155',
+        '100128',
+        '100121']
+
     # Plot the hits:
-    # for i in range(len(tostore_labels)):
-    #     if tostore_labels[i] != 0:
-    #         fig = plt.figure()
-    #         plt.plot(tostore_spectra[i, :])
-    #         plt.title('source{}_time{}'.format(source_type, source_index))
-    #         plt.axis([0, 1024, 0, 50])
-    #         fig.savefig('./plots/{}_{}'.format(targetfile, i))
-    #         plt.close()
+    if plot_dir is not None:
+        hits = tostore_labels > 0.5
+        x = np.arange(0, len(tostore_labels))
+        fig = plt.figure()
+        # print(x[~hits])
+        # print(np.sum(tostore_spectra[~hits, :], axis=1))
+        counts = np.sum(tostore_spectra, axis=1)
+        plt.plot(x[hits], counts[hits], 'r.')
+        plt.plot(x[~hits], counts[~hits], 'b.')
+        plt.plot(x[source_index], counts[source_index], 'g*')
+        # plt.axis([0, 1024, 0, 50])
+        plt.axis([0, x[-1], 0, np.max(np.sum(tostore_spectra, axis=1))])
+        fig.savefig('./{}/{}_counts'.format(plot_dir, targetfile))
+        plt.close()
+
+        if targetfile in ofinterest:
+            # x = np.arange(0, len(tostore_labels))
+            counter = 0
+            for j in range(len(tostore_labels)):
+                fig = plt.figure()
+                if tostore_labels[counter] == 0:
+                    plt.plot(tostore_spectra[counter, :], 'b.')
+                    plt.axis([0, 1024, 0, 50])
+                elif counter == source_index:
+                    plt.plot(tostore_spectra[counter, :], 'g*')
+                    plt.axis([0, 1024, 0, 50])
+                else:
+                    plt.plot(tostore_spectra[counter, :], 'r.')
+                    plt.axis([0, 1024, 0, 50])
+                try:
+                    os.mkdir('./{}/{}'.format(plot_dir, targetfile))
+                except:
+                    pass
+                fig.savefig('./{}/{}/{:03d}'.format(plot_dir, targetfile, counter))
+                plt.close()
+                counter += 1
+
+        # for i in range(len(tostore_labels)):
+        #     if tostore_labels[i] != 0:
+        #         fig = plt.figure()
+        #         plt.plot(tostore_spectra[i, :])
+        #         plt.title('source{}_time{}'.format(source_type, source_index))
+        #         plt.axis([0, 1024, 0, 50])
+        #         fig.savefig('./{}/{}_{}'.format(plot_dir, targetfile, i))
+        #         plt.close()
 
     return
 
@@ -251,7 +298,7 @@ def main():
         if i % 100 == 0:
             print('{} training samples done in {} s'.format(i, time.time() - a))
         current_file = sourcefilelist_train[i]
-        store_sequence(current_file, train, labels)
+        store_sequence(current_file, train, labels, 'train_plots')
     # for i in range(len(backgroundfilelist_train)):
     #     if i % 100 == 0:
     #         print('{} training samples done in {} s '.format(i, time.time() - a))
@@ -285,21 +332,21 @@ def main():
     #     validate.create_dataset(runname, data=tostore_spectra, compression='gzip')
     # g.close()
 
-    h = h5py.File('sequential_dataset_relabel_testset_validationonly.h5', 'w')
-    validate_h = h.create_group('validate')
-    for i in range(len(sourcefilelist_test)):
-        random_file = sourcefilelist_test[i]
-        if i % 100 == 0:
-            print('{} validation samples done in {} s'.format(i, time.time() - a))
-        x = np.array(np.load('./train_integrations/' + random_file + '.npy'))
-        x = x[:, 1:]
-        # head, tail = os.path.split(random_file)
-        runname = random_file
-        # runname = tail[:-4]
-        tostore_spectra = x
-        # print(runname)
-        validate_h.create_dataset(runname, data=tostore_spectra, compression='gzip')
-    h.close()
+    # h = h5py.File('sequential_dataset_relabel_testset_validationonly.h5', 'w')
+    # validate_h = h.create_group('validate')
+    # for i in range(len(sourcefilelist_test)):
+    #     random_file = sourcefilelist_test[i]
+    #     if i % 100 == 0:
+    #         print('{} validation samples done in {} s'.format(i, time.time() - a))
+    #     x = np.array(np.load('./train_integrations/' + random_file + '.npy'))
+    #     x = x[:, 1:]
+    #     # head, tail = os.path.split(random_file)
+    #     runname = random_file
+    #     # runname = tail[:-4]
+    #     tostore_spectra = x
+    #     # print(runname)
+    #     validate_h.create_dataset(runname, data=tostore_spectra, compression='gzip')
+    # h.close()
     return
 
 main()
