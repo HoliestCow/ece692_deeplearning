@@ -353,7 +353,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()

@@ -273,7 +273,7 @@ class cnnMNIST(object):
             yield result
 
     def train(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
