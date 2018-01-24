@@ -28,46 +28,112 @@ class cnnMNIST(object):
             out[i] = np.argmax(labels[i, :])
         return out
 
-
-
-
     def build_graph(self):
         self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
-        
-        # x_image = self.x
+
+        x_image = tf.reshape(self.x, [-1, 15, 1024, 1])
+
+        feature_map1 = 10
+        feature_map2 = 20
+        feature_map3 = 20
+        feature_map4 = 30
+        feature_map5 = 30
+        feature_map6 = 40
+        feature_map7 = 40
+        feature_map8 = 50
+        feature_map9 = 50
+        feature_map10 = 60
+
+        self.keep_prob = tf.placeholder(tf.float32)
+
         # define conv-layer variables
-        W_conv1 = self.weight_variable([5, 5, 1, 32])    # first conv-layer has 32 kernels, size=5
-        b_conv1 = self.bias_variable([32])
-        W_conv2 = self.weight_variable([5, 5, 32, 64])
-        b_conv2 = self.bias_variable([64])
+        W_conv1 = self.weight_variable([3, 3, 1, feature_map1])    # first conv-layer has 32 kernels, size=5
+        b_conv1 = self.bias_variable([feature_map1])
+        W_conv2 = self.weight_variable([3, 3, feature_map1, feature_map2])
+        b_conv2 = self.bias_variable([feature_map2])
+        W_conv3 = self.weight_variable([3, 3, feature_map2, feature_map3])    # first conv-layer has 32 kernels, size=5
+        b_conv3 = self.bias_variable([feature_map3])
+        W_conv4 = self.weight_variable([3, 3, feature_map3, feature_map4])
+        b_conv4 = self.bias_variable([feature_map4])
+        W_conv5 = self.weight_variable([3, 3, feature_map4, feature_map5])
+        b_conv5 = self.bias_variable([feature_map5])
+        W_conv6 = self.weight_variable([3, 3, feature_map5, feature_map6])
+        b_conv6 = self.bias_variable([feature_map6])
+        W_conv7 = self.weight_variable([3, 3, feature_map6, feature_map7])
+        b_conv7 = self.bias_variable([feature_map7])
+        W_conv8 = self.weight_variable([3, 3, feature_map7, feature_map8])
+        b_conv8 = self.bias_variable([feature_map8])
+        W_conv9 = self.weight_variable([3, 3, feature_map8, feature_map9])
+        b_conv9 = self.bias_variable([feature_map9])
+        W_conv10 = self.weight_variable([3, 3, feature_map9, feature_map10])
+        b_conv10= self.bias_variable([feature_map10])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
         h_pool1 = self.max_pool_2x2(h_conv1)
-        h_conv2 = tf.nn.relu(self.conv2d(h_pool1, W_conv2) + b_conv2)
+        h_pool1_dropped = tf.nn.dropout(h_pool1, self.keep_prob)
+        h_conv2 = tf.nn.relu(self.conv2d(h_pool1_dropped, W_conv2) + b_conv2)
         h_pool2 = self.max_pool_2x2(h_conv2)
+        h_pool2_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
+        h_conv3 = tf.nn.relu(self.conv2d(h_pool2_dropped, W_conv3) + b_conv3)
+        h_pool3 = self.max_pool_2x2(h_conv3)
+        h_pool3_dropped = tf.nn.dropout(h_pool3, self.keep_prob)
+        h_conv4 = tf.nn.relu(self.conv2d(h_pool3_dropped, W_conv4) + b_conv4)
+        h_pool4 = self.max_pool_2x2(h_conv4)
+        h_pool4_dropped = tf.nn.dropout(h_pool4, self.keep_prob)
+        h_conv5 = tf.nn.relu(self.conv2d(h_pool4_dropped, W_conv5) + b_conv5)
+        h_pool5 = self.max_pool_2x2(h_conv5)
+        h_pool5_dropped = tf.nn.dropout(h_pool5, self.keep_prob)
+        h_conv6 = tf.nn.relu(self.conv2d(h_pool5_dropped, W_conv6) + b_conv6)
+        h_pool6 = self.max_pool_2x2(h_conv6)
+        h_pool6_dropped = tf.nn.dropout(h_pool6, self.keep_prob)
+        h_conv7 = tf.nn.relu(self.conv2d(h_pool6_dropped, W_conv7) + b_conv7)
+        h_pool7 = self.max_pool_2x2(h_conv7)
+        h_pool7_dropped = tf.nn.dropout(h_pool7, self.keep_prob)
+        h_conv8 = tf.nn.relu(self.conv2d(h_pool7_dropped, W_conv8) + b_conv8)
+        h_pool8 = self.max_pool_2x2(h_conv8)
+        h_pool8_dropped = tf.nn.dropout(h_pool8, self.keep_prob)
+        h_conv9 = tf.nn.relu(self.conv2d(h_pool8_dropped, W_conv9) + b_conv9)
+        h_pool9 = self.max_pool_2x2(h_conv9)
+        h_pool9_dropped = tf.nn.dropout(h_pool9, self.keep_prob)
+        h_conv10 = tf.nn.relu(self.conv2d(h_pool9_dropped, W_conv10) + b_conv10)
+        h_pool10 = self.max_pool_2x2(h_conv10)
+        h_pool10_flat = tf.reshape(h_pool10, [-1, feature_map10])
+
+        # h_pool10_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
 
         # densely/fully connected layer
-        W_fc1 = self.weight_variable([256 * 64, 256])
-        b_fc1 = self.bias_variable([256])
+        # W_fc1 = self.weight_variable([1 * feature_map, fc1])
+        # b_fc1 = self.bias_variable([fc1])
+        #
+        # h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * feature_map])
+        # h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-        h_pool2_flat = tf.reshape(h_pool2, [-1, 256 * 64])
-        h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
-
-        # dropout regularization
-        self.keep_prob = tf.placeholder(tf.float32)
-        h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
-
-        # HERE THE FEATURES FROM THE CNN ARE COMPLETE. NOW TO FEED INTO AN RNN
-
+# dropout regularization
+        # h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
-        W_fc2 = self.weight_variable([1024, 7])
+        W_fc2 = self.weight_variable([feature_map10, 7])
         b_fc2 = self.bias_variable([7])
 
-        self.y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+        h_fc2 = tf.matmul(h_pool10_flat, W_fc2) + b_fc2
+        # h_fc2_drop = tf.nn.dropout(h_fc2, self.keep_prob)
+
+        # W_fc3 = self.weight_variable([fc2, 7])
+        # b_fc3 = self.bias_variable([7])
+
+        # y_conv = tf.matmul(h_fc2_drop, W_fc3) + b_fc3
+        self.y_conv = h_fc2
+
+        # Now I have to weight to logits
+        # class_weights = tf.constant([0.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        # class_weights = tf.constant([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        # self.y_conv = tf.multiply(y_conv, class_weights)
         cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y_, logits=self.y_conv))
+        # reg = tf.nn.l2_loss(W_conv1) + tf.nn.l2_loss(W_conv2) + tf.nn.l2_loss(W_fc1)
+        # beta = 0.01
+        # cross_entropy = tf.reduce_mean(cross_entropy + reg * beta)
         self.train_step = tf.train.AdamOptimizer(self.lr).minimize(cross_entropy)
 
     def shuffle(self):
