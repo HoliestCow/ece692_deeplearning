@@ -186,7 +186,8 @@ class cnnMNIST(object):
             for index_list in index_generator:
                 # tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
                 tostore_spectra += [x[index_list, :].reshape((1, sequence_length, 1024))]
-                tostore_labels += [y[list(index_list)[-1]]]
+                # tostore_labels += [y[list(index_list)[-1]]]  # last label is the the correct label (current spectra in question)
+                tostore_labels += [y[list(index_list)[int(sequence_length / 2)]]]  # middle frame in question
             tostore_spectra = np.concatenate(tostore_spectra, axis=0)
             tostore_labels = np.array(tostore_labels)
 
