@@ -263,18 +263,20 @@ class cnnMNIST(object):
             # print(batch[0].shape)
             # print(batch[1].shape)
             if i % 10 == 0 and i != 0:
-                test_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:200, :],
-                    self.y_: self.y_test[:200, :],
-                    self.keep_prob: 1.0})
-                train_acc = self.sess.run(self.accuracy, feed_dict={self.x: current_x,
-                                                                   self.y_: current_y,
-                                                                   self.keep_prob: 1.0})
+                test_acc = self.sess.run(self.accuracy,
+                    feed_dict={self.x: self.x_test[:200, :],
+                               self.y_: self.y_test[:200, :],
+                               self.keep_prob: 1.0})
+                train_acc = self.sess.run(self.accuracy,
+                    feed_dict={self.x: current_x,
+                               self.y_: current_y,
+                               self.keep_prob: 1.0})
                 print('step %d, training accuracy %g, testing accuracy %g, elapsed time %f' % (i, train_acc, test_acc, time.time()-a))
             for current_x in x_generator:
                current_y = next(y_generator)
                self.sess.run([self.train_step], feed_dict={self.x: current_x,
                                                            self.y_: current_y,
-                                                           self.keep_prob: 0.1})
+                                                           self.keep_prob: 0.5})
 
             self.shuffle()
 
@@ -509,7 +511,6 @@ def main():
             print('{} validation samples complete'.format(counter))
         counter += 1
     answers.close()
-    stop
 
     if analyze_answers:
         id2string = {0: 'Background',

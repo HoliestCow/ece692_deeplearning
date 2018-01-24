@@ -22,7 +22,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 150
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
         self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
         self.build_graph()
