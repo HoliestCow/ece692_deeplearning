@@ -31,10 +31,10 @@ class cnnMNIST(object):
         return out
 
     def build_graph(self):
-        self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
+        self.x = tf.placeholder(tf.float32, shape=[None, 16, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
 
-        x_image = tf.reshape(self.x, [-1, 15, 1024, 1])
+        x_image = tf.reshape(self.x, [-1, 16, 1024, 1])
 
         feature_map1 = 20
         feature_map2 = 40
@@ -68,21 +68,22 @@ class cnnMNIST(object):
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
-        h_pool1 = self.max_pool(h_conv1, [1, 2, 4, 1])
+        h_pool1 = self.max_pool(h_conv1, [1, 2, 4, 1], [1, 2, 4, 1])
         h_pool1_dropped = tf.nn.dropout(h_pool1, self.keep_prob)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1_dropped, W_conv2) + b_conv2)
-        h_pool2 = self.max_pool(h_conv2, [1, 2, 4, 1])
+        h_pool2 = self.max_pool(h_conv2, [1, 2, 4, 1], [1, 2, 4, 1])
         h_pool2_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
         h_conv3 = tf.nn.relu(self.conv2d(h_pool2_dropped, W_conv3) + b_conv3)
-        h_pool3 = self.max_pool(h_conv3, [1, 2, 4, 1])
+        h_pool3 = self.max_pool(h_conv3, [1, 2, 4, 1], [1, 2, 4, 1])
         h_pool3_dropped = tf.nn.dropout(h_pool3, self.keep_prob)
         h_conv4 = tf.nn.relu(self.conv2d(h_pool3_dropped, W_conv4) + b_conv4)
-        h_pool4 = self.max_pool(h_conv4, [1, 2, 4, 1])
+        h_pool4 = self.max_pool(h_conv4, [1, 2, 4, 1], [1, 2, 4, 1])
         h_pool4_dropped = tf.nn.dropout(h_pool4, self.keep_prob)
         h_conv5 = tf.nn.relu(self.conv2d(h_pool4_dropped, W_conv5) + b_conv5)
-        h_pool5 = self.max_pool(h_conv5, [1, 1, 4, 1])
+        h_pool5 = self.max_pool(h_conv5, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool5_dropped = tf.nn.dropout(h_pool5, self.keep_prob)
         h_pool5_flat = tf.reshape(h_pool5_dropped, [-1, feature_map5])
+
         # h_pool5_dropped = tf.nn.dropout(h_pool5, self.keep_prob)
         # h_conv6 = tf.nn.relu(self.conv2d(h_pool5_dropped, W_conv6) + b_conv6)
         # h_pool6 = self.max_pool_2x2(h_conv6)
@@ -166,6 +167,7 @@ class cnnMNIST(object):
                 keylist = usethesekeys[:100]
 
         sequence_length = 16
+        max_batch_size = 64
 
         # l = len(iterable)
         for i in range(len(keylist)):
@@ -188,11 +190,24 @@ class cnnMNIST(object):
             tostore_spectra = np.concatenate(tostore_spectra, axis=0)
             tostore_labels = np.array(tostore_labels)
 
-            x = tostore_spectra
-            y = self.onehot_labels(tostore_labels)
-            self.current_batch_length = x.shape[0]
+            self.howmanytimes = int(np.ceil(tostore_spectra.shape[0] / max_batch_size))
 
-            yield x, y
+            for j in range(self.howmanytimes + 1):
+                start = j * max_batch_size
+                end = ((j + 1) * max_batch_size)
+                if end > tostore_spectra.shape[0]:
+                    end = tostore_spectra.shape[0]
+                x = tostore_spectra[start:end, :, :]
+                if x.shape[0] == 0:
+                    continue
+                y = self.onehot_labels(tostore_labels[start:end])
+                yield x, y
+
+            # x = tostore_spectra
+            # y = self.onehot_labels(tostore_labels)
+            # self.current_batch_length = x.shape[0]
+
+            # yield x, y
 
     def memory_validation_batcher(self):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
@@ -257,7 +272,7 @@ class cnnMNIST(object):
             yield result
 
     def train(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
@@ -315,10 +330,10 @@ class cnnMNIST(object):
     def conv2d(self, x, W):
         return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-    def max_pool(self, x, ksize):
+    def max_pool(self, x, ksize, strides):
         # return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
         return tf.nn.max_pool(x, ksize=ksize,
-                                strides=[1, 2, 2, 1], padding='SAME')
+                                strides=strides, padding='SAME')
 
     def get_label_predictions(self):
         x_batcher = self.batch(self.x_test, n=1000, shuffle=False,

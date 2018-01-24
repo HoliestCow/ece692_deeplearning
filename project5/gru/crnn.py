@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import h5py
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 # from sklearn.metrics import confusion_matrix
 # import itertools
 # from copy import deepcopy
@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 # import os
 # import os.path
 from collections import OrderedDict
-import pickle
+# import pickle
 from itertools import islice
 
 # NOTE: For python2
@@ -24,7 +24,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = False
         self.lr = 1e-4
-        self.epochs = 11
+        self.epochs = 100
         self.runname = 'meh'
         self.build_graph()
         self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
@@ -70,7 +70,7 @@ class cnnMNIST(object):
             if shortset:
                 keylist = usethesekeys[:100]
 
-        sequence_length = 15
+        sequence_length = 16
 
         # l = len(iterable)
         for i in range(len(keylist)):
@@ -109,9 +109,9 @@ class cnnMNIST(object):
             if shortset:
                 keylist = usethesekeys[:100]
 
-        max_batch_size = 4
+        max_batch_size = 128
 
-        sequence_length = 15
+        sequence_length = 16
 
         # l = len(iterable)
         for i in range(len(keylist)):
@@ -164,7 +164,7 @@ class cnnMNIST(object):
         samplelist = list(g.keys())
         # samplelist = samplelist[:100]
 
-        sequence_length = 15
+        sequence_length = 16
         max_batch_size = 64
 
         for i in range(len(samplelist)):
@@ -205,7 +205,7 @@ class cnnMNIST(object):
         samplelist = list(g.keys())
         # samplelist = samplelist[:10]
 
-        sequence_length = 15
+        sequence_length = 16
         max_batch_size = 64
 
         for i in range(len(samplelist)):
@@ -247,7 +247,7 @@ class cnnMNIST(object):
         # NOTE: CNN
         # self.x = tf.placeholder(tf.float32, shape=[None, 1024])
         # self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
-        self.x = tf.placeholder(tf.float32, shape=[None, 15, 1024])
+        self.x = tf.placeholder(tf.float32, shape=[None, 16, 1024])
         self.y_ = tf.placeholder(tf.float32, shape=[None, 7])
         self.keep_prob = tf.placeholder(tf.float32, shape=[])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
@@ -282,16 +282,16 @@ class cnnMNIST(object):
 
         # x_image = tf.reshape(self.x, [-1, 78, 78, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_expanded, W_conv1) + b_conv1)
-        h_pool1 = self.max_pool(h_conv1, [1, 1, 4, 1])
+        h_pool1 = self.max_pool(h_conv1, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool1_dropped = tf.nn.dropout(h_pool1, self.keep_prob)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1_dropped, W_conv2) + b_conv2)
-        h_pool2 = self.max_pool(h_conv2, [1, 1, 4, 1])
+        h_pool2 = self.max_pool(h_conv2, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool2_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
         h_conv3 = tf.nn.relu(self.conv2d(h_pool2_dropped, W_conv3) + b_conv3)
-        h_pool3 = self.max_pool(h_conv3, [1, 1, 4,  1])
+        h_pool3 = self.max_pool(h_conv3, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool3_dropped = tf.nn.dropout(h_pool3, self.keep_prob)
         h_conv4 = tf.nn.relu(self.conv2d(h_pool3_dropped, W_conv4) + b_conv4)
-        h_pool4 = self.max_pool(h_conv4, [1, 1, 4, 1])
+        h_pool4 = self.max_pool(h_conv4, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool4_dropped = tf.nn.dropout(h_pool4, self.keep_prob)
         # h_conv5 = tf.nn.relu(self.conv2d(h_pool4_dropped, W_conv5) + b_conv5)
         # h_pool5 = self.max_pool_2x2(h_conv5)
@@ -309,7 +309,7 @@ class cnnMNIST(object):
         # h_pool9 = self.max_pool_2x2(h_conv9)
         # h_pool9_dropped = tf.nn.dropout(h_pool9, self.keep_prob)
 
-        h_pool8_flat = tf.reshape(h_pool4_dropped, [-1, 16, feature_map4 * 4])
+        h_pool8_flat = tf.reshape(h_pool4_dropped, [-1, 16, feature_map4 * 4]) # * 64])
         cnn_output = h_pool8_flat
 
         cells = []
@@ -353,7 +353,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -438,9 +438,9 @@ class cnnMNIST(object):
     def conv2d(self, x, W):
         return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-    def max_pool(self, x, ksize):
+    def max_pool(self, x, ksize, strides):
         return tf.nn.max_pool(x, ksize=ksize,
-                                strides=[1, 2, 2, 1], padding='SAME')
+                                strides=strides, padding='SAME')
 
     def max_pool_spectra(self, x):
         return tf.nn.max_pool(x, ksize=[1, 1, 2, 1],
