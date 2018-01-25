@@ -171,9 +171,8 @@ def store_sequence(targetfile, filehandle, labels, plot_dir=None):
     grp.create_dataset('measured_spectra', data=tostore_spectra, compression='gzip')
     grp.create_dataset('labels', data=tostore_labels, compression='gzip')
 
-    ofinterest = []
-    ofinterest = [\
-        '100208']
+    # ofinterest = []
+    ofinterest = ['100033']
 
     # Plot the hits:
     if plot_dir is not None:
@@ -183,10 +182,13 @@ def store_sequence(targetfile, filehandle, labels, plot_dir=None):
         # print(x[~hits])
         # print(np.sum(tostore_spectra[~hits, :], axis=1))
         counts = np.sum(tostore_spectra, axis=1)
-        plt.plot(x[hits], counts[hits], 'r.')
-        plt.plot(x[~hits], counts[~hits], 'b.')
-        plt.plot(x[source_index], counts[source_index], 'g*')
+        plt.plot(x[hits], counts[hits], 'r.', label='threat')
+        plt.plot(x[~hits], counts[~hits], 'b.', label='background')
+        plt.plot(x[source_index], counts[source_index], 'g*', label='threat - PoCA')
         # plt.axis([0, 1024, 0, 50])
+        plt.xlabel('Time (s)')
+        plt.ylabel('Count Rate (cps)')
+        plt.legend()
         plt.axis([0, x[-1], 0, np.max(np.sum(tostore_spectra, axis=1))])
         fig.savefig('./{}/{}_counts'.format(plot_dir, targetfile))
         plt.close()
@@ -197,18 +199,18 @@ def store_sequence(targetfile, filehandle, labels, plot_dir=None):
                 fig = plt.figure()
                 if tostore_labels[j] == 0:
                     plt.plot(tostore_spectra[j, :], 'b.')
-                    plt.axis([0, 1024, 0, 50])
                 elif j == source_index:
                     plt.plot(tostore_spectra[j, :], 'g*')
-                    plt.axis([0, 1024, 0, 50])
                 else:
                     plt.plot(tostore_spectra[j, :], 'r.')
-                    plt.axis([0, 1024, 0, 50])
                 try:
                     os.mkdir('./{}/{}'.format(plot_dir, targetfile))
                 except:
                     pass
-                plt.title('source_{}_time_{}'.format(source_type, source_index))
+                # plt.title('source_{}_time_{}'.format(source_type, source_index))
+                plt.axis([0, 1024, 0, 50])
+                plt.xlabel('Channel Number')
+                plt.ylabel('Counts')
                 fig.savefig('./{}/{}/{:03d}'.format(plot_dir, targetfile, j))
                 plt.close()
 
