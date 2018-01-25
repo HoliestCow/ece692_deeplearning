@@ -36,11 +36,11 @@ class cnnMNIST(object):
 
         x_image = tf.reshape(self.x, [-1, 16, 1024, 1])
 
-        feature_map1 = 20
-        feature_map2 = 40
-        feature_map3 = 40
-        feature_map4 = 60
-        feature_map5 = 80
+        feature_map1 = 10
+        feature_map2 = 20
+        feature_map3 = 20
+        feature_map4 = 30
+        feature_map5 = 40
 
         self.keep_prob = tf.placeholder(tf.float32)
 
@@ -217,7 +217,7 @@ class cnnMNIST(object):
         try:
             f = h5py.File(self.dataset_filename, 'r')
         except:
-            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_testdata_validationonly.h5'), 'r')
+            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_testset_validationonly.h5'), 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:100]
@@ -273,7 +273,7 @@ class cnnMNIST(object):
             yield result
 
     def train(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.15)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)

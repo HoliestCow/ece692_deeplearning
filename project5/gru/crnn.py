@@ -24,7 +24,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = False
         self.lr = 1e-3
-        self.epochs = 21
+        self.epochs = 11
         self.runname = 'meh'
         self.build_graph()
         self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
@@ -159,7 +159,7 @@ class cnnMNIST(object):
         try:
             f = h5py.File(self.dataset_filename, 'r')
         except:
-            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_validationonly.h5'), 'r')
+            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_testset_validationonly.h5'), 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:100]
@@ -198,7 +198,7 @@ class cnnMNIST(object):
         # NOTE: for using cnnfeatures sequential dataset
         # f = h5py.File('sequential_dataset_validation.h5', 'r')
         try:
-            f = h5py.File('../data/sequential_dataset_relabel_validationonly.h5', 'r')
+            f = h5py.File('../data/sequential_dataset_relabel_testset_validationonly.h5', 'r')
         except:
             pass
         g = f['validate']
@@ -252,11 +252,11 @@ class cnnMNIST(object):
         self.keep_prob = tf.placeholder(tf.float32, shape=[])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
-        feature_map1 = 30
-        feature_map2 = 60
-        feature_map3 = 60
-        feature_map4 = 60
-        num_units = 30
+        feature_map1 = 15
+        feature_map2 = 30
+        feature_map3 = 30
+        feature_map4 = 30
+        num_units = 15
         num_layers = 2
 
         # x_image = self.hack_1dreshape(self.x)
@@ -353,7 +353,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.15)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
