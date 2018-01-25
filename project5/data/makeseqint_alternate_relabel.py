@@ -136,16 +136,23 @@ def store_sequence(targetfile, filehandle, labels, plot_dir=None):
 
     # NOTE: INSTEAD OF threshold based on counting. We should makr peaks using
     # scipy.signal.find_peaks_cwt(), find the peaks, find the nearest one, then somehow mark the entire peak.
-    threshold = current_slice_count_median + (0.1 * current_slice_count_std)
-    hits[current_slice_counts > threshold] = True
+    # threshold = current_slice_count_median + (0.1 * current_slice_count_std)
+    # print(threshold)
+    # t = np.arange(0, x.shape[0])
+    counts = np.sum(x, axis=1)
+    ioi = scipy.signal.find_peaks_cwt(counts, np.arange(3,16))
 
-    machine = np.argwhere(hits == True)
-    hits = np.zeros((current_slice.shape[0], ), dtype=bool)
-    machine = machine.reshape((machine.shape[0], ))
-    grouping = group_consecutives(machine)
-    for group in grouping:
-        if source_index in group:
-            hits[group] = True
+    distances = []
+    for thing in ioi:
+        distances += np.sqrt(np.power(thing - source_index, 2))
+    distances = np.array(distances)
+    chosen_peak_index = ioi[np.argmin(distances)]
+
+
+
+
+    # np.argmin(np.linalg.norm(
+
     if np.sum(hits) == 0:
         listofmiddles = []
         # print(grouping)
