@@ -26,6 +26,7 @@ class cnnMNIST(object):
         self.lr = 1e-3
         self.epochs = 11
         self.runname = 'meh'
+        self.training_keep_prob = 1.0
         self.build_graph()
         self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
 
@@ -44,11 +45,7 @@ class cnnMNIST(object):
     def get_data(self):
         # data_norm = True
         # data_augmentation = False
-        try:
-            f = h5py.File(self.dataset_filename, 'r')
-        except:
-            # f = h5py.File('/home/holiestcow/Documents/2017_fall/ne697_hayward/lecture/datacompetition/sequential_dataset_balanced.h5', 'r')
-            f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
+        f = h5py.File('../data/{}'.format(self.dataset_filename), 'r')
 
         X = f['train']
         X_test = f['test']
@@ -156,10 +153,7 @@ class cnnMNIST(object):
         # f = h5py.File('./sequential_dataset_validation.h5', 'r')
         # NOTE: for using cnnfeatures sequential dataset
         # f = h5py.File('sequential_dataset_validation.h5', 'r')
-        try:
-            f = h5py.File(self.dataset_filename, 'r')
-        except:
-            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_testset_validationonly.h5'), 'r')
+        f = h5py.File('../data/{}'.format('sequential_dataset_relabel_testset_validationonly.h5'), 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:100]
@@ -252,15 +246,11 @@ class cnnMNIST(object):
         self.keep_prob = tf.placeholder(tf.float32, shape=[])
         # self.weights = tf.placeholder(tf.float32, shape=[30])
 
-        feature_map1 = 5
-        feature_map2 = 10
-        feature_map3 = 10
-        feature_map4 = 10
-        feature_map5 = 15
-        feature_map6 = 15
-        feature_map7 = 15
-        feature_map8 = 20
-        num_units = 10
+        feature_map1 = 10
+        feature_map2 = 20
+        feature_map3 = 20
+        feature_map4 = 20
+        num_units = 15
         num_layers = 2
 
         # x_image = self.hack_1dreshape(self.x)
@@ -275,46 +265,47 @@ class cnnMNIST(object):
         b_conv3 = self.bias_variable([feature_map3])
         W_conv4 = self.weight_variable([3, 3, feature_map3, feature_map4])
         b_conv4 = self.bias_variable([feature_map4])
-        W_conv5 = self.weight_variable([3, 3, feature_map4, feature_map5])
-        b_conv5 = self.bias_variable([feature_map5])
-        W_conv6 = self.weight_variable([3, 3, feature_map5, feature_map6])
-        b_conv6 = self.bias_variable([feature_map6])
-        W_conv7 = self.weight_variable([3, 3, feature_map6, feature_map7])
-        b_conv7 = self.bias_variable([feature_map7])
-        W_conv8 = self.weight_variable([3, 3, feature_map7, feature_map8])
-        b_conv8 = self.bias_variable([feature_map8])
+        # W_conv5 = self.weight_variable([3, 3, feature_map4, feature_map5])
+        # b_conv5 = self.bias_variable([feature_map5])
+        # W_conv6 = self.weight_variable([3, 3, feature_map5, feature_map6])
+        # b_conv6 = self.bias_variable([feature_map6])
+        # W_conv7 = self.weight_variable([3, 3, feature_map6, feature_map7])
+        # b_conv7 = self.bias_variable([feature_map7])
+        # W_conv8 = self.weight_variable([3, 3, feature_map7, feature_map8])
+        # b_conv8 = self.bias_variable([feature_map8])
 
         # x_image = tf.reshape(self.x, [-1, 78, 78, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_expanded, W_conv1) + b_conv1)
-        h_pool1 = self.max_pool(h_conv1, [1, 2, 4, 1], [1, 2, 2, 1])
+        h_pool1 = self.max_pool(h_conv1, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool1_dropped = tf.nn.dropout(h_pool1, self.keep_prob)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1_dropped, W_conv2) + b_conv2)
-        h_pool2 = self.max_pool(h_conv2, [1, 1, 4, 1], [1, 1, 2, 1])
+        h_pool2 = self.max_pool(h_conv2, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool2_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
         h_conv3 = tf.nn.relu(self.conv2d(h_pool2_dropped, W_conv3) + b_conv3)
-        h_pool3 = self.max_pool(h_conv3, [1, 1, 4, 1], [1, 1, 2, 1])
+        h_pool3 = self.max_pool(h_conv3, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool3_dropped = tf.nn.dropout(h_pool3, self.keep_prob)
         h_conv4 = tf.nn.relu(self.conv2d(h_pool3_dropped, W_conv4) + b_conv4)
-        h_pool4 = self.max_pool(h_conv4, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool4_dropped = tf.nn.dropout(h_pool4, self.keep_prob)
-        h_conv5 = tf.nn.relu(self.conv2d(h_pool4_dropped, W_conv5) + b_conv5)
-        h_pool5 = self.max_pool(h_conv5, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool5_dropped = tf.nn.dropout(h_pool5, self.keep_prob)
-        h_conv6 = tf.nn.relu(self.conv2d(h_pool5_dropped, W_conv6) + b_conv6)
-        h_pool6 = self.max_pool(h_conv6, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool6_dropped = tf.nn.dropout(h_pool6, self.keep_prob)
-        h_conv7 = tf.nn.relu(self.conv2d(h_pool6_dropped, W_conv7) + b_conv7)
-        h_pool7 = self.max_pool(h_conv7, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool7_dropped = tf.nn.dropout(h_pool7, self.keep_prob)
-        h_conv8 = tf.nn.relu(self.conv2d(h_pool7_dropped, W_conv8) + b_conv8)
-        h_pool8 = self.max_pool(h_conv8, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool8_dropped = tf.nn.dropout(h_pool8, self.keep_prob)
+        h_pool4 = self.max_pool(h_conv4, [1, 1, 4, 1], [1, 1, 4, 1])
+        # h_pool4_dropped = tf.nn.dropout(h_pool4, self.keep_prob)
+        # h_conv5 = tf.nn.relu(self.conv2d(h_pool4_dropped, W_conv5) + b_conv5)
+        # h_pool5 = self.max_pool(h_conv5, [1, 1, 4, 1], [1, 1, 4, 1])
+        # h_pool5_dropped = tf.nn.dropout(h_pool5, self.keep_prob)
+        # h_conv6 = tf.nn.relu(self.conv2d(h_pool5_dropped, W_conv6) + b_conv6)
+        # h_pool6 = self.max_pool(h_conv6, [1, 1, 4, 1], [1, 1, 2, 1])
+        # h_pool6_dropped = tf.nn.dropout(h_pool6, self.keep_prob)
+        # h_conv7 = tf.nn.relu(self.conv2d(h_pool6_dropped, W_conv7) + b_conv7)
+        # h_pool7 = self.max_pool(h_conv7, [1, 1, 4, 1], [1, 1, 2, 1])
+        # h_pool7_dropped = tf.nn.dropout(h_pool7, self.keep_prob)
+        # h_conv8 = tf.nn.relu(self.conv2d(h_pool7_dropped, W_conv8) + b_conv8)
+        # h_pool8 = self.max_pool(h_conv8, [1, 1, 4, 1], [1, 1, 2, 1])
+        # h_pool8_dropped = tf.nn.dropout(h_pool8, self.keep_prob)
         # h_conv9 = tf.nn.relu(self.conv2d(h_pool8_dropped, W_conv2) + b_conv2)
         # h_pool9 = self.max_pool_2x2(h_conv9)
         # h_pool9_dropped = tf.nn.dropout(h_pool9, self.keep_prob)
 
-        h_pool8_flat = tf.reshape(h_pool8_dropped, [-1, 8, feature_map8 * 4]) # * 64])
-        cnn_output = h_pool8_flat
+        # h_pool8_flat = tf.reshape(h_pool8_dropped, [-1, 8, feature_map8 * 4]) # * 64])
+        h_pool4_flat = tf.reshape(h_pool4, [-1, 16, feature_map4 * 4])
+        cnn_output = h_pool4_flat
 
         cells = []
         for _ in range(num_layers):
@@ -386,7 +377,7 @@ class cnnMNIST(object):
                 self.sess.run([self.train_step], feed_dict={
                                   self.x: x,
                                   self.y_: y,
-                                  self.keep_prob: 0.5})
+                                  self.keep_prob: self.training_keep_prob})
                            #   self.weights: z})
             # self.shuffle()
 
@@ -506,6 +497,7 @@ def main():
     cnn.use_gpu = True
     cnn.lr = 1e-3
     cnn.epochs = 11
+    cnn.training_keep_prob = 0.75
     cnn.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
     cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}_data{}'.format(cnn.lr, cnn.epochs, cnn.dataset_filename)
     runname = cnn.runname

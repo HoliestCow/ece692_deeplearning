@@ -14,6 +14,7 @@ from itertools import islice
 
 class cnnMNIST(object):
     def __init__(self):
+        self.training_keep_prob = 0.5
         self.lr = 1e-3
         self.epochs = 11
         self.build_graph()
@@ -36,16 +37,16 @@ class cnnMNIST(object):
 
         x_image = tf.reshape(self.x, [-1, 16, 1024, 1])
 
-        feature_map1 = 5
-        feature_map2 = 10
-        feature_map3 = 10
-        feature_map4 = 20
-        feature_map5 = 20
-        feature_map6 = 30
-        feature_map7 = 30
-        feature_map8 = 40
-        feature_map9 = 40
-        feature_map10 = 50
+        feature_map1 = 10
+        feature_map2 = 20
+        feature_map3 = 20
+        feature_map4 = 30
+        feature_map5 = 30
+        # feature_map6 = 30
+        # feature_map7 = 30
+        # feature_map8 = 40
+        # feature_map9 = 40
+        # feature_map10 = 50
 
         self.keep_prob = tf.placeholder(tf.float32)
 
@@ -60,50 +61,50 @@ class cnnMNIST(object):
         b_conv4 = self.bias_variable([feature_map4])
         W_conv5 = self.weight_variable([3, 3, feature_map4, feature_map5])
         b_conv5 = self.bias_variable([feature_map5])
-        W_conv6 = self.weight_variable([3, 3, feature_map5, feature_map6])
-        b_conv6 = self.bias_variable([feature_map6])
-        W_conv7 = self.weight_variable([3, 3, feature_map6, feature_map7])
-        b_conv7 = self.bias_variable([feature_map7])
-        W_conv8 = self.weight_variable([3, 3, feature_map7, feature_map8])
-        b_conv8 = self.bias_variable([feature_map8])
-        W_conv9 = self.weight_variable([3, 3, feature_map8, feature_map9])
-        b_conv9 = self.bias_variable([feature_map9])
-        W_conv10 = self.weight_variable([3, 3, feature_map9, feature_map10])
-        b_conv10= self.bias_variable([feature_map10])
+        # W_conv6 = self.weight_variable([3, 3, feature_map5, feature_map6])
+        # b_conv6 = self.bias_variable([feature_map6])
+        # W_conv7 = self.weight_variable([3, 3, feature_map6, feature_map7])
+        # b_conv7 = self.bias_variable([feature_map7])
+        # W_conv8 = self.weight_variable([3, 3, feature_map7, feature_map8])
+        # b_conv8 = self.bias_variable([feature_map8])
+        # W_conv9 = self.weight_variable([3, 3, feature_map8, feature_map9])
+        # b_conv9 = self.bias_variable([feature_map9])
+        # W_conv10 = self.weight_variable([3, 3, feature_map9, feature_map10])
+        # b_conv10= self.bias_variable([feature_map10])
 
         # x_image = tf.reshape(self.x, [-1, 28, 28, 1])
         h_conv1 = tf.nn.relu(self.conv2d(x_image, W_conv1) + b_conv1)
-        h_pool1 = self.max_pool(h_conv1, [1, 2, 4, 1], [1, 2, 2, 1])
+        h_pool1 = self.max_pool(h_conv1, [1, 2, 4, 1], [1, 2, 4, 1])
         h_pool1_dropped = tf.nn.dropout(h_pool1, self.keep_prob)
         h_conv2 = tf.nn.relu(self.conv2d(h_pool1_dropped, W_conv2) + b_conv2)
-        h_pool2 = self.max_pool(h_conv2, [1, 2, 4, 1], [1, 2, 2, 1])
+        h_pool2 = self.max_pool(h_conv2, [1, 2, 4, 1], [1, 2, 4, 1])
         h_pool2_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
         h_conv3 = tf.nn.relu(self.conv2d(h_pool2_dropped, W_conv3) + b_conv3)
-        h_pool3 = self.max_pool(h_conv3, [1, 2, 4, 1], [1, 2, 2, 1])
+        h_pool3 = self.max_pool(h_conv3, [1, 2, 4, 1], [1, 2, 4, 1])
         h_pool3_dropped = tf.nn.dropout(h_pool3, self.keep_prob)
         h_conv4 = tf.nn.relu(self.conv2d(h_pool3_dropped, W_conv4) + b_conv4)
-        h_pool4 = self.max_pool(h_conv4, [1, 2, 4, 1], [1, 2, 2, 1])
+        h_pool4 = self.max_pool(h_conv4, [1, 2, 4, 1], [1, 2, 4, 1])
         h_pool4_dropped = tf.nn.dropout(h_pool4, self.keep_prob)
         h_conv5 = tf.nn.relu(self.conv2d(h_pool4_dropped, W_conv5) + b_conv5)
-        h_pool5 = self.max_pool(h_conv5, [1, 1, 4, 1], [1, 1, 2, 1])
+        h_pool5 = self.max_pool(h_conv5, [1, 1, 4, 1], [1, 1, 4, 1])
         h_pool5_dropped = tf.nn.dropout(h_pool5, self.keep_prob)
-        # h_pool5_flat = tf.reshape(h_pool5_dropped, [-1, feature_map5])
+        h_pool5_flat = tf.reshape(h_pool5_dropped, [-1, feature_map5])
 
-        h_conv6 = tf.nn.relu(self.conv2d(h_pool5_dropped, W_conv6) + b_conv6)
-        h_pool6 = self.max_pool(h_conv6, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool6_dropped = tf.nn.dropout(h_pool6, self.keep_prob)
-        h_conv7 = tf.nn.relu(self.conv2d(h_pool6_dropped, W_conv7) + b_conv7)
-        h_pool7 = self.max_pool(h_conv7, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool7_dropped = tf.nn.dropout(h_pool7, self.keep_prob)
-        h_conv8 = tf.nn.relu(self.conv2d(h_pool7_dropped, W_conv8) + b_conv8)
-        h_pool8 = self.max_pool(h_conv8, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool8_dropped = tf.nn.dropout(h_pool8, self.keep_prob)
-        h_conv9 = tf.nn.relu(self.conv2d(h_pool8_dropped, W_conv9) + b_conv9)
-        h_pool9 = self.max_pool(h_conv9, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool9_dropped = tf.nn.dropout(h_pool9, self.keep_prob)
-        h_conv10 = tf.nn.relu(self.conv2d(h_pool9_dropped, W_conv10) + b_conv10)
-        h_pool10 = self.max_pool(h_conv10, [1, 1, 4, 1], [1, 1, 2, 1])
-        h_pool10_flat = tf.reshape(h_pool10, [-1, feature_map10])
+        # h_conv6 = tf.nn.relu(self.conv2d(h_pool5_dropped, W_conv6) + b_conv6)
+        # h_pool6 = self.max_pool(h_conv6, [1, 1, 4, 1], [1, 1, 2, 1])
+        # h_pool6_dropped = tf.nn.dropout(h_pool6, self.keep_prob)
+        # h_conv7 = tf.nn.relu(self.conv2d(h_pool6_dropped, W_conv7) + b_conv7)
+        # h_pool7 = self.max_pool(h_conv7, [1, 1, 4, 1], [1, 1, 2, 1])
+        # h_pool7_dropped = tf.nn.dropout(h_pool7, self.keep_prob)
+        # h_conv8 = tf.nn.relu(self.conv2d(h_pool7_dropped, W_conv8) + b_conv8)
+        # h_pool8 = self.max_pool(h_conv8, [1, 1, 4, 1], [1, 1, 2, 1])
+        # h_pool8_dropped = tf.nn.dropout(h_pool8, self.keep_prob)
+        # h_conv9 = tf.nn.relu(self.conv2d(h_pool8_dropped, W_conv9) + b_conv9)
+        # h_pool9 = self.max_pool(h_conv9, [1, 1, 4, 1], [1, 1, 2, 1])
+        # h_pool9_dropped = tf.nn.dropout(h_pool9, self.keep_prob)
+        # h_conv10 = tf.nn.relu(self.conv2d(h_pool9_dropped, W_conv10) + b_conv10)
+        # h_pool10 = self.max_pool(h_conv10, [1, 1, 4, 1], [1, 1, 2, 1])
+        # h_pool10_flat = tf.reshape(h_pool10, [-1, feature_map10])
 
         # # h_pool10_dropped = tf.nn.dropout(h_pool2, self.keep_prob)
 
@@ -118,10 +119,10 @@ class cnnMNIST(object):
         # h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # linear classifier
-        W_fc2 = self.weight_variable([feature_map10, 7])
+        W_fc2 = self.weight_variable([feature_map5, 7])
         b_fc2 = self.bias_variable([7])
 
-        h_fc2 = tf.matmul(h_pool10_flat, W_fc2) + b_fc2
+        h_fc2 = tf.matmul(h_pool5_flat, W_fc2) + b_fc2
         # h_fc2_drop = tf.nn.dropout(h_fc2, self.keep_prob)
 
         # W_fc3 = self.weight_variable([fc2, 7])
@@ -215,13 +216,7 @@ class cnnMNIST(object):
             # yield x, y
 
     def memory_validation_batcher(self):
-        # f = h5py.File('./sequential_dataset_validation.h5', 'r')
-        # NOTE: for using cnnfeatures sequential dataset
-        # f = h5py.File('sequential_dataset_validation.h5', 'r')
-        try:
-            f = h5py.File(self.dataset_filename, 'r')
-        except:
-            f = h5py.File('../data/{}'.format('sequential_dataset_relabel_testset_validationonly.h5'), 'r')
+        f = h5py.File('../data/{}'.format('sequential_dataset_relabel_testset_validationonly.h5'), 'r')
         g = f['validate']
         samplelist = list(g.keys())
         # samplelist = samplelist[:100]
@@ -253,7 +248,11 @@ class cnnMNIST(object):
                 x = tostore_spectra[start:end, :, :]
                 if x.shape[0] == 0:
                     continue
-                yield x
+                if j == self.howmanytimes:
+                    toggle = 1
+                else:
+                    toggle = 0
+                yield x, toggle
 
     def validation_batcher(self):
         f = h5py.File('../data/sequential_dataset_relabel_testset_validationonly.h5', 'r')
@@ -290,7 +289,7 @@ class cnnMNIST(object):
             for x, y in x_generator:
                 self.sess.run([self.train_step], feed_dict={self.x: x,
                                                             self.y_: y,
-                                                            self.keep_prob: 0.1})
+                                                            self.keep_prob: self.training_keep_prob})
             # self.shuffle()
 
             if i % 5 == 0 and i != 0:
@@ -430,29 +429,34 @@ def main():
     answers = open('approach3_answers_vgg16_{}.csv'.format(cnn.epochs), 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     # counter = 0
-    for sample in validation_data:
+    temp_predictions = []
+    for sample, iswrite in validation_data:
         x = np.array(sample)
+        
         predictions = cnn.sess.run(
             cnn.prediction,
             feed_dict = {cnn.x: x,
                          cnn.keep_prob: 1.0})
+        temp_predictions += predictions.tolist()
         time_index = np.arange(predictions.shape[0])
         mask = predictions >= 0.5
         runname = cnn.current_sample_name 
-        if np.sum(mask) != 0:
-            counts = np.squeeze(np.sum(x[:, -1, :], axis=2))
-            # fig = plt.figure()
-            t = time_index[mask]
-            t = [int(i) for i in t]
-            index_guess = np.argmax(counts[t])
+        if iswrite == 1:
+            if np.sum(mask) != 0:
+                print(x.shape)
+                counts = np.sum(np.squeeze(x[:, 7, :]), axis=1)
+                t = time_index[mask]
+                t = [int(i) for i in t]
+                index_guess = np.argmax(counts[t])
 
-            current_predictions = predictions[mask]
+                current_predictions = predictions[mask]
 
-            answers.write('{},{},{},\n'.format(
-                runname, current_predictions[index_guess], t[index_guess] + 8))
-        else:
-            answers.write('{},{},{},\n'.format(
-                runname, 0, 0))
+                answers.write('{},{},{},\n'.format(
+                    runname, current_predictions[index_guess], t[index_guess] + 8))
+            else:
+                answers.write('{},{},{},\n'.format(
+                    runname, 0, 0))
+            temp_predictions = []
     answers.close()
     return
 

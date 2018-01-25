@@ -22,7 +22,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = True
         self.lr = 1e-3
-        self.epochs = 200
+        self.epochs = 100
         self.runname = 'cnndetandsid_{}'.format(self.epochs)
         self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
         self.build_graph()
@@ -201,7 +201,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -354,8 +354,8 @@ def longest(l):
 
 def main():
 
-    isTest = True
-    analyze_answers = True
+    isTest = False
+    analyze_answers = False
 
     cnn = cnnMNIST()
     a = time.time()
@@ -433,7 +433,7 @@ def main():
         grouping = group_consecutives(machine)
 
         group_index, group_length = longest(grouping)
-        if group_index is not None:
+        if group_index is not None and group_length > 10:
             hits[grouping[group_index]] = True
         # for group in grouping:
         #     if source_index in group:
