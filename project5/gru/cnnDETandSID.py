@@ -15,7 +15,7 @@ from itertools import islice
 class cnnMNIST(object):
     def __init__(self):
         self.lr = 1e-3
-        self.epochs = 100
+        self.epochs = 11
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -187,7 +187,7 @@ class cnnMNIST(object):
                 # tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
                 tostore_spectra += [x[index_list, :].reshape((1, sequence_length, 1024))]
                 # tostore_labels += [y[list(index_list)[-1]]]  # last label is the the correct label (current spectra in question)
-                tostore_labels += [y[list(index_list)[int(sequence_length / 2)]]]  # middle frame in question
+                tostore_labels += [y[list(index_list)[int(sequence_length / 2) - 1]]]  # middle frame in question
             tostore_spectra = np.concatenate(tostore_spectra, axis=0)
             tostore_labels = np.array(tostore_labels)
 
@@ -273,27 +273,34 @@ class cnnMNIST(object):
             yield result
 
     def train(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
         self.eval() # creating evaluation
+        a = time.time()
         for i in range(self.epochs):
             # batch = mnist.train.next_batch(50)
             x_generator = self.batch(self.x_train, n=32)
-            # y_generator = self.batch(self.y_train, n=32)
-            # print(batch[0].shape)
-            # print(batch[1].shape)
-            if i % 10 == 0 and i != 0:
-                train_acc = self.sess.run(self.accuracy,feed_dict={self.x: self.x_test[:50, :],
-                    self.y_: self.y_test[:50, :],
-                                                                   self.keep_prob: 1.0})
-                print('step %d, training accuracy %g' % (i, train_acc))
             for x, y in x_generator:
                 self.sess.run([self.train_step], feed_dict={self.x: x,
                                                             self.y_: y,
-                                                            self.keep_prob: 0.5})
+                                                            self.keep_prob: 0.1})
             # self.shuffle()
+
+            if i % 10 == 0 and i != 0:
+                x_test_generator = self.batch(self.x_test, shuffle=False, n=32, usethesekeys = list(self.x_test.keys()), shortset=True)
+                current_x_test, current_y_test = next(x_test_generator)
+                test_acc = self.sess.run(self.accuracy,feed_dict={self.x: current_x_test ,
+                    self.y_: current_y_test,
+                                                                   self.keep_prob: 1.0})
+                train_acc = self.sess.run(self.accuracy,
+                    feed_dict={self.x: x,
+                               self.y_: y,
+                               self.keep_prob: 1.0})
+                # NOTE: Below is really the test accuracy, but whatever.
+                print('step %d, training accuracy %g, testing accuracy %g, time elapsed %g' % (i, train_acc, test_acc, time.time() - a))
+
 
     def eval(self):
         # self.time_index = np.arange(self.y_conv.get_shape()[0])
@@ -414,7 +421,7 @@ def main():
     np.save('cnndetandidseq_ground_truth.npy', labels_decode)
 
     validation_data = cnn.memory_validation_batcher()
-    answers = open('approach3_answers.csv', 'w')
+    answers = open('approach3_answers_vgg16_{}.csv'.format(cnn.epochs), 'w')
     answers.write('RunID,SourceID,SourceTime,Comment\n')
     # counter = 0
     for sample in validation_data:
@@ -437,7 +444,7 @@ def main():
             current_predictions = predictions[mask]
 
             answers.write('{},{},{},\n'.format(
-                runname, current_predictions[index_guess], t[index_guess] + 30))
+                runname, current_predictions[index_guess], t[index_guess] + 8))
         else:
             answers.write('{},{},{},\n'.format(
                 runname, 0, 0))

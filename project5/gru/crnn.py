@@ -23,11 +23,11 @@ from itertools import islice
 class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = False
-        self.lr = 1e-4
-        self.epochs = 100
+        self.lr = 1e-3
+        self.epochs = 21
         self.runname = 'meh'
         self.build_graph()
-        self.dataset_filename = 'sequential_dataset_relabel_240seconds.h5'
+        self.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
 
     def onehot_labels(self, labels):
         out = np.zeros((labels.shape[0], 7))
@@ -89,7 +89,7 @@ class cnnMNIST(object):
             for index_list in index_generator:
                 # tostore_spectra = np.concatenate((tostore_spectra, x[index_list, :].reshape((1, sequence_length, 1024))))
                 tostore_spectra += [x[index_list, :].reshape((1, sequence_length, 1024))]
-                tostore_labels += [y[list(index_list)[-1]]]
+                tostore_labels += [y[list(index_list)[int(sequence_length / 2) - 1]]]
             tostore_spectra = np.concatenate(tostore_spectra, axis=0)
             tostore_labels = np.array(tostore_labels)
 
@@ -353,7 +353,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -363,34 +363,18 @@ class cnnMNIST(object):
         a = time.time()
         for i in range(self.epochs):
             if i % 10 == 0 and i != 0:
-                counter = 0
-                sum_acc = 0
-                sum_loss = 0
-                hits = 0
-                meh = 0
                 x_generator_test = self.memory_batch(self.x_test,
-                                              usethesekeys=list(self.x_test.keys()), shortset=True)
+                                              usethesekeys=list(self.x_test.keys()), shortset=True, shuffle=False)
                 # first, second = next(x_generator_test)
                 # for outerloop in range(self.howmanytimes):
-                for first, second in x_generator_test:
-                #     if outerloop != 0:
-                        # first, second = next(x_generator_test)
-                    # NOTE: quick and dirty preprocessing once again
-                    # feedme = j / j.sum(axis=-1, keepdims=True)
-                    feedme = first
-                    k = second
-                    accuracy, test_loss, prediction = self.sess.run([self.accuracy, self.loss, self.prediction], feed_dict={self.x: feedme,
-                               self.y_: k, self.keep_prob: 1.0})
+                first, second = next(x_generator_test)
+                test_acc = self.sess.run(self.accuracy, feed_dict={self.x: first,
+                               self.y_: second, self.keep_prob: 1.0})
                             #    self.weights: z})
-                    sum_loss += np.sum(test_loss)
-                    hits += np.sum(prediction)
-                    sum_acc += accuracy
-                    counter += feedme.shape[0]
-                    meh += 1
                 train_acc, train_loss = self.sess.run([self.accuracy, self.loss],
                                                       feed_dict={self.x: x, self.y_: y, self.keep_prob: 1.0})
                 b = time.time()
-                print('step {}:\navg test acc {} | avg train acc {}\navg test loss {} | avg train loss {}\ntotalhits {}\ntime elapsed: {} s'.format(i, sum_acc / meh, train_acc, sum_loss / counter, train_loss, hits, b-a))
+                print('step {}:\n train acc {} | test acc {}\ntime elapsed: {} s'.format(i,  train_acc, test_acc, b - a))
             # NOTE: QUick and dirty preprocessing. normalize to counts
             # x = x / x.sum(axis=-1, keepdims=True)
             x_generator = self.memory_batch(self.x_train, shuffle=True)
@@ -544,7 +528,7 @@ def main():
     #     print('Confusion matrix data saved')
 
     if validate_please:
-        answers = open('approach3_answers_{}_{}.csv'.format(cnn.runname, cnn.dataset_filename[:-4]), 'w')
+        answers = open('approach3_answers_crnn_{}.csv'.format(cnn.epochs), 'w')
         answers.write('RunID,SourceID,SourceTime,Comment\n')
         counter = 0
         for sample, runname in validation_data:
@@ -581,7 +565,7 @@ def main():
                 current_predictions = predictions[hits]
 
                 answers.write('{},{},{},\n'.format(
-                    runname, current_predictions[index_guess], t[index_guess] + 30))
+                    runname, current_predictions[index_guess], t[index_guess] + 8))
             else:
                 answers.write('{},{},{},\n'.format(
                     runname, 0, 0))
