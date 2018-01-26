@@ -277,7 +277,7 @@ class cnnMNIST(object):
             yield result
 
     def train(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         init = tf.global_variables_initializer()
         self.sess.run(init)
@@ -424,39 +424,61 @@ def main():
     np.save('cnndetandidseq_predictions.npy', predictions_decode)
     # np.save('cnndetandidseq_prediction_scores.npy', scores)
     np.save('cnndetandidseq_ground_truth.npy', ground_truth)
-
-    validation_data = cnn.memory_validation_batcher()
-    answers = open('approach3_answers_vgg16_{}.csv'.format(cnn.epochs), 'w')
-    answers.write('RunID,SourceID,SourceTime,Comment\n')
-    # counter = 0
-    temp_predictions = []
-    for sample, iswrite in validation_data:
-        x = np.array(sample)
-        
-        predictions = cnn.sess.run(
-            cnn.prediction,
-            feed_dict = {cnn.x: x,
-                         cnn.keep_prob: 1.0})
-        temp_predictions += predictions.tolist()
-        time_index = np.arange(predictions.shape[0])
-        mask = predictions >= 0.5
-        runname = cnn.current_sample_name 
-        if iswrite == 1:
-            if np.sum(mask) != 0:
-                print(x.shape)
-                counts = np.sum(np.squeeze(x[:, 7, :]), axis=1)
-                t = time_index[mask]
-                t = [int(i) for i in t]
-                index_guess = np.argmax(counts[t])
-
-                current_predictions = predictions[mask]
-
-                answers.write('{},{},{},\n'.format(
-                    runname, current_predictions[index_guess], t[index_guess] + 8))
+    if validate_please:
+        validation_data = cnn.memory_validation_batcher()
+        answers = open('approach3_answers_crnn_{}.csv'.format(cnn.epochs), 'w')
+        answers.write('RunID,SourceID,SourceTime,Comment\n')
+        counter = 0
+        toggle = 0
+        temp_x = []
+        for sample in validation_data:
+            x = sample
+            temp_spectra = np.squeeze(x[:, 8, :])
+            if len(temp_spectra.shape) == 1:
+                temp_spectra.reshape((1, 1024))
+            temp_x += [temp_spectra]
+            if toggle == 0:
+                predictions = cnn.sess.run(
+                    cnn.prediction,
+                    feed_dict = {cnn.x: x,
+                                 cnn.keep_prob: 1.0})
             else:
-                answers.write('{},{},{},\n'.format(
-                    runname, 0, 0))
-            temp_predictions = []
+                predictions = np.concatenate((predictions, cnn.sess.run(
+                    cnn.prediction,
+                    feed_dict = {cnn.x: x,
+                                 cnn.keep_prob: 1.0})))
+            toggle += 1
+
+            if toggle == cnn.howmanytimes:
+                temp_x = np.concatenate(temp_x, axis=0)
+                predictions = np.array(predictions)
+                predictions = predictions.flatten()
+
+                time_index = np.arange(predictions.shape[0])
+                mask = predictions >= 0.5
+
+                if np.sum(mask) != 0:
+                    machine = np.argwhere(mask == True)
+                    grouping = group_consecutives(machine)
+                    indicies = max(grouping, key=len)
+                    counts = np.sum(temp_x, axis=1)
+                    indicies = [int(i) for i in indicies]
+                    if len(indicies) > 5:
+                        t = time_index[indicies]
+                        t = [int(i) for i in t]
+                        index_guess = np.argmax(counts[t])
+                        print(predictions[index_guess])
+                        current_time = t[index_guess] + 8
+                        answers.write('{},{},{},\n'.format(
+                            runname, current_predictions[index_guess], t[index_guess]))
+                    else:
+                        answers.write('{},0,0,\n'.format(runname))
+                else:
+                    answers.write('{},0,0,\n'.format(runname))
+                predictions = []
+                temp_x = []
+                toggle = 0
+            counter += 1
     answers.close()
     return
 

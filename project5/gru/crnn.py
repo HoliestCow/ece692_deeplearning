@@ -348,7 +348,7 @@ class cnnMNIST(object):
     def train(self):
         if self.use_gpu:
             # use half of  the gpu memory
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
             self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         else:
             self.sess = tf.Session()
@@ -470,7 +470,7 @@ def group_consecutives(vals, step=1):
     return result
 
 def longest(l):
-    if len(l):
+    if len(l) == 0:
         return None, None
 
     # if(not isinstance(l, list)): return(0)
@@ -496,7 +496,7 @@ def main():
     # characterize = True
     cnn.use_gpu = True
     cnn.lr = 1e-3
-    cnn.epochs = 11
+    cnn.epochs = 6
     cnn.training_keep_prob = 0.75
     cnn.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
     cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}_data{}'.format(cnn.lr, cnn.epochs, cnn.dataset_filename)
@@ -513,8 +513,6 @@ def main():
     print('Training time: {} s'.format(b-a))
     # cnn.test_eval()
 
-    validation_data = cnn.memory_validation_batcher()
-
     # if characterize:
     #     predictions, y, score = cnn.get_label_predictions()
     #     predictions_decode = predictions
@@ -524,53 +522,66 @@ def main():
     #     print('Confusion matrix data saved')
 
     if validate_please:
+        validation_data = cnn.memory_validation_batcher()
         answers = open('approach3_answers_crnn_{}.csv'.format(cnn.epochs), 'w')
         answers.write('RunID,SourceID,SourceTime,Comment\n')
         counter = 0
+        toggle = 0
+        temp_x = []
         for sample in validation_data:
             x = sample
-            predictions = cnn.sess.run(
-                cnn.prediction,
-                feed_dict = {cnn.x: x,
-                             cnn.keep_prob: 1.0})
-            time_index = np.arange(predictions.shape[0])
-            # mask = predictions >= 0.5
-            machine = np.argwhere(predictions >= 0.5)
-            hits = np.zeros((x.shape[0], ), dtype=bool)
-            # hits = mask
-            machine = machine.reshape((machine.shape[0], ))
-            grouping = group_consecutives(machine)
-            group_index, group_length = longest(grouping)
-
-            if group_index is not None:
-                hits[grouping[group_index]] = True
-            # for group in grouping:
-            #     if source_index in group:
-            #         hits[group] = True
-            #NOTE: I left off right here. I haven't figured out if there is no hits.ckligh
-
-            # runname = sample.name.split('/')[-1]
-            # runname = sample.name
-            runname = cnn.current_sample_name
-            if np.sum(hits) != 0:
-                counts = np.sum(x, axis=1)
-                # fig = plt.figure()
-                t = time_index[hits]
-                t = [int(i) for i in t]
-                index_guess = np.argmax(counts[t])
-
-                current_predictions = predictions[hits]
-
-                answers.write('{},{},{},\n'.format(
-                    runname, current_predictions[index_guess], t[index_guess] + 8))
+            temp_spectra = np.squeeze(x[:, 8, :])
+            print(temp_spectra.shape)
+            if len(temp_spectra.shape) == 1:
+                # temp_spectra.reshape((1, 1024))
+                temp_spectra = np.expand_dims(temp_spectra, axis=0)
+            print(temp_spectra.shape)
+            temp_x += [temp_spectra]
+            if toggle == 0:
+                predictions = cnn.sess.run(
+                    cnn.prediction,
+                    feed_dict = {cnn.x: x,
+                                 cnn.keep_prob: 1.0})
             else:
-                answers.write('{},{},{},\n'.format(
-                    runname, 0, 0))
+                predictions = np.concatenate((predictions, cnn.sess.run(
+                    cnn.prediction,
+                    feed_dict = {cnn.x: x,
+                                 cnn.keep_prob: 1.0})))
+            toggle += 1
 
-            if counter % 1000 == 0:
-                print('{} validation samples complete'.format(counter))
+            if toggle == cnn.howmanytimes:
+                print(temp_x)
+                temp_x = np.array(temp_x)
+                print(temp_x.shape)
+                temp_x = np.concatenate(temp_x, axis=0)
+                predictions = np.array(predictions)
+                predictions = predictions.flatten()
+
+                time_index = np.arange(predictions.shape[0])
+                mask = predictions >= 0.5
+
+                if np.sum(mask) != 0:
+                    machine = np.argwhere(mask == True)
+                    grouping = group_consecutives(machine)
+                    indicies = max(grouping, key=len)
+                    counts = np.sum(temp_x, axis=1)
+                    indicies = [int(i) for i in indicies]
+                    if len(indicies) > 5:
+                        t = time_index[indicies]
+                        t = [int(i) for i in t]
+                        index_guess = np.argmax(counts[t])
+                        current_time = t[index_guess] + 8
+                        answers.write('{},{},{},\n'.format(
+                            runname, predictions[index_guess], t[index_guess]))
+                    else:
+                        answers.write('{},0,0,\n'.format(runname))
+                else:
+                    answers.write('{},0,0,\n'.format(runname))
+                predictions = []
+                temp_x = []
+                toggle = 0
             counter += 1
-        answers.close()
+    answers.close()
 
     return
 
