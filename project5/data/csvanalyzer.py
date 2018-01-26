@@ -38,7 +38,7 @@ def label_datasets():
 
 def main():
 
-    fileofinterest = ''
+    fileofinterest = '../gru/approach3_answers_crnn_11_keep0.75.csv'
 
     id2string = {0: 'Background',
              1: 'HEU',
@@ -86,7 +86,7 @@ def main():
             N += 1
 
         counter += 1
-
+    print('P: {}, N: {}, T: {}\n'.format(P, N, P+N))
     print('TPR: {}\nFPR: {}\nTNR: {}\nFNR: {}\nP: {}\nN: {}\nT: {}\n'.format(
         float(TP) / float(P),
         float(FP) / float(P),
