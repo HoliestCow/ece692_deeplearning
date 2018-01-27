@@ -87,14 +87,14 @@ def main():
 
         counter += 1
     print('P: {}, N: {}, T: {}\n'.format(P, N, P+N))
-    print('TPR: {}\nFPR: {}\nTNR: {}\nFNR: {}\nP: {}\nN: {}\nT: {}\n'.format(
-        float(TP) / float(P),
-        float(FP) / float(P),
-        float(TN) / float(N),
-        float(FN) / float(N),
-        P,
-        N,
-        P + N))
+    # print('TPR: {}\nFPR: {}\nTNR: {}\nFNR: {}\nP: {}\nN: {}\nT: {}\n'.format(
+    #     float(TP) / float(P),
+    #     float(FP) / float(P),
+    #     float(TN) / float(N),
+    #     float(FN) / float(N),
+    #     P,
+    #     N,
+    #     P + N))
     return
 
 main()
