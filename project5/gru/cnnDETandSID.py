@@ -14,9 +14,9 @@ from itertools import islice
 
 class cnnMNIST(object):
     def __init__(self):
-        self.training_keep_prob = 0.5
+        self.training_keep_prob = 0.2
         self.lr = 1e-3
-        self.epochs = 11
+        self.epochs = 6
         self.build_graph()
 
     def onehot_labels(self, labels):
@@ -248,11 +248,7 @@ class cnnMNIST(object):
                 x = tostore_spectra[start:end, :, :]
                 if x.shape[0] == 0:
                     continue
-                if j == self.howmanytimes:
-                    toggle = 1
-                else:
-                    toggle = 0
-                yield x, toggle
+                yield x
 
     def validation_batcher(self):
         f = h5py.File('../data/sequential_dataset_relabel_testset_validationonly.h5', 'r')
@@ -401,6 +397,7 @@ class cnnMNIST(object):
 
 
 def main():
+    validate_please = True
     cnn = cnnMNIST()
     a = time.time()
     print('Retrieving data')
@@ -426,7 +423,7 @@ def main():
     np.save('cnndetandidseq_ground_truth.npy', ground_truth)
     if validate_please:
         validation_data = cnn.memory_validation_batcher()
-        answers = open('approach3_answers_crnn_{}.csv'.format(cnn.epochs), 'w')
+        answers = open('approach3_answers_vgg16_{}.csv'.format(cnn.epochs), 'w')
         answers.write('RunID,SourceID,SourceTime,Comment\n')
         counter = 0
         toggle = 0
@@ -435,7 +432,7 @@ def main():
             x = sample
             temp_spectra = np.squeeze(x[:, 8, :])
             if len(temp_spectra.shape) == 1:
-                temp_spectra.reshape((1, 1024))
+                temp_spectra = np.expand_dims(temp_spectra, axis=0)
             temp_x += [temp_spectra]
             if toggle == 0:
                 predictions = cnn.sess.run(
@@ -467,14 +464,13 @@ def main():
                         t = time_index[indicies]
                         t = [int(i) for i in t]
                         index_guess = np.argmax(counts[t])
-                        print(predictions[index_guess])
                         current_time = t[index_guess] + 8
                         answers.write('{},{},{},\n'.format(
-                            runname, current_predictions[index_guess], t[index_guess]))
+                            cnn.current_sample_name, current_predictions[index_guess], t[index_guess]))
                     else:
-                        answers.write('{},0,0,\n'.format(runname))
+                        answers.write('{},0,0,\n'.format(cnn.current_sample_name))
                 else:
-                    answers.write('{},0,0,\n'.format(runname))
+                    answers.write('{},0,0,\n'.format(cnn.current_sample_name))
                 predictions = []
                 temp_x = []
                 toggle = 0
