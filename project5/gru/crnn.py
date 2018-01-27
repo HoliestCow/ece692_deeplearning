@@ -24,7 +24,7 @@ class cnnMNIST(object):
     def __init__(self):
         self.use_gpu = False
         self.lr = 1e-3
-        self.epochs = 11
+        self.epochs = 31
         self.runname = 'meh'
         self.training_keep_prob = 1.0
         self.build_graph()
@@ -74,8 +74,6 @@ class cnnMNIST(object):
             self.current_key = keylist[i]
             x = np.array(iterable[keylist[i]]['measured_spectra'])
             y = np.array(iterable[keylist[i]]['labels'])
-            mask = y >= 0.5
-            y[mask] = 1
 
             index = np.arange(x.shape[0])
 
@@ -106,7 +104,7 @@ class cnnMNIST(object):
             if shortset:
                 keylist = usethesekeys[:100]
 
-        max_batch_size = 128
+        max_batch_size = 32
 
         sequence_length = 16
 
@@ -115,8 +113,8 @@ class cnnMNIST(object):
             self.current_key = keylist[i]
             x = np.array(iterable[keylist[i]]['measured_spectra'])
             y = np.array(iterable[keylist[i]]['labels'])
-            mask = y >= 0.5
-            y[mask] = 1
+            # mask = y >= 0.5
+            # y[mask] = 1
 
             index = np.arange(x.shape[0])
 
@@ -496,8 +494,9 @@ def main():
     # characterize = True
     cnn.use_gpu = True
     cnn.lr = 1e-3
-    cnn.epochs = 6
-    cnn.training_keep_prob = 0.75
+    cnn.epochs = 16
+    # slow on 0.25
+    cnn.training_keep_prob = 1.0
     cnn.dataset_filename = 'sequential_dataset_relabel_allseconds.h5'
     cnn.runname = 'cnndetalt3_relabel_lr{}_ep{}_data{}'.format(cnn.lr, cnn.epochs, cnn.dataset_filename)
     runname = cnn.runname
@@ -531,11 +530,8 @@ def main():
         for sample in validation_data:
             x = sample
             temp_spectra = np.squeeze(x[:, 8, :])
-            print(temp_spectra.shape)
             if len(temp_spectra.shape) == 1:
-                # temp_spectra.reshape((1, 1024))
                 temp_spectra = np.expand_dims(temp_spectra, axis=0)
-            print(temp_spectra.shape)
             temp_x += [temp_spectra]
             if toggle == 0:
                 predictions = cnn.sess.run(
@@ -550,9 +546,7 @@ def main():
             toggle += 1
 
             if toggle == cnn.howmanytimes:
-                print(temp_x)
                 temp_x = np.array(temp_x)
-                print(temp_x.shape)
                 temp_x = np.concatenate(temp_x, axis=0)
                 predictions = np.array(predictions)
                 predictions = predictions.flatten()
@@ -568,15 +562,16 @@ def main():
                     indicies = [int(i) for i in indicies]
                     if len(indicies) > 5:
                         t = time_index[indicies]
+                        current_predictions = predictions[indicies]
                         t = [int(i) for i in t]
                         index_guess = np.argmax(counts[t])
                         current_time = t[index_guess] + 8
                         answers.write('{},{},{},\n'.format(
-                            runname, predictions[index_guess], t[index_guess]))
+                            cnn.current_sample_name, current_predictions[index_guess], t[index_guess]))
                     else:
-                        answers.write('{},0,0,\n'.format(runname))
+                        answers.write('{},0,0,\n'.format(cnn.current_sample_name))
                 else:
-                    answers.write('{},0,0,\n'.format(runname))
+                    answers.write('{},0,0,\n'.format(cnn.current_sample_name))
                 predictions = []
                 temp_x = []
                 toggle = 0
